@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>道路设计项目管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 主应用容器 -->
+    <div id="app">
+        <!-- 登录页面 -->
+        <div id="login-page" class="page active">
+            <div class="login-container">
+                <div class="login-header">
+                    <h1>道路设计项目管理系统</h1>
+                </div>
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="username">用户名:</label>
+                        <input type="text" id="username" placeholder="请输入用户名">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码:</label>
+                        <input type="password" id="password" placeholder="请输入密码">
+                    </div>
+                    <div class="form-options">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="remember">
+                            <span>记住密码</span>
+                        </label>
+                        <a href="#" class="forgot-password">忘记密码?</a>
+                    </div>
+                    <button class="login-btn" onclick="login()">登录</button>
+                </div>
+                <div class="login-footer">
+                    <p>&copy; 2024 道路设计项目管理系统. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主系统页面 -->
+        <div id="main-page" class="page">
+            <!-- 顶部导航栏 -->
+            <header class="header">
+                <div class="header-left">
+                    <h2>道路设计项目管理系统</h2>
+                </div>
+                <div class="header-right">
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span>管理员</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <button class="header-btn" onclick="showSettings()">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <button class="header-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- 主导航菜单 -->
+            <nav class="main-nav">
+                <ul class="nav-list">
+                    <li class="nav-item active" data-page="dashboard">
+                        <i class="fas fa-home"></i>
+                        <span>首页</span>
+                    </li>
+                    <li class="nav-item" data-page="projects">
+                        <i class="fas fa-project-diagram"></i>
+                        <span>项目管理</span>
+                    </li>
+                    <li class="nav-item" data-page="business">
+                        <i class="fas fa-handshake"></i>
+                        <span>经营管理</span>
+                    </li>
+                    <li class="nav-item" data-page="finance">
+                        <i class="fas fa-chart-line"></i>
+                        <span>财务管理</span>
+                    </li>
+                    <li class="nav-item" data-page="personnel">
+                        <i class="fas fa-users"></i>
+                        <span>人员管理</span>
+                    </li>
+                    <li class="nav-item" data-page="documents">
+                        <i class="fas fa-folder"></i>
+                        <span>文档管理</span>
+                    </li>
+                    <li class="nav-item" data-page="system">
+                        <i class="fas fa-cogs"></i>
+                        <span>系统</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- 主内容区域 -->
+            <main class="main-content">
+                <!-- 首页仪表板 -->
+                <div id="dashboard" class="content-page active">
+                    <div class="page-header">
+                        <h3>首页概览</h3>
+                    </div>
+                    
+                    <!-- 项目统计 -->
+                    <div class="stats-section">
+                        <h4>项目统计</h4>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-number">15</div>
+                                <div class="stat-label">项目总数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">8</div>
+                                <div class="stat-label">进行中</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">5</div>
+                                <div class="stat-label">完成</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">2</div>
+                                <div class="stat-label">暂停</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-number">0</div>
+                                <div class="stat-label">逾期</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 财务概览 -->
+                    <div class="finance-section">
+                        <h4>财务概览</h4>
+                        <div class="finance-grid">
+                            <div class="finance-card">
+                                <div class="finance-label">本月收入</div>
+                                <div class="finance-amount">¥850,000</div>
+                            </div>
+                            <div class="finance-card">
+                                <div class="finance-label">本月支出</div>
+                                <div class="finance-amount">¥320,000</div>
+                            </div>
+                            <div class="finance-card">
+                                <div class="finance-label">应收账款</div>
+                                <div class="finance-amount">¥1,200,000</div>
+                            </div>
+                            <div class="finance-card">
+                                <div class="finance-label">本月利润</div>
+                                <div class="finance-amount">¥530,000</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 最近项目 -->
+                    <div class="recent-projects">
+                        <h4>最近项目</h4>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>项目名称</th>
+                                        <th>状态</th>
+                                        <th>负责人</th>
+                                        <th>进度</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>城市道路改造工程</td>
+                                        <td><span class="status-badge status-active">进行中</span></td>
+                                        <td>张三</td>
+                                        <td>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 65%"></div>
+                                            </div>
+                                            <span>65%</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" onclick="viewProject(1)">查看</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>高速公路设计</td>
+                                        <td><span class="status-badge status-active">进行中</span></td>
+                                        <td>李四</td>
+                                        <td>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 30%"></div>
+                                            </div>
+                                            <span>30%</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" onclick="viewProject(2)">查看</button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>桥梁建设项目</td>
+                                        <td><span class="status-badge status-completed">已完成</span></td>
+                                        <td>王五</td>
+                                        <td>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: 100%"></div>
+                                            </div>
+                                            <span>100%</span>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-primary" onclick="viewProject(3)">查看</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 项目管理页面 -->
+                <div id="projects" class="content-page">
+                    <div class="page-header">
+                        <h3>项目管理 > 项目列表</h3>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" onclick="showNewProjectForm()">
+                                <i class="fas fa-plus"></i> 新建项目
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-upload"></i> 导入项目
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i> 导出Excel
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜索筛选 -->
+                    <div class="search-section">
+                        <div class="search-form">
+                            <input type="text" placeholder="搜索项目名称..." class="search-input">
+                            <select class="filter-select">
+                                <option value="">全部状态</option>
+                                <option value="active">进行中</option>
+                                <option value="completed">已完成</option>
+                                <option value="paused">暂停</option>
+                            </select>
+                            <select class="filter-select">
+                                <option value="">全部负责人</option>
+                                <option value="zhang">张三</option>
+                                <option value="li">李四</option>
+                                <option value="wang">王五</option>
+                            </select>
+                            <button class="btn btn-primary">搜索</button>
+                            <button class="btn btn-secondary">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 项目列表 -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>项目名称</th>
+                                    <th>承接日期</th>
+                                    <th>状态</th>
+                                    <th>负责人</th>
+                                    <th>进度</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>城市道路改造工程</td>
+                                    <td>2024-01-15</td>
+                                    <td><span class="status-badge status-active">进行中</span></td>
+                                    <td>张三</td>
+                                    <td>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: 65%"></div>
+                                        </div>
+                                        <span>65%</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewProject(1)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editProject(1)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>高速公路设计</td>
+                                    <td>2024-02-01</td>
+                                    <td><span class="status-badge status-active">进行中</span></td>
+                                    <td>李四</td>
+                                    <td>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: 30%"></div>
+                                        </div>
+                                        <span>30%</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewProject(2)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editProject(2)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>桥梁建设项目</td>
+                                    <td>2024-01-10</td>
+                                    <td><span class="status-badge status-completed">已完成</span></td>
+                                    <td>王五</td>
+                                    <td>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: 100%"></div>
+                                        </div>
+                                        <span>100%</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewProject(3)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editProject(3)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>排水系统设计</td>
+                                    <td>2024-03-01</td>
+                                    <td><span class="status-badge status-active">进行中</span></td>
+                                    <td>赵六</td>
+                                    <td>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: 15%"></div>
+                                        </div>
+                                        <span>15%</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewProject(4)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editProject(4)">编辑</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        <button class="btn btn-sm btn-secondary" disabled>上一页</button>
+                        <button class="btn btn-sm btn-primary active">1</button>
+                        <button class="btn btn-sm btn-secondary">2</button>
+                        <button class="btn btn-sm btn-secondary">3</button>
+                        <button class="btn btn-sm btn-secondary">4</button>
+                        <button class="btn btn-sm btn-secondary">5</button>
+                        <button class="btn btn-sm btn-secondary">下一页</button>
+                        <span class="pagination-info">共 25 条记录</span>
+                    </div>
+                </div>
+
+                <!-- 其他页面占位符 -->
+                <div id="business" class="content-page">
+                    <div class="page-header">
+                        <h3>经营管理 > 客户信息</h3>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" onclick="showNewCustomerForm()">
+                                <i class="fas fa-plus"></i> 新建客户
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-upload"></i> 导入客户
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i> 导出客户
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜索筛选 -->
+                    <div class="search-section">
+                        <div class="search-form">
+                            <input type="text" placeholder="搜索客户名称..." class="search-input">
+                            <select class="filter-select">
+                                <option value="">全部类型</option>
+                                <option value="government">政府机关</option>
+                                <option value="enterprise">企事业单位</option>
+                                <option value="private">私人业主</option>
+                            </select>
+                            <select class="filter-select">
+                                <option value="">全部负责人</option>
+                                <option value="wang">王经理</option>
+                                <option value="li">李经理</option>
+                                <option value="zhang">张经理</option>
+                            </select>
+                            <button class="btn btn-primary">搜索</button>
+                            <button class="btn btn-secondary">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 客户列表 -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>客户名称</th>
+                                    <th>客户类型</th>
+                                    <th>联系人</th>
+                                    <th>联系电话</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>市政府</td>
+                                    <td><span class="customer-type government">政府机关</span></td>
+                                    <td>李经理</td>
+                                    <td>138****8888</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewCustomer(1)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editCustomer(1)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>某建设集团</td>
+                                    <td><span class="customer-type enterprise">企事业单位</span></td>
+                                    <td>王总</td>
+                                    <td>139****9999</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewCustomer(2)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editCustomer(2)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>某地产公司</td>
+                                    <td><span class="customer-type private">私人业主</span></td>
+                                    <td>张经理</td>
+                                    <td>137****7777</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewCustomer(3)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editCustomer(3)">编辑</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        <button class="btn btn-sm btn-secondary" disabled>上一页</button>
+                        <button class="btn btn-sm btn-primary active">1</button>
+                        <button class="btn btn-sm btn-secondary">2</button>
+                        <button class="btn btn-sm btn-secondary">3</button>
+                        <button class="btn btn-sm btn-secondary">下一页</button>
+                        <span class="pagination-info">共 25 条记录</span>
+                    </div>
+                </div>
+
+                <div id="finance" class="content-page">
+                    <div class="page-header">
+                        <h3>财务管理 > 合同财务</h3>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" onclick="showNewContractForm()">
+                                <i class="fas fa-plus"></i> 新建合同
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-upload"></i> 导入合同
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-chart-bar"></i> 财务报表
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜索筛选 -->
+                    <div class="search-section">
+                        <div class="search-form">
+                            <input type="text" placeholder="搜索项目名称..." class="search-input">
+                            <select class="filter-select">
+                                <option value="">全部状态</option>
+                                <option value="pending">待收款</option>
+                                <option value="partial">部分收款</option>
+                                <option value="completed">已完成</option>
+                            </select>
+                            <select class="filter-select">
+                                <option value="">全部项目</option>
+                                <option value="project1">城市道路改造工程</option>
+                                <option value="project2">高速公路设计</option>
+                                <option value="project3">桥梁建设项目</option>
+                            </select>
+                            <button class="btn btn-primary">搜索</button>
+                            <button class="btn btn-secondary">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 合同财务列表 -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>项目名称</th>
+                                    <th>合同金额</th>
+                                    <th>已收金额</th>
+                                    <th>未收金额</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>城市道路改造工程</td>
+                                    <td>¥500万</td>
+                                    <td>¥300万</td>
+                                    <td>¥200万</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewContract(1)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editContract(1)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>高速公路设计</td>
+                                    <td>¥300万</td>
+                                    <td>¥150万</td>
+                                    <td>¥150万</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewContract(2)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editContract(2)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>桥梁建设项目</td>
+                                    <td>¥800万</td>
+                                    <td>¥800万</td>
+                                    <td>¥0</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" onclick="viewContract(3)">查看</button>
+                                        <button class="btn btn-sm btn-secondary" onclick="editContract(3)">编辑</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 财务汇总 -->
+                    <div class="finance-summary">
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <div class="summary-label">合同总金额</div>
+                                <div class="summary-amount">¥1,600万</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">已收总金额</div>
+                                <div class="summary-amount">¥1,250万</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">未收总金额</div>
+                                <div class="summary-amount">¥350万</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        <button class="btn btn-sm btn-secondary" disabled>上一页</button>
+                        <button class="btn btn-sm btn-primary active">1</button>
+                        <button class="btn btn-sm btn-secondary">2</button>
+                        <button class="btn btn-sm btn-secondary">3</button>
+                        <button class="btn btn-sm btn-secondary">下一页</button>
+                        <span class="pagination-info">共 15 条记录</span>
+                    </div>
+                </div>
+
+                <div id="personnel" class="content-page">
+                    <div class="page-header">
+                        <h3>生产支出 > 费用管理</h3>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" onclick="showNewExpenseForm('vehicle')">
+                                <i class="fas fa-car"></i> 新增用车
+                            </button>
+                            <button class="btn btn-primary" onclick="showNewExpenseForm('accommodation')">
+                                <i class="fas fa-bed"></i> 新增住宿
+                            </button>
+                            <button class="btn btn-primary" onclick="showNewExpenseForm('transport')">
+                                <i class="fas fa-plane"></i> 新增交通
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i> 导出费用
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜索筛选 -->
+                    <div class="search-section">
+                        <div class="search-form">
+                            <select class="filter-select">
+                                <option value="">全部项目</option>
+                                <option value="project1">城市道路改造工程</option>
+                                <option value="project2">高速公路设计</option>
+                                <option value="project3">桥梁建设项目</option>
+                            </select>
+                            <select class="filter-select">
+                                <option value="">全部人员</option>
+                                <option value="zhang">张三</option>
+                                <option value="li">李四</option>
+                                <option value="wang">王五</option>
+                            </select>
+                            <input type="text" placeholder="时间范围: 2024-01至2024-12" class="search-input" readonly>
+                            <button class="btn btn-primary">搜索</button>
+                            <button class="btn btn-secondary">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 费用列表 -->
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>类型</th>
+                                    <th>项目</th>
+                                    <th>人员</th>
+                                    <th>金额</th>
+                                    <th>凭证</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>2024-02-01</td>
+                                    <td><span class="expense-type vehicle">用车</span></td>
+                                    <td>道路改造</td>
+                                    <td>张三</td>
+                                    <td>¥240</td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewVoucher(1)">查看</button></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary" onclick="editExpense(1)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2024-02-02</td>
+                                    <td><span class="expense-type accommodation">住宿</span></td>
+                                    <td>道路改造</td>
+                                    <td>李四</td>
+                                    <td>¥180</td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewVoucher(2)">查看</button></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary" onclick="editExpense(2)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2024-02-02</td>
+                                    <td><span class="expense-type transport">交通</span></td>
+                                    <td>道路改造</td>
+                                    <td>李四</td>
+                                    <td>¥120</td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewVoucher(3)">查看</button></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary" onclick="editExpense(3)">编辑</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>2024-02-03</td>
+                                    <td><span class="expense-type vehicle">用车</span></td>
+                                    <td>高速设计</td>
+                                    <td>王五</td>
+                                    <td>¥160</td>
+                                    <td><button class="btn btn-sm btn-secondary" onclick="viewVoucher(4)">查看</button></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-secondary" onclick="editExpense(4)">编辑</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 费用统计 -->
+                    <div class="expense-summary">
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <div class="summary-label">用车费用</div>
+                                <div class="summary-amount">¥2,400</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">住宿费用</div>
+                                <div class="summary-amount">¥1,800</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-label">交通费用</div>
+                                <div class="summary-amount">¥1,200</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 分页 -->
+                    <div class="pagination">
+                        <button class="btn btn-sm btn-secondary" disabled>上一页</button>
+                        <button class="btn btn-sm btn-primary active">1</button>
+                        <button class="btn btn-sm btn-secondary">2</button>
+                        <button class="btn btn-sm btn-secondary">3</button>
+                        <button class="btn btn-sm btn-secondary">4</button>
+                        <button class="btn btn-sm btn-secondary">5</button>
+                        <button class="btn btn-sm btn-secondary">下一页</button>
+                        <span class="pagination-info">共 120 条记录</span>
+                    </div>
+                </div>
+
+                <div id="documents" class="content-page">
+                    <div class="page-header">
+                        <h3>文档管理 > 文档库</h3>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" onclick="showUploadModal()">
+                                <i class="fas fa-upload"></i> 上传文档
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-folder-plus"></i> 新建文件夹
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-download"></i> 批量下载
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 搜索筛选 -->
+                    <div class="search-section">
+                        <div class="search-form">
+                            <input type="text" placeholder="搜索文档名称..." class="search-input">
+                            <select class="filter-select">
+                                <option value="">全部类型</option>
+                                <option value="contract">合同文档</option>
+                                <option value="design">设计文档</option>
+                                <option value="finance">财务文档</option>
+                                <option value="other">其他文档</option>
+                            </select>
+                            <select class="filter-select">
+                                <option value="">全部项目</option>
+                                <option value="project1">城市道路改造工程</option>
+                                <option value="project2">高速公路设计</option>
+                                <option value="project3">桥梁建设项目</option>
+                            </select>
+                            <button class="btn btn-primary">搜索</button>
+                            <button class="btn btn-secondary">重置</button>
+                        </div>
+                    </div>
+
+                    <!-- 文档管理区域 -->
+                    <div class="document-manager">
+                        <div class="document-sidebar">
+                            <div class="document-categories">
+                                <div class="category-item active" data-category="all">
+                                    <i class="fas fa-folder"></i>
+                                    <span>全部文档</span>
+                                </div>
+                                <div class="category-group">
+                                    <div class="category-item" data-category="contract">
+                                        <i class="fas fa-folder"></i>
+                                        <span>合同文档</span>
+                                    </div>
+                                    <div class="category-sub">
+                                        <div class="category-item" data-category="contract-design">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>设计合同</span>
+                                        </div>
+                                        <div class="category-item" data-category="contract-survey">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>勘察合同</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="category-group">
+                                    <div class="category-item" data-category="design">
+                                        <i class="fas fa-folder"></i>
+                                        <span>设计文档</span>
+                                    </div>
+                                    <div class="category-sub">
+                                        <div class="category-item" data-category="design-preliminary">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>初设图纸</span>
+                                        </div>
+                                        <div class="category-item" data-category="design-construction">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>施工图纸</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="category-group">
+                                    <div class="category-item" data-category="finance">
+                                        <i class="fas fa-folder"></i>
+                                        <span>财务文档</span>
+                                    </div>
+                                    <div class="category-sub">
+                                        <div class="category-item" data-category="finance-receipt">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>收据发票</span>
+                                        </div>
+                                        <div class="category-item" data-category="finance-payment">
+                                            <i class="fas fa-file-pdf"></i>
+                                            <span>付款凭证</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="category-group">
+                                    <div class="category-item" data-category="other">
+                                        <i class="fas fa-folder"></i>
+                                        <span>其他文档</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="document-content">
+                            <div class="document-list">
+                                <div class="document-item">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <div class="document-info">
+                                        <div class="document-name">城市道路改造合同.pdf</div>
+                                        <div class="document-meta">
+                                            <span class="document-size">2.5MB</span>
+                                            <span class="document-date">2024-01-15</span>
+                                        </div>
+                                    </div>
+                                    <div class="document-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="previewDocument(1)">
+                                            <i class="fas fa-eye"></i> 预览
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="downloadDocument(1)">
+                                            <i class="fas fa-download"></i> 下载
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="document-item">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <div class="document-info">
+                                        <div class="document-name">补充协议.pdf</div>
+                                        <div class="document-meta">
+                                            <span class="document-size">1.2MB</span>
+                                            <span class="document-date">2024-02-01</span>
+                                        </div>
+                                    </div>
+                                    <div class="document-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="previewDocument(2)">
+                                            <i class="fas fa-eye"></i> 预览
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="downloadDocument(2)">
+                                            <i class="fas fa-download"></i> 下载
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="document-item">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <div class="document-info">
+                                        <div class="document-name">高速公路合同.pdf</div>
+                                        <div class="document-meta">
+                                            <span class="document-size">3.1MB</span>
+                                            <span class="document-date">2024-02-15</span>
+                                        </div>
+                                    </div>
+                                    <div class="document-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="previewDocument(3)">
+                                            <i class="fas fa-eye"></i> 预览
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="downloadDocument(3)">
+                                            <i class="fas fa-download"></i> 下载
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="document-item">
+                                    <div class="document-icon">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </div>
+                                    <div class="document-info">
+                                        <div class="document-name">桥梁设计合同.pdf</div>
+                                        <div class="document-meta">
+                                            <span class="document-size">2.8MB</span>
+                                            <span class="document-date">2024-01-10</span>
+                                        </div>
+                                    </div>
+                                    <div class="document-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="previewDocument(4)">
+                                            <i class="fas fa-eye"></i> 预览
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" onclick="downloadDocument(4)">
+                                            <i class="fas fa-download"></i> 下载
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 分页 -->
+                            <div class="pagination">
+                                <button class="btn btn-sm btn-secondary" disabled>上一页</button>
+                                <button class="btn btn-sm btn-primary active">1</button>
+                                <button class="btn btn-sm btn-secondary">2</button>
+                                <button class="btn btn-sm btn-secondary">3</button>
+                                <button class="btn btn-sm btn-secondary">4</button>
+                                <button class="btn btn-sm btn-secondary">5</button>
+                                <button class="btn btn-sm btn-secondary">下一页</button>
+                                <span class="pagination-info">共 45 个文档</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="system" class="content-page">
+                    <div class="page-header">
+                        <h3>人员管理 > 人员配置</h3>
+                        <div class="page-actions">
+                            <button class="btn btn-primary" onclick="showPersonnelConfigModal()">
+                                <i class="fas fa-users"></i> 配置人员
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-copy"></i> 复制配置
+                            </button>
+                            <button class="btn btn-secondary">
+                                <i class="fas fa-chart-bar"></i> 工作量统计
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 项目选择 -->
+                    <div class="search-section">
+                        <div class="search-form">
+                            <label>选择项目:</label>
+                            <select class="filter-select" onchange="loadProjectPersonnel(this.value)">
+                                <option value="">请选择项目</option>
+                                <option value="1">城市道路改造工程</option>
+                                <option value="2">高速公路设计</option>
+                                <option value="3">桥梁建设项目</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 人员配置区域 -->
+                    <div class="personnel-config">
+                        <!-- 项目负责人 -->
+                        <div class="config-section">
+                            <h4>项目负责人</h4>
+                            <div class="config-card">
+                                <div class="form-group">
+                                    <label for="projectManager">项目负责人:</label>
+                                    <select id="projectManager" class="form-select">
+                                        <option value="">请选择项目负责人</option>
+                                        <option value="zhang">张三</option>
+                                        <option value="li">李四</option>
+                                        <option value="wang">王五</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 专业人员配置 -->
+                        <div class="config-section">
+                            <h4>专业人员配置</h4>
+                            <div class="personnel-table">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>专业</th>
+                                            <th>设计人</th>
+                                            <th>参与人</th>
+                                            <th>复核人</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>道路设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="li">李四</option>
+                                                    <option value="wang">王五</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="wang">王五</option>
+                                                    <option value="zhao">赵六</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="zhao">赵六</option>
+                                                    <option value="sun">孙七</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>桥梁设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="sun">孙七</option>
+                                                    <option value="zhou">周八</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="zhou">周八</option>
+                                                    <option value="wu">吴九</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="wu">吴九</option>
+                                                    <option value="zheng">郑十</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>排水设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="zheng">郑十</option>
+                                                    <option value="feng">冯一</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="feng">冯一</option>
+                                                    <option value="chen">陈二</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="chen">陈二</option>
+                                                    <option value="chu">褚三</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>交通设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="chu">褚三</option>
+                                                    <option value="wei">卫四</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="wei">卫四</option>
+                                                    <option value="jiang">蒋五</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="jiang">蒋五</option>
+                                                    <option value="qian">钱六</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>照明设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="qian">钱六</option>
+                                                    <option value="sun2">孙七</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="sun2">孙七</option>
+                                                    <option value="wu2">吴八</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="wu2">吴八</option>
+                                                    <option value="zheng2">郑九</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>绿化设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="zheng2">郑九</option>
+                                                    <option value="feng2">冯十</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="feng2">冯十</option>
+                                                    <option value="chen2">陈一</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="chen2">陈一</option>
+                                                    <option value="chu2">褚二</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>景观设计</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="chu2">褚二</option>
+                                                    <option value="wei2">卫三</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="wei2">卫三</option>
+                                                    <option value="jiang2">蒋四</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="jiang2">蒋四</option>
+                                                    <option value="qian2">钱五</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>其他专业</td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="qian2">钱五</option>
+                                                    <option value="sun3">孙六</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="sun3">孙六</option>
+                                                    <option value="wu3">吴七</option>
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select class="form-select">
+                                                    <option value="">请选择</option>
+                                                    <option value="wu3">吴七</option>
+                                                    <option value="qian3">钱八</option>
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 审核审定人员 -->
+                        <div class="config-section">
+                            <h4>审核审定人员</h4>
+                            <div class="config-card">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="reviewer">审核人:</label>
+                                        <select id="reviewer" class="form-select">
+                                            <option value="">请选择审核人</option>
+                                            <option value="qian3">钱八</option>
+                                            <option value="sun4">孙九</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="approver">审定人:</label>
+                                        <select id="approver" class="form-select">
+                                            <option value="">请选择审定人</option>
+                                            <option value="sun4">孙九</option>
+                                            <option value="wu4">吴十</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 操作按钮 -->
+                        <div class="config-actions">
+                            <button class="btn btn-primary" onclick="savePersonnelConfig()">
+                                <i class="fas fa-save"></i> 保存配置
+                            </button>
+                            <button class="btn btn-secondary" onclick="copyPersonnelConfig()">
+                                <i class="fas fa-copy"></i> 复制配置
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearPersonnelConfig()">
+                                <i class="fas fa-trash"></i> 清空配置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 弹窗容器 -->
+    <div id="modal-container"></div>
+
+    <!-- 提示消息容器 -->
+    <div id="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
