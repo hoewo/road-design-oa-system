@@ -1,0 +1,906 @@
+openapi: 3.0.3
+info:
+  title: 项目管理OA系统 API
+  description: 基于Excel需求的项目管理OA系统API文档
+  version: 1.0.0
+  contact:
+    name: 开发团队
+    email: dev@company.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: 开发环境
+  - url: https://api.project-oa.com/api/v1
+    description: 生产环境
+
+security:
+  - BearerAuth: []
+
+paths:
+  # 认证相关
+  /auth/login:
+    post:
+      tags:
+        - 认证
+      summary: 用户登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: "admin"
+                password:
+                  type: string
+                  example: "password123"
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: 用户名或密码错误
+
+  /auth/logout:
+    post:
+      tags:
+        - 认证
+      summary: 用户登出
+      responses:
+        '200':
+          description: 登出成功
+
+  # 项目管理
+  /projects:
+    get:
+      tags:
+        - 项目管理
+      summary: 获取项目列表
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [planning, bidding, contract, production, completed, cancelled]
+        - name: keyword
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 项目列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+
+    post:
+      tags:
+        - 项目管理
+      summary: 创建新项目
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: 项目创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          description: 请求参数错误
+
+  /projects/{id}:
+    get:
+      tags:
+        - 项目管理
+      summary: 获取项目详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 项目详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetail'
+        '404':
+          description: 项目不存在
+
+    put:
+      tags:
+        - 项目管理
+      summary: 更新项目信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          description: 项目不存在
+
+    delete:
+      tags:
+        - 项目管理
+      summary: 删除项目
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 删除成功
+        '404':
+          description: 项目不存在
+
+  # 项目成员管理
+  /projects/{id}/members:
+    get:
+      tags:
+        - 项目成员
+      summary: 获取项目成员列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成员列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProjectMember'
+
+    post:
+      tags:
+        - 项目成员
+      summary: 添加项目成员
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddMemberRequest'
+      responses:
+        '201':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectMember'
+
+  # 文件管理
+  /projects/{id}/files:
+    get:
+      tags:
+        - 文件管理
+      summary: 获取项目文件列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [contract, bidding, design, audit, production, other]
+      responses:
+        '200':
+          description: 文件列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/File'
+
+    post:
+      tags:
+        - 文件管理
+      summary: 上传文件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+                  enum: [contract, bidding, design, audit, production, other]
+                description:
+                  type: string
+      responses:
+        '201':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/File'
+
+  /files/{id}/download:
+    get:
+      tags:
+        - 文件管理
+      summary: 下载文件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 文件下载
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: 文件不存在
+
+  # 财务管理
+  /projects/{id}/financial:
+    get:
+      tags:
+        - 财务管理
+      summary: 获取项目财务信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 财务信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectFinancial'
+
+    post:
+      tags:
+        - 财务管理
+      summary: 添加财务记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFinancialRecordRequest'
+      responses:
+        '201':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialRecord'
+
+  # 奖金管理
+  /projects/{id}/bonuses:
+    get:
+      tags:
+        - 奖金管理
+      summary: 获取项目奖金列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 奖金列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Bonus'
+
+    post:
+      tags:
+        - 奖金管理
+      summary: 添加奖金记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBonusRequest'
+      responses:
+        '201':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bonus'
+
+  # 甲方管理
+  /clients:
+    get:
+      tags:
+        - 甲方管理
+      summary: 获取甲方列表
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: keyword
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 甲方列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Client'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+
+    post:
+      tags:
+        - 甲方管理
+      summary: 创建新甲方
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+      responses:
+        '201':
+          description: 甲方创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        real_name:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, business, designer, reviewer, finance]
+        department:
+          type: string
+        phone:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Project:
+      type: object
+      properties:
+        id:
+          type: integer
+        project_name:
+          type: string
+        project_number:
+          type: string
+        start_date:
+          type: string
+          format: date
+        project_overview:
+          type: string
+        drawing_unit:
+          type: string
+        status:
+          type: string
+          enum: [planning, bidding, contract, production, completed, cancelled]
+        client_id:
+          type: integer
+        manager_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectDetail:
+      allOf:
+        - $ref: '#/components/schemas/Project'
+        - type: object
+          properties:
+            client:
+              $ref: '#/components/schemas/Client'
+            manager:
+              $ref: '#/components/schemas/User'
+            contracts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Contract'
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectMember'
+            files:
+              type: array
+              items:
+                $ref: '#/components/schemas/File'
+            financial_records:
+              type: array
+              items:
+                $ref: '#/components/schemas/FinancialRecord'
+            bonuses:
+              type: array
+              items:
+                $ref: '#/components/schemas/Bonus'
+
+    Client:
+      type: object
+      properties:
+        id:
+          type: integer
+        client_name:
+          type: string
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        tax_number:
+          type: string
+        bank_account:
+          type: string
+        bank_name:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Contract:
+      type: object
+      properties:
+        id:
+          type: integer
+        contract_number:
+          type: string
+        contract_type:
+          type: string
+        sign_date:
+          type: string
+          format: date
+        contract_rate:
+          type: number
+          format: float
+        contract_amount:
+          type: number
+          format: float
+        file_path:
+          type: string
+        project_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        project_id:
+          type: integer
+        user_id:
+          type: integer
+        role:
+          type: string
+          enum: [manager, designer, participant, reviewer, auditor]
+        join_date:
+          type: string
+          format: date
+        leave_date:
+          type: string
+          format: date
+        is_active:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    File:
+      type: object
+      properties:
+        id:
+          type: integer
+        file_name:
+          type: string
+        original_name:
+          type: string
+        file_path:
+          type: string
+        file_size:
+          type: integer
+        file_type:
+          type: string
+        mime_type:
+          type: string
+        category:
+          type: string
+          enum: [contract, bidding, design, audit, production, other]
+        description:
+          type: string
+        project_id:
+          type: integer
+        uploader_id:
+          type: integer
+        uploader:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    FinancialRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        record_type:
+          type: string
+          enum: [receivable, invoice, payment, expense]
+        amount:
+          type: number
+          format: float
+        invoice_number:
+          type: string
+        invoice_date:
+          type: string
+          format: date
+        payment_date:
+          type: string
+          format: date
+        description:
+          type: string
+        project_id:
+          type: integer
+        created_by_id:
+          type: integer
+        created_by:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Bonus:
+      type: object
+      properties:
+        id:
+          type: integer
+        bonus_type:
+          type: string
+          enum: [business, production]
+        amount:
+          type: number
+          format: float
+        description:
+          type: string
+        project_id:
+          type: integer
+        user_id:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+        created_by_id:
+          type: integer
+        created_by:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProjectFinancial:
+      type: object
+      properties:
+        total_contract_amount:
+          type: number
+          format: float
+        total_receivable:
+          type: number
+          format: float
+        total_invoiced:
+          type: number
+          format: float
+        total_paid:
+          type: number
+          format: float
+        total_outstanding:
+          type: number
+          format: float
+        management_fee_rate:
+          type: number
+          format: float
+        management_fee_amount:
+          type: number
+          format: float
+
+    # 请求模型
+    CreateProjectRequest:
+      type: object
+      required:
+        - project_name
+        - project_number
+        - start_date
+        - client_id
+        - manager_id
+      properties:
+        project_name:
+          type: string
+        project_number:
+          type: string
+        start_date:
+          type: string
+          format: date
+        project_overview:
+          type: string
+        drawing_unit:
+          type: string
+        client_id:
+          type: integer
+        manager_id:
+          type: integer
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        project_name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        project_overview:
+          type: string
+        drawing_unit:
+          type: string
+        status:
+          type: string
+          enum: [planning, bidding, contract, production, completed, cancelled]
+
+    CreateClientRequest:
+      type: object
+      required:
+        - client_name
+      properties:
+        client_name:
+          type: string
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        tax_number:
+          type: string
+        bank_account:
+          type: string
+        bank_name:
+          type: string
+
+    AddMemberRequest:
+      type: object
+      required:
+        - user_id
+        - role
+        - join_date
+      properties:
+        user_id:
+          type: integer
+        role:
+          type: string
+          enum: [manager, designer, participant, reviewer, auditor]
+        join_date:
+          type: string
+          format: date
+
+    CreateFinancialRecordRequest:
+      type: object
+      required:
+        - record_type
+        - amount
+      properties:
+        record_type:
+          type: string
+          enum: [receivable, invoice, payment, expense]
+        amount:
+          type: number
+          format: float
+        invoice_number:
+          type: string
+        invoice_date:
+          type: string
+          format: date
+        payment_date:
+          type: string
+          format: date
+        description:
+          type: string
+
+    CreateBonusRequest:
+      type: object
+      required:
+        - user_id
+        - bonus_type
+        - amount
+      properties:
+        user_id:
+          type: integer
+        bonus_type:
+          type: string
+          enum: [business, production]
+        amount:
+          type: number
+          format: float
+        description:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        details:
+          type: string
