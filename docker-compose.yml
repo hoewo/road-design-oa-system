@@ -56,9 +56,6 @@ services:
       - minio
     networks:
       - project-oa-network
-    volumes:
-      - ./backend:/app
-    working_dir: /app
 
   frontend:
     build:
@@ -73,10 +70,6 @@ services:
       - backend
     networks:
       - project-oa-network
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    working_dir: /app
 
 volumes:
   postgres_data:

@@ -6,8 +6,9 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Configure npm registry and install dependencies
+RUN npm config set registry https://registry.npmmirror.com && \
+    npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
