@@ -3,7 +3,7 @@ import { Table, Button, Space, Input, Select, Card, message } from 'antd'
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
-import type { Project, ProjectStatus } from '@/types'
+import type { ProjectStatus } from '@/types'
 
 const { Search } = Input
 const { Option } = Select
@@ -17,7 +17,7 @@ const ProjectList = () => {
     total: 0,
   })
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['projects', pagination.current, pagination.pageSize, searchText, statusFilter],
     queryFn: () => projectService.getProjects({
       page: pagination.current,
@@ -71,7 +71,7 @@ const ProjectList = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: Project) => (
+      render: () => (
         <Space size="middle">
           <Button type="link" size="small">
             查看
