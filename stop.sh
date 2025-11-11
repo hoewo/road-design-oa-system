@@ -1,0 +1,117 @@
+#!/bin/bash
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 项目根目录
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PID_DIR="${PROJECT_ROOT}/.pids"
+
+echo -e "${BLUE}========================================${NC}"
+echo -e "${BLUE}  项目管理OA系统 - 停止脚本${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo ""
+
+# 停止服务
+stop_service() {
+    local pid_file=$1
+    local service_name=$2
+    
+    if [ ! -f "${pid_file}" ]; then
+        echo -e "${YELLOW}  ${service_name}: 未找到 PID 文件，服务可能未运行${NC}"
+        return 0
+    fi
+    
+    local pid=$(cat "${pid_file}")
+    
+    if ! ps -p ${pid} > /dev/null 2>&1; then
+        echo -e "${YELLOW}  ${service_name}: 进程不存在 (PID: ${pid})${NC}"
+        rm -f "${pid_file}"
+        return 0
+    fi
+    
+    echo -e "${BLUE}  停止 ${service_name} (PID: ${pid})...${NC}"
+    
+    # 尝试优雅关闭
+    kill ${pid} 2>/dev/null
+    
+    # 等待进程结束
+    local count=0
+    while ps -p ${pid} > /dev/null 2>&1 && [ ${count} -lt 10 ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+    
+    # 如果进程仍在运行，强制终止
+    if ps -p ${pid} > /dev/null 2>&1; then
+        echo -e "${YELLOW}  进程未响应，强制终止...${NC}"
+        kill -9 ${pid} 2>/dev/null
+        sleep 1
+    fi
+    
+    # 检查进程是否已停止
+    if ! ps -p ${pid} > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ ${service_name} 已停止${NC}"
+        rm -f "${pid_file}"
+        return 0
+    else
+        echo -e "${RED}  ✗ ${service_name} 停止失败${NC}"
+        return 1
+    fi
+}
+
+# 主流程
+main() {
+    local failed=0
+    
+    # 停止前端服务
+    echo -e "${BLUE}[1/2] 停止前端服务...${NC}"
+    if ! stop_service "${PID_DIR}/frontend.pid" "前端服务"; then
+        failed=1
+    fi
+    
+    echo ""
+    
+    # 停止后端服务
+    echo -e "${BLUE}[2/2] 停止后端服务...${NC}"
+    if ! stop_service "${PID_DIR}/backend.pid" "后端服务"; then
+        failed=1
+    fi
+    
+    echo ""
+    
+    # 清理日志文件（可选）
+    read -p "是否清理日志文件? (y/N): " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}清理日志文件...${NC}"
+        rm -f "${PROJECT_ROOT}/backend.log"
+        rm -f "${PROJECT_ROOT}/frontend.log"
+        echo -e "${GREEN}  ✓ 日志文件已清理${NC}"
+    fi
+    
+    echo ""
+    
+    if [ ${failed} -eq 0 ]; then
+        echo -e "${GREEN}========================================${NC}"
+        echo -e "${GREEN}  所有服务已停止！${NC}"
+        echo -e "${GREEN}========================================${NC}"
+    else
+        echo -e "${RED}========================================${NC}"
+        echo -e "${RED}  部分服务停止失败${NC}"
+        echo -e "${RED}========================================${NC}"
+        echo ""
+        echo -e "${YELLOW}提示: 可以尝试手动查找并终止进程${NC}"
+        echo -e "  查找进程: ${BLUE}ps aux | grep 'go run\\|vite'${NC}"
+        echo -e "  终止进程: ${BLUE}kill -9 <PID>${NC}"
+        exit 1
+    fi
+}
+
+# 执行主流程
+main
+

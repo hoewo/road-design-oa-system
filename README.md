@@ -35,7 +35,23 @@
 
 ## 快速开始
 
-### 使用Docker Compose (推荐)
+### 使用快速启动脚本 (推荐)
+
+```bash
+# 启动所有服务（后端 + 前端）
+./start.sh
+
+# 停止所有服务
+./stop.sh
+
+# 查看服务日志
+tail -f backend.log   # 后端日志
+tail -f frontend.log  # 前端日志
+```
+
+**注意**: 使用脚本前，请确保 PostgreSQL 和 MinIO 已启动。
+
+### 使用Docker Compose
 
 ```bash
 # 启动所有服务
