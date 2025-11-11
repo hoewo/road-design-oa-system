@@ -148,8 +148,13 @@ minio.log
 
 # Backend
 backend/server
+backend/bin/
 
 # Test coverage
 coverage/
 *.cover
 *.out
+
+# Scripts generated files
+scripts/*.log
+scripts/backup/

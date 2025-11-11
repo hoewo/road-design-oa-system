@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -56,8 +57,11 @@ type ListClientsParams struct {
 
 // CreateClient creates a new client
 func (s *ClientService) CreateClient(req *CreateClientRequest) (*models.Client, error) {
-	// Validate client name uniqueness (optional - depends on business rules)
-	// For now, we allow duplicate client names
+	// Validate client name uniqueness
+	var existingClient models.Client
+	if err := s.db.Where("client_name = ?", req.ClientName).First(&existingClient).Error; err == nil {
+		return nil, errors.New("甲方名称已存在，请使用已存在的甲方")
+	}
 
 	// Create client
 	client := &models.Client{
@@ -73,6 +77,12 @@ func (s *ClientService) CreateClient(req *CreateClientRequest) (*models.Client, 
 	}
 
 	if err := s.db.Create(client).Error; err != nil {
+		// Check if error is due to unique constraint violation
+		// PostgreSQL returns error with "duplicate key" message for unique constraint violations
+		errStr := err.Error()
+		if strings.Contains(errStr, "duplicate key") || strings.Contains(errStr, "UNIQUE constraint") {
+			return nil, errors.New("甲方名称已存在，请使用已存在的甲方")
+		}
 		return nil, err
 	}
 
@@ -131,6 +141,14 @@ func (s *ClientService) UpdateClient(id uint, req *UpdateClientRequest) (*models
 			return nil, errors.New("client not found")
 		}
 		return nil, err
+	}
+
+	// Validate client name uniqueness if updating name
+	if req.ClientName != nil && *req.ClientName != client.ClientName {
+		var existingClient models.Client
+		if err := s.db.Where("client_name = ? AND id != ?", *req.ClientName, id).First(&existingClient).Error; err == nil {
+			return nil, errors.New("甲方名称已存在，请使用已存在的甲方")
+		}
 	}
 
 	// Update fields

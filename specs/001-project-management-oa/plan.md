@@ -192,12 +192,70 @@ README.md
 
 **Structure Decision**: 选择Web应用结构，包含独立的前端和后端目录。后端使用Go + Gin框架，采用分层架构（handlers -> services -> models）。前端使用React + TypeScript，采用组件化设计。支持Docker容器化部署。
 
+## Design Decisions & Clarifications
+
+### Field Validation Rules (Updated 2025-01-27)
+
+Based on user feedback and clarification:
+- **Project Creation Form**: Only `project_name` and `project_number` are required fields
+- **All other fields** (start_date, project_overview, drawing_unit, status, client_id, manager_id) are optional
+- **Client Selection**: Supports quick creation of new clients directly from project creation form to avoid blocking workflow
+- **Rationale**: Improves user experience by reducing form friction and allowing incremental data entry
+
+### UX Enhancements
+
+- **Quick Client Creation**: Project creation form includes "新建甲方" (New Client) button in client dropdown
+- **Flexible Data Entry**: Users can create projects with minimal information and complete details later
+- **Non-blocking Workflow**: Users are not required to have all information before creating a project
+
+### Client Management & Selection Design (Updated 2025-01-27)
+
+Based on comprehensive clarification session:
+
+1. **Client Name Uniqueness**:
+   - **Rule**: Enforce strict uniqueness - system prevents creation of clients with duplicate names
+   - **Implementation**: Backend validation checks for existing client names before creation
+   - **User Experience**: Show clear error message suggesting user to use existing client if duplicate detected
+   - **Rationale**: Prevents data duplication and maintains data integrity
+
+2. **Client Maintenance Approach**:
+   - **Decision**: No standalone client management page
+   - **Maintenance Location**: Only through project creation/editing forms
+   - **Rationale**: Simplifies UI, reduces navigation overhead, maintains context during project creation
+   - **Impact**: All client CRUD operations must be accessible from project forms
+
+3. **Client Selection Strategy**:
+   - **Real-time Search**: Dropdown supports live search as user types
+   - **Search Fields**: Client name, contact name, phone number
+   - **Quick Filters**: "Recently Used" and "All" options for quick access
+   - **Implementation**: Frontend filtering with debounced API calls for large datasets
+   - **Rationale**: Improves selection efficiency, especially with large client lists
+
+4. **Client Deletion Rules**:
+   - **Hard Delete with Protection**: Clients can be permanently deleted only if not associated with any projects
+   - **Protection Logic**: Check for project associations before allowing deletion
+   - **User Feedback**: Clear error message explaining why deletion is blocked
+   - **Rationale**: Prevents data integrity issues while allowing cleanup of unused clients
+
+5. **Client Editing Scenarios**:
+   - **Edit Context**: Allow editing client information when editing associated project
+   - **Edit Location**: Within project editing form, not standalone
+   - **Scope**: Full client information can be modified when project is being edited
+   - **Rationale**: Maintains data consistency and allows corrections without creating duplicates
+
+6. **Client List Data Loading & Display** (Updated 2025-01-27):
+   - **Loading Timing**: Load immediately when ProjectForm component mounts
+   - **Error Handling**: Display error message with retry button when loading fails
+   - **Empty State**: Show "暂无数据" (No data) message when list is empty
+   - **Auto Refresh**: Automatically refresh list after client creation/update
+   - **Pagination & Sorting**: No pagination, load all clients (max 100) sorted by created_at DESC
+   - **Implementation**: Use React Query's useQuery with proper error handling and retry logic
+   - **Rationale**: Ensures users always see up-to-date data and can recover from loading failures
+
 ## Complexity Tracking
 
 *Fill ONLY if Constitution Check has violations that must be justified*
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
 

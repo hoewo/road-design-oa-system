@@ -97,17 +97,21 @@ const (
 ```
 
 **Validation Rules**:
-- ProjectName: 2-100字符，必填
-- ProjectNumber: 唯一，格式：YYYY-XXX（年份-序号）
-- StartDate: 不能晚于当前日期
-- ProjectOverview: 最多1000字符
+- ProjectName: 2-100字符，**必填**（核心字段）
+- ProjectNumber: 唯一，格式：YYYY-XXX（年份-序号），**必填**（核心字段）
+- StartDate: 可选，如果填写则不能晚于当前日期
+- ProjectOverview: 可选，最多1000字符
+- DrawingUnit: 可选
+- Status: 可选，默认为"planning"
+- ClientID: 可选（创建项目时支持快速创建甲方）
+- ManagerID: 可选
 
 ### 3. Client (甲方)
 
 ```go
 type Client struct {
     ID          uint      `json:"id" gorm:"primaryKey"`
-    ClientName  string    `json:"client_name" gorm:"not null"`
+    ClientName  string    `json:"client_name" gorm:"uniqueIndex;not null"`
     ContactName string    `json:"contact_name"`
     ContactPhone string   `json:"contact_phone"`
     Email       string    `json:"email"`
@@ -126,10 +130,20 @@ type Client struct {
 ```
 
 **Validation Rules**:
-- ClientName: 2-100字符，必填
-- ContactPhone: 11位手机号或固定电话格式
-- Email: 有效的邮箱格式
-- TaxNumber: 18位统一社会信用代码格式
+- ClientName: 2-100字符，必填，**唯一**（数据库唯一索引 + 应用层验证）
+- ContactPhone: 11位手机号或固定电话格式（可选）
+- Email: 有效的邮箱格式（可选）
+- TaxNumber: 18位统一社会信用代码格式（可选）
+
+**Business Rules**:
+- **唯一性约束**: 甲方名称必须唯一，创建时自动检测重复并阻止
+- **删除保护**: 如果甲方已被项目使用，不允许删除；未使用的甲方可以硬删除
+- **维护方式**: 不提供独立管理页面，仅通过项目创建/编辑表单维护
+- **编辑场景**: 在项目编辑时允许编辑关联的甲方信息
+- **数据加载**: 组件挂载时立即加载，最多100条，按创建时间倒序排列
+- **错误处理**: 加载失败时显示错误提示并提供重试功能
+- **空状态**: 列表为空时显示"暂无数据"提示
+- **自动刷新**: 创建/更新甲方后自动刷新列表
 
 ### 4. Contract (合同)
 

@@ -49,6 +49,11 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 			zap.Error(err),
 			zap.String("client_name", req.ClientName),
 		)
+		// Check if error is due to duplicate client name
+		if err.Error() == "甲方名称已存在，请使用已存在的甲方" {
+			utils.HandleError(c, http.StatusConflict, "甲方名称已存在，请使用已存在的甲方", err)
+			return
+		}
 		utils.HandleError(c, http.StatusBadRequest, "Failed to create client", err)
 		return
 	}
@@ -172,6 +177,11 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 			zap.Error(err),
 			zap.Uint("client_id", uint(id)),
 		)
+		// Check if error is due to duplicate client name
+		if err.Error() == "甲方名称已存在，请使用已存在的甲方" {
+			utils.HandleError(c, http.StatusConflict, "甲方名称已存在，请使用已存在的甲方", err)
+			return
+		}
 		utils.HandleError(c, http.StatusBadRequest, "Failed to update client", err)
 		return
 	}

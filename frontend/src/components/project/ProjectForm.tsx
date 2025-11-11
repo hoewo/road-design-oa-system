@@ -9,6 +9,7 @@ import {
   message,
   Row,
   Col,
+  Modal,
 } from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
@@ -19,6 +20,7 @@ import type {
   ProjectStatus,
 } from '@/types'
 import dayjs from 'dayjs'
+import ClientForm from '@/components/client/ClientForm'
 
 const { TextArea } = Input
 const { Option } = Select
@@ -34,6 +36,10 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
   const queryClient = useQueryClient()
   const [clients, setClients] = useState<any[]>([])
   const [managers, setManagers] = useState<any[]>([])
+  const [clientModalVisible, setClientModalVisible] = useState(false)
+  const [clientSearchValue, setClientSearchValue] = useState('')
+  const [clientFilter, setClientFilter] = useState<'all' | 'recent'>('all')
+  const [recentClientIds, setRecentClientIds] = useState<number[]>([])
 
   // Load project data if editing
   const { data: project, isLoading: loadingProject } = useQuery({
@@ -43,12 +49,59 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
   })
 
   // Load clients for selection
-  useQuery({
+  const {
+    data: clientsData,
+    refetch: refetchClients,
+    isError: clientsError,
+    isLoading: clientsLoading,
+  } = useQuery({
     queryKey: ['clients'],
     queryFn: () => projectService.getClients({ page: 1, size: 100 }),
-    onSuccess: (data) => {
-      setClients(data.data || [])
-    },
+    retry: 2, // Retry 2 times on failure
+  })
+
+  // Update clients state when data is loaded
+  useEffect(() => {
+    if (clientsData) {
+      setClients(clientsData.data || [])
+      // Load recent client IDs from localStorage
+      const recent = localStorage.getItem('recentClientIds')
+      if (recent) {
+        try {
+          setRecentClientIds(JSON.parse(recent))
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+    }
+  }, [clientsData])
+
+  // Show error message if clients loading fails
+  useEffect(() => {
+    if (clientsError) {
+      message.error('加载甲方列表失败，请点击重试按钮重试')
+    }
+  }, [clientsError])
+
+  // Filter clients based on search and filter
+  const filteredClients = clients.filter((client) => {
+    // Apply search filter
+    if (clientSearchValue) {
+      const searchLower = clientSearchValue.toLowerCase()
+      const matchesSearch =
+        client.client_name?.toLowerCase().includes(searchLower) ||
+        client.contact_name?.toLowerCase().includes(searchLower) ||
+        client.contact_phone?.includes(clientSearchValue) ||
+        client.email?.toLowerCase().includes(searchLower)
+      if (!matchesSearch) return false
+    }
+
+    // Apply filter (all or recent)
+    if (clientFilter === 'recent') {
+      return recentClientIds.includes(client.id)
+    }
+
+    return true
   })
 
   // Set form values when project is loaded
@@ -97,32 +150,74 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
     },
   })
 
-  const handleSubmit = async (values: any) => {
-    const formData = {
-      ...values,
-      start_date: values.start_date.format('YYYY-MM-DD'),
+  // Handle client selection - track recent usage
+  const handleClientChange = (clientId: number) => {
+    if (clientId) {
+      // Add to recent clients
+      const recent = [...recentClientIds]
+      const index = recent.indexOf(clientId)
+      if (index > -1) {
+        recent.splice(index, 1)
+      }
+      recent.unshift(clientId)
+      // Keep only last 10
+      const updated = recent.slice(0, 10)
+      setRecentClientIds(updated)
+      localStorage.setItem('recentClientIds', JSON.stringify(updated))
     }
+  }
 
+  // Handle client editing when editing project
+  const handleClientEdit = async (clientId: number, clientData: any) => {
+    try {
+      await projectService.updateClient(clientId, clientData)
+      message.success('甲方信息更新成功')
+      refetchClients()
+    } catch (error: any) {
+      message.error(error?.message || '甲方信息更新失败')
+    }
+  }
+
+  const handleSubmit = async (values: any) => {
     if (projectId) {
       // Update existing project
       const updateData: UpdateProjectRequest = {
-        project_name: formData.project_name,
-        start_date: new Date(formData.start_date),
-        project_overview: formData.project_overview,
-        drawing_unit: formData.drawing_unit,
-        status: formData.status,
+        project_name: values.project_name,
+        project_overview: values.project_overview,
+        drawing_unit: values.drawing_unit,
+        status: values.status,
       }
+      if (values.start_date) {
+        updateData.start_date = values.start_date.format('YYYY-MM-DD')
+      }
+
+      // If client information is being edited, update client separately
+      if (values.client_id && values.client_info) {
+        await handleClientEdit(values.client_id, values.client_info)
+      }
+
       updateMutation.mutate({ id: projectId, data: updateData })
     } else {
       // Create new project
       const createData: CreateProjectRequest = {
-        project_name: formData.project_name,
-        project_number: formData.project_number,
-        start_date: new Date(formData.start_date),
-        project_overview: formData.project_overview,
-        drawing_unit: formData.drawing_unit,
-        client_id: formData.client_id,
-        manager_id: formData.manager_id,
+        project_name: values.project_name,
+        project_number: values.project_number,
+      }
+      // Add optional fields only if they have values
+      if (values.project_overview) {
+        createData.project_overview = values.project_overview
+      }
+      if (values.drawing_unit) {
+        createData.drawing_unit = values.drawing_unit
+      }
+      if (values.start_date) {
+        createData.start_date = values.start_date.format('YYYY-MM-DD')
+      }
+      if (values.client_id) {
+        createData.client_id = values.client_id
+      }
+      if (values.manager_id) {
+        createData.manager_id = values.manager_id
       }
       createMutation.mutate(createData)
     }
@@ -164,25 +259,17 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
 
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item
-            name="start_date"
-            label="承接日期"
-            rules={[{ required: true, message: '请选择承接日期' }]}
-          >
+          <Form.Item name="start_date" label="承接日期">
             <DatePicker
               style={{ width: '100%' }}
               format="YYYY-MM-DD"
-              placeholder="请选择承接日期"
+              placeholder="请选择承接日期（可选）"
             />
           </Form.Item>
         </Col>
         <Col span={12}>
-          <Form.Item
-            name="status"
-            label="项目状态"
-            rules={[{ required: true, message: '请选择项目状态' }]}
-          >
-            <Select placeholder="请选择项目状态">
+          <Form.Item name="status" label="项目状态">
+            <Select placeholder="请选择项目状态（可选）">
               <Option value="planning">规划中</Option>
               <Option value="bidding">招投标</Option>
               <Option value="contract">合同签订</Option>
@@ -196,32 +283,108 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
 
       <Row gutter={16}>
         <Col span={12}>
-          <Form.Item
-            name="client_id"
-            label="甲方"
-            rules={[{ required: !projectId, message: '请选择甲方' }]}
-          >
+          <Form.Item name="client_id" label="甲方">
             <Select
-              placeholder="请选择甲方"
-              disabled={!!projectId}
-              showSearch
-              filterOption={(input, option) =>
-                (option?.children as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase())
+              placeholder={
+                clientsLoading
+                  ? '加载中...'
+                  : clientsError
+                    ? '加载失败，请重试'
+                    : '请选择甲方（可选）'
               }
+              disabled={!!projectId || clientsLoading}
+              loading={clientsLoading}
+              showSearch
+              searchValue={clientSearchValue}
+              onSearch={setClientSearchValue}
+              onChange={handleClientChange}
+              filterOption={false}
+              notFoundContent={
+                clientsError ? (
+                  <div style={{ padding: '8px', textAlign: 'center' }}>
+                    <div style={{ marginBottom: '8px' }}>加载失败</div>
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => refetchClients()}
+                    >
+                      重试
+                    </Button>
+                  </div>
+                ) : filteredClients.length === 0 ? (
+                  '暂无数据'
+                ) : null
+              }
+              dropdownRender={(menu) => (
+                <>
+                  {clients.length > 0 && !clientsError && (
+                    <div
+                      style={{
+                        padding: '8px',
+                        borderBottom: '1px solid #f0f0f0',
+                      }}
+                    >
+                      <Space>
+                        <Button
+                          type={clientFilter === 'all' ? 'primary' : 'default'}
+                          size="small"
+                          onClick={() => setClientFilter('all')}
+                        >
+                          全部
+                        </Button>
+                        <Button
+                          type={
+                            clientFilter === 'recent' ? 'primary' : 'default'
+                          }
+                          size="small"
+                          onClick={() => setClientFilter('recent')}
+                        >
+                          最近使用
+                        </Button>
+                      </Space>
+                    </div>
+                  )}
+                  {menu}
+                  {!projectId && (
+                    <div
+                      style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}
+                    >
+                      <Button
+                        type="link"
+                        block
+                        onClick={() => setClientModalVisible(true)}
+                      >
+                        + 新建甲方
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
             >
-              {clients.map((client) => (
+              {filteredClients.map((client) => (
                 <Option key={client.id} value={client.id}>
                   {client.client_name}
                 </Option>
               ))}
             </Select>
           </Form.Item>
+          {projectId && project?.client_id && (
+            <Form.Item label="编辑甲方信息">
+              <Button
+                type="link"
+                onClick={() => {
+                  // Open client edit modal
+                  setClientModalVisible(true)
+                }}
+              >
+                编辑关联的甲方信息
+              </Button>
+            </Form.Item>
+          )}
         </Col>
         <Col span={12}>
           <Form.Item name="drawing_unit" label="出图单位">
-            <Input placeholder="请输入出图单位" />
+            <Input placeholder="请输入出图单位（可选）" />
           </Form.Item>
         </Col>
       </Row>
@@ -229,7 +392,7 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
       <Form.Item name="project_overview" label="项目概况">
         <TextArea
           rows={4}
-          placeholder="请输入项目概况"
+          placeholder="请输入项目概况（可选）"
           maxLength={1000}
           showCount
         />
@@ -247,6 +410,46 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
           <Button onClick={onCancel || (() => form.resetFields())}>取消</Button>
         </Space>
       </Form.Item>
+
+      {/* Quick Client Creation/Edit Modal */}
+      <Modal
+        title={projectId && project?.client_id ? '编辑甲方信息' : '新建甲方'}
+        open={clientModalVisible}
+        onCancel={() => setClientModalVisible(false)}
+        footer={null}
+        destroyOnClose
+        width={600}
+      >
+        <ClientForm
+          clientId={
+            projectId && project?.client_id ? project.client_id : undefined
+          }
+          onSuccess={() => {
+            // ClientForm already shows success message and invalidates queries
+            // We just need to refresh the clients list and close the modal
+            refetchClients().then((result) => {
+              if (result.data?.data && result.data.data.length > 0) {
+                if (projectId && project?.client_id) {
+                  // Editing existing client - no need to change selection
+                } else {
+                  // Creating new client - find the most recently created client
+                  const sortedClients = [...result.data.data].sort(
+                    (a, b) =>
+                      new Date(b.created_at).getTime() -
+                      new Date(a.created_at).getTime()
+                  )
+                  if (sortedClients.length > 0) {
+                    form.setFieldsValue({ client_id: sortedClients[0].id })
+                    handleClientChange(sortedClients[0].id)
+                  }
+                }
+              }
+              setClientModalVisible(false)
+            })
+          }}
+          onCancel={() => setClientModalVisible(false)}
+        />
+      </Modal>
     </Form>
   )
 }

@@ -8,7 +8,7 @@ import (
 
 type Client struct {
 	ID           uint   `json:"id" gorm:"primaryKey"`
-	ClientName   string `json:"client_name" gorm:"not null"`
+	ClientName   string `json:"client_name" gorm:"uniqueIndex;not null"`
 	ContactName  string `json:"contact_name"`
 	ContactPhone string `json:"contact_phone"`
 	Email        string `json:"email"`

@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 
 	"project-oa-backend/internal/models"
+	"project-oa-backend/internal/types"
 	"project-oa-backend/pkg/database"
 )
 
@@ -25,19 +26,19 @@ func NewProjectService() *ProjectService {
 
 // CreateProjectRequest represents the request to create a project
 type CreateProjectRequest struct {
-	ProjectName     string    `json:"project_name" binding:"required"`
-	ProjectNumber   string    `json:"project_number" binding:"required"`
-	StartDate       time.Time `json:"start_date" binding:"required"`
-	ProjectOverview string    `json:"project_overview"`
-	DrawingUnit     string    `json:"drawing_unit"`
-	ClientID        uint      `json:"client_id" binding:"required"`
-	ManagerID       uint      `json:"manager_id" binding:"required"`
+	ProjectName     string      `json:"project_name" binding:"required"`
+	ProjectNumber   string      `json:"project_number" binding:"required"`
+	StartDate       *types.Date `json:"start_date"`
+	ProjectOverview string      `json:"project_overview"`
+	DrawingUnit     string      `json:"drawing_unit"`
+	ClientID        *uint       `json:"client_id"`
+	ManagerID       *uint       `json:"manager_id"`
 }
 
 // UpdateProjectRequest represents the request to update a project
 type UpdateProjectRequest struct {
 	ProjectName     *string               `json:"project_name"`
-	StartDate       *time.Time            `json:"start_date"`
+	StartDate       *types.Date           `json:"start_date"`
 	ProjectOverview *string               `json:"project_overview"`
 	DrawingUnit     *string               `json:"drawing_unit"`
 	Status          *models.ProjectStatus `json:"status"`
@@ -59,39 +60,48 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 		return nil, errors.New("project number already exists")
 	}
 
-	// Validate client exists
-	var client models.Client
-	if err := s.db.First(&client, req.ClientID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("client not found")
+	// Validate client exists (if provided)
+	if req.ClientID != nil {
+		var client models.Client
+		if err := s.db.First(&client, *req.ClientID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("client not found")
+			}
+			return nil, err
 		}
-		return nil, err
 	}
 
-	// Validate manager exists
-	var manager models.User
-	if err := s.db.First(&manager, req.ManagerID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("manager not found")
+	// Validate manager exists (if provided)
+	if req.ManagerID != nil {
+		var manager models.User
+		if err := s.db.First(&manager, *req.ManagerID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("manager not found")
+			}
+			return nil, err
 		}
-		return nil, err
 	}
 
-	// Validate start date
-	if req.StartDate.After(time.Now()) {
-		return nil, errors.New("start date cannot be in the future")
+	// Validate start date (if provided)
+	var startDate *time.Time
+	if req.StartDate != nil {
+		if req.StartDate.After(time.Now()) {
+			return nil, errors.New("start date cannot be in the future")
+		}
+		t := req.StartDate.Time
+		startDate = &t
 	}
 
 	// Create project
 	project := &models.Project{
 		ProjectName:     req.ProjectName,
 		ProjectNumber:   req.ProjectNumber,
-		StartDate:       req.StartDate,
 		ProjectOverview: req.ProjectOverview,
 		DrawingUnit:     req.DrawingUnit,
+		Status:          models.StatusPlanning,
+		StartDate:       startDate,
 		ClientID:        req.ClientID,
 		ManagerID:       req.ManagerID,
-		Status:          models.StatusPlanning,
 	}
 
 	if err := s.db.Create(project).Error; err != nil {
@@ -173,7 +183,7 @@ func (s *ProjectService) UpdateProject(id uint, req *UpdateProjectRequest) (*mod
 		if req.StartDate.After(time.Now()) {
 			return nil, errors.New("start date cannot be in the future")
 		}
-		updates["start_date"] = *req.StartDate
+		updates["start_date"] = req.StartDate.Time
 	}
 	if req.ProjectOverview != nil {
 		updates["project_overview"] = *req.ProjectOverview

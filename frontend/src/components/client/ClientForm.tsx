@@ -50,7 +50,15 @@ const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
       onSuccess?.()
     },
     onError: (error: any) => {
-      message.error(error?.message || '甲方创建失败')
+      // Handle 409 Conflict (duplicate client name)
+      if (error?.response?.status === 409) {
+        message.error('甲方名称已存在，请使用已存在的甲方')
+        form.setFields([{ name: 'client_name', errors: ['甲方名称已存在'] }])
+      } else {
+        message.error(
+          error?.response?.data?.error || error?.message || '甲方创建失败'
+        )
+      }
     },
   })
 
@@ -70,7 +78,15 @@ const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
       onSuccess?.()
     },
     onError: (error: any) => {
-      message.error(error?.message || '甲方更新失败')
+      // Handle 409 Conflict (duplicate client name)
+      if (error?.response?.status === 409) {
+        message.error('甲方名称已存在，请使用已存在的甲方')
+        form.setFields([{ name: 'client_name', errors: ['甲方名称已存在'] }])
+      } else {
+        message.error(
+          error?.response?.data?.error || error?.message || '甲方更新失败'
+        )
+      }
     },
   })
 

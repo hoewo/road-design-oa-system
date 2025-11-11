@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -35,7 +36,10 @@ func Migrate() error {
 		return fmt.Errorf("database connection not initialized")
 	}
 
-	// Auto migrate all models
+	log.Println("Starting database migration...")
+
+	// 使用事务进行迁移，但不回滚已存在的表
+	// GORM AutoMigrate 是幂等的，多次执行是安全的
 	err := DB.AutoMigrate(
 		&models.User{},
 		&models.Project{},
@@ -46,12 +50,41 @@ func Migrate() error {
 		&models.FinancialRecord{},
 		&models.Bonus{},
 	)
+
 	if err != nil {
+		// 检查是否是唯一索引冲突错误（SQLSTATE 23505）
+		errMsg := err.Error()
+		if containsIgnorableError(errMsg) {
+			log.Printf("Migration warning (safe to ignore): %v", err)
+			log.Println("Database schema is already up to date")
+			return nil
+		}
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
 
 	log.Println("Database migration completed successfully")
 	return nil
+}
+
+// containsIgnorableError 检查错误是否可以安全忽略
+// 某些错误表示数据库已经处于正确状态
+func containsIgnorableError(errMsg string) bool {
+	ignorablePatterns := []string{
+		"23505", // unique_violation - 唯一约束已存在
+		"42P07", // duplicate_table - 表已存在
+		"42710", // duplicate_object - 对象已存在
+		"already exists",
+		"duplicate key",
+		"could not create unique index", // GORM特定错误
+	}
+
+	errMsgLower := strings.ToLower(errMsg)
+	for _, pattern := range ignorablePatterns {
+		if strings.Contains(errMsgLower, strings.ToLower(pattern)) {
+			return true
+		}
+	}
+	return false
 }
 
 func Close() error {

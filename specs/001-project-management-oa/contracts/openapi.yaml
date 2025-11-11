@@ -415,21 +415,26 @@ paths:
       tags:
         - 甲方管理
       summary: 获取甲方列表
+      description: 获取甲方列表，支持搜索和分页。默认按创建时间倒序排列，最多返回100条记录。主要用于项目创建/编辑表单中的甲方选择。
       parameters:
         - name: page
           in: query
           schema:
             type: integer
             default: 1
+          description: 页码（用于分页，但前端通常请求page=1, size=100以获取所有数据）
         - name: size
           in: query
           schema:
             type: integer
             default: 20
+            maximum: 100
+          description: 每页数量（最大100，前端通常设置为100以获取所有数据）
         - name: keyword
           in: query
           schema:
             type: string
+          description: 搜索关键词（支持按甲方名称、联系人、电话、邮箱搜索）
       responses:
         '200':
           description: 甲方列表
@@ -453,6 +458,7 @@ paths:
       tags:
         - 甲方管理
       summary: 创建新甲方
+      description: 创建新甲方。甲方名称必须唯一，如果重复将返回409错误。此接口主要用于项目创建/编辑表单中的快速创建功能。
       requestBody:
         required: true
         content:
@@ -466,6 +472,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Client'
+        '409':
+          description: 甲方名称已存在
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "甲方名称已存在，请使用已存在的甲方"
 
 components:
   securitySchemes:
@@ -569,22 +585,34 @@ components:
           type: integer
         client_name:
           type: string
+          description: 甲方名称（唯一，2-100字符）
+          minLength: 2
+          maxLength: 100
         contact_name:
           type: string
+          description: 联系人姓名（可选）
         contact_phone:
           type: string
+          description: 联系电话（可选，11位手机号或固定电话格式）
         email:
           type: string
+          format: email
+          description: 邮箱地址（可选，有效邮箱格式）
         address:
           type: string
+          description: 地址（可选）
         tax_number:
           type: string
+          description: 统一社会信用代码（可选，18位格式）
         bank_account:
           type: string
+          description: 银行账号（可选）
         bank_name:
           type: string
+          description: 开户银行（可选）
         is_active:
           type: boolean
+          description: 是否启用（默认true）
         created_at:
           type: string
           format: date-time
@@ -780,25 +808,32 @@ components:
       required:
         - project_name
         - project_number
-        - start_date
-        - client_id
-        - manager_id
       properties:
         project_name:
           type: string
+          description: 项目名称（必填）
+          minLength: 2
+          maxLength: 100
         project_number:
           type: string
+          description: 项目编号（必填，唯一）
         start_date:
           type: string
           format: date
+          description: 承接日期（可选）
         project_overview:
           type: string
+          description: 项目概况（可选，最多1000字符）
+          maxLength: 1000
         drawing_unit:
           type: string
+          description: 出图单位（可选）
         client_id:
           type: integer
+          description: 甲方ID（可选，支持创建项目时快速新建甲方）
         manager_id:
           type: integer
+          description: 项目经理ID（可选）
 
     UpdateProjectRequest:
       type: object
@@ -823,20 +858,31 @@ components:
       properties:
         client_name:
           type: string
+          description: 甲方名称（必填，唯一，2-100字符）
+          minLength: 2
+          maxLength: 100
         contact_name:
           type: string
+          description: 联系人姓名（可选）
         contact_phone:
           type: string
+          description: 联系电话（可选，11位手机号或固定电话格式）
         email:
           type: string
+          format: email
+          description: 邮箱地址（可选，有效邮箱格式）
         address:
           type: string
+          description: 地址（可选）
         tax_number:
           type: string
+          description: 统一社会信用代码（可选，18位格式）
         bank_account:
           type: string
+          description: 银行账号（可选）
         bank_name:
           type: string
+          description: 开户银行（可选）
 
     AddMemberRequest:
       type: object

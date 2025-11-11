@@ -76,18 +76,33 @@
 - [x] T027 [US1] Implement AuthService in backend/internal/services/auth_service.go (depends on T024)
 - [x] T028 [US1] Implement ProjectService in backend/internal/services/project_service.go (depends on T025, T026)
 - [x] T029 [US1] Implement ClientService in backend/internal/services/client_service.go (depends on T026)
+- [x] T029a [US1] Add client name uniqueness validation in backend/internal/services/client_service.go (depends on T029)
+- [x] T029b [US1] Add database migration to create unique index on client_name in backend/migrations/ (depends on T026)
+- [x] T029c [US1] Implement client deletion protection logic (check project associations) in backend/internal/services/client_service.go (depends on T029)
 - [x] T030 [US1] Implement AuthHandler in backend/internal/handlers/auth_handler.go (depends on T027)
 - [x] T031 [US1] Implement ProjectHandler in backend/internal/handlers/project_handler.go (depends on T028)
 - [x] T032 [US1] Implement ClientHandler in backend/internal/handlers/client_handler.go (depends on T029)
+- [x] T032a [US1] Add 409 Conflict response for duplicate client name in backend/internal/handlers/client_handler.go (depends on T029a, T032)
 - [x] T033 [US1] Add validation and error handling for all endpoints
+- [x] T033a [US1] Update backend validation to make only project_name and project_number required in backend/internal/services/project_service.go (depends on T028)
 - [x] T034 [US1] Add logging for user story 1 operations
 - [x] T035 [P] [US1] Create TypeScript types in frontend/src/types/index.ts
 - [x] T036 [P] [US1] Create API service functions in frontend/src/services/project.ts
 - [x] T037 [P] [US1] Create API service functions in frontend/src/services/auth.ts
 - [x] T038 [US1] Create ProjectForm component in frontend/src/components/project/ProjectForm.tsx (depends on T035, T036)
+- [x] T038a [US1] Update ProjectForm field validation rules to make only project_name and project_number required in frontend/src/components/project/ProjectForm.tsx (depends on T038)
+- [x] T038b [US1] Add quick client creation feature in ProjectForm with "新建甲方" button in client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038, T041)
+- [x] T038c [US1] Implement real-time search and filtering (Recently Used, All) in client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
+- [x] T038d [US1] Add client editing functionality in project editing form in frontend/src/components/project/ProjectForm.tsx (depends on T038, T041)
+- [x] T038e [US1] Implement client list error handling with retry functionality in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
+- [x] T038f [US1] Add empty state display ("暂无数据") for client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038)
+- [x] T038g [US1] Ensure client list loads immediately on component mount in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
+- [x] T038h [US1] Implement automatic client list refresh after create/update in frontend/src/components/project/ProjectForm.tsx (depends on T038, T041)
+- [x] T038i [US1] Configure client list to load all clients (max 100) sorted by created_at DESC without pagination in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
 - [x] T039 [US1] Create ProjectList component in frontend/src/components/project/ProjectList.tsx (depends on T035, T036)
 - [x] T040 [US1] Create ProjectDetail component in frontend/src/components/project/ProjectDetail.tsx (depends on T035, T036)
 - [x] T041 [US1] Create ClientForm component in frontend/src/components/client/ClientForm.tsx (depends on T035, T036)
+- [x] T041a [US1] Add client name uniqueness validation and error handling in frontend/src/components/client/ClientForm.tsx (depends on T041)
 - [x] T042 [US1] Create ProjectList page in frontend/src/pages/ProjectList.tsx (depends on T039)
 - [x] T042a [US1] Integrate ProjectForm modal in ProjectList page for creating new projects in frontend/src/pages/ProjectList.tsx (depends on T038, T042)
 - [x] T042b [US1] Integrate ProjectForm modal in ProjectList page for editing existing projects in frontend/src/pages/ProjectList.tsx (depends on T038, T042)
@@ -341,8 +356,8 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 117个任务 (原108 + 新增9个集成任务)
-- **用户故事1任务数**: 37个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b)
+- **总任务数**: 132个任务 (原108 + 新增9个集成任务 + 新增3个UX改进任务 + 新增7个甲方维护功能任务 + 新增5个甲方列表数据展示任务)
+- **用户故事1任务数**: 52个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038i, T029a-T029c, T032a, T041a)
 - **用户故事2任务数**: 12个任务 (T045-T056)
 - **用户故事3任务数**: 12个任务 (T057-T068)
 - **用户故事4任务数**: 15个任务 (T069-T083)

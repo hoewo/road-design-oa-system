@@ -167,6 +167,58 @@ go test ./...               # 单元测试
 go test -cover ./...        # 测试覆盖率
 ```
 
+## 故障排查
+
+### 数据库迁移错误
+
+如果遇到类似错误：
+```
+ERROR: could not create unique index "idx_clients_client_name" (SQLSTATE 23505)
+```
+
+**解决方案**:
+```bash
+# 方法 1: 重置数据库（推荐，开发环境）
+./scripts/reset-db.sh
+./start.sh
+
+# 方法 2: 清理数据目录（完全重置）
+./stop.sh
+rm -rf .postgresql-data/
+./start.sh
+```
+
+### 端口占用
+
+如果提示端口被占用：
+```bash
+# 查找占用端口的进程
+lsof -i :3000  # 前端
+lsof -i :8080  # 后端
+lsof -i :5432  # PostgreSQL
+lsof -i :9000  # MinIO
+
+# 终止进程
+kill -9 <PID>
+```
+
+### 服务无法启动
+
+```bash
+# 查看日志
+tail -f backend.log
+tail -f frontend.log
+tail -f postgresql.log
+
+# 重置环境
+./stop.sh
+./start.sh
+```
+
+### 数据库管理
+
+详细的数据库管理命令和脚本，请参考 [scripts/README.md](scripts/README.md)
+
 ## 部署
 
 ### Docker部署

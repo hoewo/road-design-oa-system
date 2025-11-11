@@ -21,17 +21,17 @@ type Project struct {
 	ID              uint          `json:"id" gorm:"primaryKey"`
 	ProjectName     string        `json:"project_name" gorm:"not null"`
 	ProjectNumber   string        `json:"project_number" gorm:"uniqueIndex;not null"`
-	StartDate       time.Time     `json:"start_date" gorm:"not null"`
+	StartDate       *time.Time    `json:"start_date"`
 	ProjectOverview string        `json:"project_overview" gorm:"type:text"`
 	DrawingUnit     string        `json:"drawing_unit"`
 	Status          ProjectStatus `json:"status" gorm:"default:'planning'"`
 
 	// 关联关系
-	ClientID uint   `json:"client_id"`
-	Client   Client `json:"client" gorm:"foreignKey:ClientID"`
+	ClientID *uint   `json:"client_id"`
+	Client   *Client `json:"client,omitempty" gorm:"foreignKey:ClientID"`
 
-	ManagerID uint `json:"manager_id"`
-	Manager   User `json:"manager" gorm:"foreignKey:ManagerID"`
+	ManagerID *uint `json:"manager_id"`
+	Manager   *User `json:"manager,omitempty" gorm:"foreignKey:ManagerID"`
 
 	// 关联数据
 	Contracts        []Contract        `json:"contracts" gorm:"foreignKey:ProjectID"`

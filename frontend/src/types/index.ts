@@ -77,11 +77,11 @@ export interface PaginatedResponse<T> {
 export interface CreateProjectRequest {
   project_name: string
   project_number: string
-  start_date: string
+  start_date?: string | Date
   project_overview?: string
   drawing_unit?: string
-  client_id: number
-  manager_id: number
+  client_id?: number
+  manager_id?: number
 }
 
 export interface UpdateProjectRequest {
