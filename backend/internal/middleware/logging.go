@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -85,10 +86,9 @@ func generateRequestID() string {
 func randomString(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, length)
-	seed := time.Now().UnixNano()
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range b {
-		b[i] = charset[seed%int64(len(charset))]
-		seed = seed*1103515245 + 12345 // Simple LCG
+		b[i] = charset[r.Intn(len(charset))]
 	}
 	return string(b)
 }

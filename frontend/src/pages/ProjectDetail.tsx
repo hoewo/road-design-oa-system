@@ -1,34 +1,49 @@
-import { useParams } from 'react-router-dom'
-import { Card, Descriptions, Button, Space, message } from 'antd'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Card, Descriptions, Button, Space, message, Modal, Tag } from 'antd'
 import { EditOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import { projectService } from '@/services/project'
+import ProjectForm from '@/components/project/ProjectForm'
+import type { ProjectStatus } from '@/types'
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [modalVisible, setModalVisible] = useState(false)
 
   const {
     data: project,
     isLoading,
     error,
+    refetch,
   } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectService.getProject(Number(id)),
     enabled: !!id,
   })
 
-  if (error) {
-    message.error('加载项目详情失败')
-  }
+  useEffect(() => {
+    if (error) {
+      message.error('加载项目详情失败')
+    }
+  }, [error])
 
   const handleEdit = () => {
-    navigate(`/projects/${id}/edit`)
+    setModalVisible(true)
   }
 
   const handleBack = () => {
     navigate('/projects')
+  }
+
+  const handleModalClose = () => {
+    setModalVisible(false)
+  }
+
+  const handleFormSuccess = () => {
+    setModalVisible(false)
+    refetch()
   }
 
   if (isLoading) {
@@ -39,17 +54,19 @@ const ProjectDetail = () => {
     return <div>项目不存在</div>
   }
 
-  const statusMap = {
-    planning: '规划中',
-    bidding: '招投标',
-    contract: '合同签订',
-    production: '生产中',
-    completed: '已完成',
-    cancelled: '已取消',
+  const statusMap: Record<ProjectStatus, { text: string; color: string }> = {
+    planning: { text: '规划中', color: 'blue' },
+    bidding: { text: '招投标', color: 'orange' },
+    contract: { text: '合同签订', color: 'green' },
+    production: { text: '生产中', color: 'purple' },
+    completed: { text: '已完成', color: 'default' },
+    cancelled: { text: '已取消', color: 'red' },
   }
 
+  const statusInfo = statusMap[project.status]
+
   return (
-    <div>
+    <>
       <Space style={{ marginBottom: 16 }}>
         <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
           返回列表
@@ -59,7 +76,7 @@ const ProjectDetail = () => {
         </Button>
       </Space>
 
-      <Card title="项目详情">
+      <Card title="项目详情" loading={isLoading}>
         <Descriptions column={2} bordered>
           <Descriptions.Item label="项目编号">
             {project.project_number}
@@ -68,23 +85,41 @@ const ProjectDetail = () => {
             {project.project_name}
           </Descriptions.Item>
           <Descriptions.Item label="承接日期">
-            {project.start_date}
+            {new Date(project.start_date).toLocaleDateString('zh-CN')}
           </Descriptions.Item>
           <Descriptions.Item label="项目状态">
-            {statusMap[project.status]}
+            <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="出图单位">
             {project.drawing_unit || '-'}
           </Descriptions.Item>
           <Descriptions.Item label="创建时间">
-            {new Date(project.created_at).toLocaleString()}
+            {new Date(project.created_at).toLocaleString('zh-CN')}
+          </Descriptions.Item>
+          <Descriptions.Item label="更新时间">
+            {new Date(project.updated_at).toLocaleString('zh-CN')}
           </Descriptions.Item>
           <Descriptions.Item label="项目概况" span={2}>
             {project.project_overview || '-'}
           </Descriptions.Item>
         </Descriptions>
       </Card>
-    </div>
+
+      <Modal
+        title="编辑项目"
+        open={modalVisible}
+        onCancel={handleModalClose}
+        footer={null}
+        width={800}
+        destroyOnClose
+      >
+        <ProjectForm
+          projectId={project.id}
+          onSuccess={handleFormSuccess}
+          onCancel={handleModalClose}
+        />
+      </Modal>
+    </>
   )
 }
 

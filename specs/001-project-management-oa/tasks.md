@@ -73,24 +73,32 @@
 - [x] T024 [P] [US1] Create User model in backend/internal/models/user.go
 - [x] T025 [P] [US1] Create Project model in backend/internal/models/project.go
 - [x] T026 [P] [US1] Create Client model in backend/internal/models/client.go
-- [ ] T027 [US1] Implement AuthService in backend/internal/services/auth_service.go (depends on T024)
-- [ ] T028 [US1] Implement ProjectService in backend/internal/services/project_service.go (depends on T025, T026)
-- [ ] T029 [US1] Implement ClientService in backend/internal/services/client_service.go (depends on T026)
-- [ ] T030 [US1] Implement AuthHandler in backend/internal/handlers/auth_handler.go (depends on T027)
-- [ ] T031 [US1] Implement ProjectHandler in backend/internal/handlers/project_handler.go (depends on T028)
-- [ ] T032 [US1] Implement ClientHandler in backend/internal/handlers/client_handler.go (depends on T029)
-- [ ] T033 [US1] Add validation and error handling for all endpoints
-- [ ] T034 [US1] Add logging for user story 1 operations
+- [x] T027 [US1] Implement AuthService in backend/internal/services/auth_service.go (depends on T024)
+- [x] T028 [US1] Implement ProjectService in backend/internal/services/project_service.go (depends on T025, T026)
+- [x] T029 [US1] Implement ClientService in backend/internal/services/client_service.go (depends on T026)
+- [x] T030 [US1] Implement AuthHandler in backend/internal/handlers/auth_handler.go (depends on T027)
+- [x] T031 [US1] Implement ProjectHandler in backend/internal/handlers/project_handler.go (depends on T028)
+- [x] T032 [US1] Implement ClientHandler in backend/internal/handlers/client_handler.go (depends on T029)
+- [x] T033 [US1] Add validation and error handling for all endpoints
+- [x] T034 [US1] Add logging for user story 1 operations
 - [x] T035 [P] [US1] Create TypeScript types in frontend/src/types/index.ts
 - [x] T036 [P] [US1] Create API service functions in frontend/src/services/project.ts
 - [x] T037 [P] [US1] Create API service functions in frontend/src/services/auth.ts
-- [ ] T038 [US1] Create ProjectForm component in frontend/src/components/project/ProjectForm.tsx (depends on T035, T036)
-- [ ] T039 [US1] Create ProjectList component in frontend/src/components/project/ProjectList.tsx (depends on T035, T036)
-- [ ] T040 [US1] Create ProjectDetail component in frontend/src/components/project/ProjectDetail.tsx (depends on T035, T036)
-- [ ] T041 [US1] Create ClientForm component in frontend/src/components/client/ClientForm.tsx (depends on T035, T036)
+- [x] T038 [US1] Create ProjectForm component in frontend/src/components/project/ProjectForm.tsx (depends on T035, T036)
+- [x] T039 [US1] Create ProjectList component in frontend/src/components/project/ProjectList.tsx (depends on T035, T036)
+- [x] T040 [US1] Create ProjectDetail component in frontend/src/components/project/ProjectDetail.tsx (depends on T035, T036)
+- [x] T041 [US1] Create ClientForm component in frontend/src/components/client/ClientForm.tsx (depends on T035, T036)
 - [x] T042 [US1] Create ProjectList page in frontend/src/pages/ProjectList.tsx (depends on T039)
+- [x] T042a [US1] Integrate ProjectForm modal in ProjectList page for creating new projects in frontend/src/pages/ProjectList.tsx (depends on T038, T042)
+- [x] T042b [US1] Integrate ProjectForm modal in ProjectList page for editing existing projects in frontend/src/pages/ProjectList.tsx (depends on T038, T042)
+- [x] T042c [US1] Implement view project functionality with navigation to ProjectDetail page in frontend/src/pages/ProjectList.tsx (depends on T043)
+- [x] T042d [US1] Implement delete project functionality with confirmation dialog in frontend/src/pages/ProjectList.tsx (depends on T036)
+- [x] T042e [US1] Wire up all action buttons (create, edit, view, delete) in ProjectList page in frontend/src/pages/ProjectList.tsx (depends on T042a, T042b, T042c, T042d)
 - [x] T043 [US1] Create ProjectDetail page in frontend/src/pages/ProjectDetail.tsx (depends on T040)
+- [x] T043a [US1] Integrate ProjectForm for editing project in ProjectDetail page in frontend/src/pages/ProjectDetail.tsx (depends on T038, T043)
 - [x] T044 [US1] Setup routing for project management pages in frontend/src/App.tsx
+- [x] T044a [US1] Create Login page for user authentication in frontend/src/pages/Login.tsx
+- [x] T044b [US1] Implement route protection and authentication check in frontend/src/App.tsx
 
 **Checkpoint**: 此时，用户故事1应该完全功能化并可独立测试
 
@@ -333,8 +341,8 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 108个任务
-- **用户故事1任务数**: 28个任务 (T017-T044)
+- **总任务数**: 117个任务 (原108 + 新增9个集成任务)
+- **用户故事1任务数**: 37个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b)
 - **用户故事2任务数**: 12个任务 (T045-T056)
 - **用户故事3任务数**: 12个任务 (T057-T068)
 - **用户故事4任务数**: 15个任务 (T069-T083)

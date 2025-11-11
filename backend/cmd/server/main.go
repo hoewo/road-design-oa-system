@@ -8,8 +8,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"project-oa-backend/internal/config"
+	"project-oa-backend/internal/handlers"
 	"project-oa-backend/internal/middleware"
+	"project-oa-backend/internal/models"
 	"project-oa-backend/pkg/database"
 	"project-oa-backend/pkg/storage"
 	"project-oa-backend/pkg/utils"
@@ -40,6 +44,11 @@ func main() {
 	// Run database migrations
 	if err := database.Migrate(); err != nil {
 		logger.Fatal("Failed to migrate database", zap.Error(err))
+	}
+
+	// Initialize test user if not exists
+	if err := initTestUser(cfg, logger); err != nil {
+		logger.Warn("Failed to initialize test user", zap.Error(err))
 	}
 
 	// Initialize MinIO storage
@@ -74,6 +83,11 @@ func main() {
 		})
 	})
 
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(cfg, logger)
+	projectHandler := handlers.NewProjectHandler(logger)
+	clientHandler := handlers.NewClientHandler(logger)
+
 	// API routes
 	api := router.Group("/api/v1")
 	{
@@ -84,28 +98,37 @@ func main() {
 			})
 		})
 
+		// Auth routes (public)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/logout", middleware.AuthMiddleware(cfg), authHandler.Logout)
+			auth.GET("/me", middleware.AuthMiddleware(cfg), authHandler.GetCurrentUser)
+		}
+
 		// Protected routes (auth required)
 		protected := api.Group("")
 		protected.Use(middleware.AuthMiddleware(cfg))
 		{
-			// Placeholder routes - will be implemented in user story tasks
-			protected.GET("/projects", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"data":  []interface{}{},
-					"total": 0,
-					"page":  1,
-					"size":  10,
-				})
-			})
+			// Project routes
+			projects := protected.Group("/projects")
+			{
+				projects.GET("", projectHandler.ListProjects)
+				projects.GET("/:id", projectHandler.GetProject)
+				projects.POST("", projectHandler.CreateProject)
+				projects.PUT("/:id", projectHandler.UpdateProject)
+				projects.DELETE("/:id", projectHandler.DeleteProject)
+			}
 
-			protected.GET("/clients", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"data":  []interface{}{},
-					"total": 0,
-					"page":  1,
-					"size":  10,
-				})
-			})
+			// Client routes
+			clients := protected.Group("/clients")
+			{
+				clients.GET("", clientHandler.ListClients)
+				clients.GET("/:id", clientHandler.GetClient)
+				clients.POST("", clientHandler.CreateClient)
+				clients.PUT("/:id", clientHandler.UpdateClient)
+				clients.DELETE("/:id", clientHandler.DeleteClient)
+			}
 		}
 	}
 
@@ -116,4 +139,39 @@ func main() {
 	if err := router.Run(addr); err != nil {
 		logger.Fatal("Failed to start server", zap.Error(err))
 	}
+}
+
+// initTestUser creates a test user if it doesn't exist
+func initTestUser(cfg *config.Config, logger *zap.Logger) error {
+	var user models.User
+	if err := database.DB.Where("username = ?", "admin").First(&user).Error; err == nil {
+		// User already exists
+		return nil
+	}
+
+	// Create test user
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	testUser := &models.User{
+		Username: "admin",
+		Email:    "admin@example.com",
+		Password: string(hashedPassword),
+		RealName: "系统管理员",
+		Role:     models.RoleAdmin,
+		IsActive: true,
+	}
+
+	if err := database.DB.Create(testUser).Error; err != nil {
+		return err
+	}
+
+	logger.Info("Test user created",
+		zap.String("username", "admin"),
+		zap.String("password", "admin123"),
+	)
+
+	return nil
 }

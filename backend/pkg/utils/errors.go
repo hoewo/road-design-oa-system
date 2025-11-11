@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 // AppError represents an application error with HTTP status code
@@ -61,4 +63,26 @@ func ErrInternalServer(message string, err error) *AppError {
 
 func ErrValidation(message string, err error) *AppError {
 	return NewAppError(http.StatusUnprocessableEntity, message, err)
+}
+
+// ErrorResponse represents a standard error response
+type ErrorResponse struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error"`
+	Message string `json:"message,omitempty"`
+}
+
+// HandleError handles errors and sends a JSON response
+func HandleError(c *gin.Context, statusCode int, message string, err error) {
+	errorMsg := message
+	if err != nil {
+		errorMsg = fmt.Sprintf("%s: %v", message, err)
+	}
+
+	c.JSON(statusCode, ErrorResponse{
+		Success: false,
+		Error:   errorMsg,
+		Message: message,
+	})
+	c.Abort()
 }
