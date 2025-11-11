@@ -34,11 +34,11 @@ type Project struct {
 	Manager   User `json:"manager" gorm:"foreignKey:ManagerID"`
 
 	// 关联数据
-	Contracts       []Contract       `json:"contracts" gorm:"foreignKey:ProjectID"`
-	Members         []ProjectMember  `json:"members" gorm:"foreignKey:ProjectID"`
-	Files           []File           `json:"files" gorm:"foreignKey:ProjectID"`
+	Contracts        []Contract        `json:"contracts" gorm:"foreignKey:ProjectID"`
+	Members          []ProjectMember   `json:"members" gorm:"foreignKey:ProjectID"`
+	Files            []File            `json:"files" gorm:"foreignKey:ProjectID"`
 	FinancialRecords []FinancialRecord `json:"financial_records" gorm:"foreignKey:ProjectID"`
-	Bonuses         []Bonus          `json:"bonuses" gorm:"foreignKey:ProjectID"`
+	Bonuses          []Bonus           `json:"bonuses" gorm:"foreignKey:ProjectID"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

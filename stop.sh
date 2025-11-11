@@ -20,39 +20,39 @@ echo ""
 stop_service() {
     local pid_file=$1
     local service_name=$2
-    
+
     if [ ! -f "${pid_file}" ]; then
         echo -e "${YELLOW}  ${service_name}: 未找到 PID 文件，服务可能未运行${NC}"
         return 0
     fi
-    
+
     local pid=$(cat "${pid_file}")
-    
+
     if ! ps -p ${pid} > /dev/null 2>&1; then
         echo -e "${YELLOW}  ${service_name}: 进程不存在 (PID: ${pid})${NC}"
         rm -f "${pid_file}"
         return 0
     fi
-    
+
     echo -e "${BLUE}  停止 ${service_name} (PID: ${pid})...${NC}"
-    
+
     # 尝试优雅关闭
     kill ${pid} 2>/dev/null
-    
+
     # 等待进程结束
     local count=0
     while ps -p ${pid} > /dev/null 2>&1 && [ ${count} -lt 10 ]; do
         sleep 1
         count=$((count + 1))
     done
-    
+
     # 如果进程仍在运行，强制终止
     if ps -p ${pid} > /dev/null 2>&1; then
         echo -e "${YELLOW}  进程未响应，强制终止...${NC}"
         kill -9 ${pid} 2>/dev/null
         sleep 1
     fi
-    
+
     # 检查进程是否已停止
     if ! ps -p ${pid} > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ ${service_name} 已停止${NC}"
@@ -64,26 +64,76 @@ stop_service() {
     fi
 }
 
+# 停止 PostgreSQL 服务
+stop_postgresql() {
+    echo -e "${BLUE}[4/4] 停止 PostgreSQL 服务...${NC}"
+
+    # 检查 PID 文件
+    if [ -f "${PID_DIR}/postgresql.pid" ]; then
+        if stop_service "${PID_DIR}/postgresql.pid" "PostgreSQL"; then
+            return 0
+        fi
+    fi
+
+    # 如果没有 PID 文件，检查端口
+    if ! lsof -Pi :5432 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo -e "${YELLOW}  PostgreSQL: 未在运行${NC}"
+        return 0
+    fi
+
+    # 尝试通过 brew services 停止（如果是系统级服务）
+    if command -v brew &> /dev/null; then
+        if brew services list | grep -q "postgresql.*started"; then
+            echo -e "${BLUE}  通过 brew services 停止 PostgreSQL...${NC}"
+            if brew services stop postgresql 2>/dev/null; then
+                sleep 1
+                echo -e "${GREEN}  ✓ PostgreSQL 已停止${NC}"
+                return 0
+            fi
+        fi
+    fi
+
+    # 如果端口还在监听，提示用户手动处理
+    echo -e "${YELLOW}  提示: PostgreSQL 可能仍在运行${NC}"
+    echo -e "${YELLOW}  请手动检查并停止 PostgreSQL 进程${NC}"
+    return 0  # 不阻止继续
+}
+
+# stop_minio 已移除，直接使用 stop_service
+
 # 主流程
 main() {
     local failed=0
-    
+
     # 停止前端服务
-    echo -e "${BLUE}[1/2] 停止前端服务...${NC}"
+    echo -e "${BLUE}[1/4] 停止前端服务...${NC}"
     if ! stop_service "${PID_DIR}/frontend.pid" "前端服务"; then
         failed=1
     fi
-    
+
     echo ""
-    
+
     # 停止后端服务
-    echo -e "${BLUE}[2/2] 停止后端服务...${NC}"
+    echo -e "${BLUE}[2/4] 停止后端服务...${NC}"
     if ! stop_service "${PID_DIR}/backend.pid" "后端服务"; then
         failed=1
     fi
-    
+
+    # 停止 MinIO 服务
     echo ""
-    
+    echo -e "${BLUE}[3/4] 停止 MinIO 服务...${NC}"
+    if ! stop_service "${PID_DIR}/minio.pid" "MinIO"; then
+        failed=1
+    fi
+
+    # 停止 PostgreSQL 服务
+    echo ""
+    if ! stop_postgresql; then
+        failed=1
+    fi
+
+    echo ""
+
     # 清理日志文件（可选）
     read -p "是否清理日志文件? (y/N): " -n 1 -r
     echo
@@ -91,11 +141,12 @@ main() {
         echo -e "${BLUE}清理日志文件...${NC}"
         rm -f "${PROJECT_ROOT}/backend.log"
         rm -f "${PROJECT_ROOT}/frontend.log"
+        rm -f "${PROJECT_ROOT}/minio.log"
         echo -e "${GREEN}  ✓ 日志文件已清理${NC}"
     fi
-    
+
     echo ""
-    
+
     if [ ${failed} -eq 0 ]; then
         echo -e "${GREEN}========================================${NC}"
         echo -e "${GREEN}  所有服务已停止！${NC}"
@@ -106,12 +157,12 @@ main() {
         echo -e "${RED}========================================${NC}"
         echo ""
         echo -e "${YELLOW}提示: 可以尝试手动查找并终止进程${NC}"
-        echo -e "  查找进程: ${BLUE}ps aux | grep 'go run\\|vite'${NC}"
+        echo -e "  查找进程: ${BLUE}ps aux | grep 'go run\\|vite\\|minio'${NC}"
         echo -e "  终止进程: ${BLUE}kill -9 <PID>${NC}"
+        echo -e "  PostgreSQL: ${BLUE}brew services stop postgresql${NC}"
         exit 1
     fi
 }
 
 # 执行主流程
 main
-

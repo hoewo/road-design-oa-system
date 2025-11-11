@@ -1,7 +1,8 @@
 import axios from 'axios'
 import type { ApiResponse, PaginatedResponse } from '@/types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -62,7 +63,10 @@ export const del = async <T>(url: string): Promise<T> => {
   return response.data.data
 }
 
-export const getPaginated = async <T>(url: string, params?: any): Promise<PaginatedResponse<T>> => {
+export const getPaginated = async <T>(
+  url: string,
+  params?: any
+): Promise<PaginatedResponse<T>> => {
   const response = await api.get<PaginatedResponse<T>>(url, { params })
   return response.data
 }

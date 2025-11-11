@@ -12,9 +12,14 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="${PROJECT_ROOT}/backend"
 FRONTEND_DIR="${PROJECT_ROOT}/frontend"
 PID_DIR="${PROJECT_ROOT}/.pids"
+MINIO_DATA_DIR="${PROJECT_ROOT}/.minio-data"
+POSTGRESQL_DATA_DIR="${PROJECT_ROOT}/.postgresql-data"
+SCRIPTS_DIR="${PROJECT_ROOT}/scripts"
 
-# 创建 PID 目录
+# 创建必要的目录
 mkdir -p "${PID_DIR}"
+mkdir -p "${MINIO_DATA_DIR}"
+mkdir -p "${SCRIPTS_DIR}"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  项目管理OA系统 - 启动脚本${NC}"
@@ -25,7 +30,7 @@ echo ""
 check_running() {
     local pid_file=$1
     local service_name=$2
-    
+
     if [ -f "${pid_file}" ]; then
         local pid=$(cat "${pid_file}")
         if ps -p ${pid} > /dev/null 2>&1; then
@@ -38,16 +43,293 @@ check_running() {
     return 1
 }
 
+# 检查端口是否被占用
+check_port() {
+    local port=$1
+    lsof -Pi :${port} -sTCP:LISTEN -t >/dev/null 2>&1
+}
+
+# 通过端口查找进程 PID
+find_pid_by_port() {
+    local port=$1
+    lsof -ti :${port} 2>/dev/null | head -1
+}
+
+# 停止进程（优雅关闭→等待→强制终止）
+stop_process_graceful() {
+    local pid=$1
+    local service_name=$2
+
+    if [ -n "${pid}" ] && ps -p ${pid} > /dev/null 2>&1; then
+        echo -e "${BLUE}  停止${service_name} (PID: ${pid})...${NC}"
+        kill ${pid} 2>/dev/null
+        sleep 1
+        if ps -p ${pid} > /dev/null 2>&1; then
+            kill -9 ${pid} 2>/dev/null
+            sleep 1
+        fi
+    fi
+}
+
+# 显示日志尾部
+show_log_tail() {
+    local log_file=$1
+    local lines=${2:-5}
+    if [ -f "${log_file}" ]; then
+        echo -e "${YELLOW}  最近的错误信息:${NC}"
+        tail -${lines} "${log_file}" | sed 's/^/    /'
+    fi
+}
+
+# 启动 PostgreSQL 服务
+start_postgresql() {
+    echo -e "${BLUE}[1/4] 启动 PostgreSQL 服务...${NC}"
+
+    # 检查 PID 文件，如果存在且进程运行中，直接返回
+    if [ -f "${PID_DIR}/postgresql.pid" ]; then
+        local existing_pid=$(cat "${PID_DIR}/postgresql.pid" 2>/dev/null)
+        if [ -n "${existing_pid}" ] && ps -p ${existing_pid} > /dev/null 2>&1; then
+            echo -e "${YELLOW}  PostgreSQL 已经在运行中 (PID: ${existing_pid})${NC}"
+            return 0
+        else
+            rm -f "${PID_DIR}/postgresql.pid"
+        fi
+    fi
+
+    # 检查端口是否被占用
+    if check_port 5432; then
+        echo -e "${YELLOW}  警告: 端口 5432 已被占用，PostgreSQL 可能已在运行${NC}"
+        local port_pid=$(find_pid_by_port 5432)
+        if [ -n "${port_pid}" ]; then
+            echo -e "${YELLOW}  检测到进程 (PID: ${port_pid})，将使用现有服务${NC}"
+            echo ${port_pid} > "${PID_DIR}/postgresql.pid"
+        fi
+        return 0
+    fi
+
+    # 检查 PostgreSQL 是否安装
+    if ! command -v postgres &> /dev/null || ! command -v initdb &> /dev/null; then
+        echo -e "${RED}  错误: 未找到 PostgreSQL，请先安装${NC}"
+        echo -e "${YELLOW}  安装命令: brew install postgresql${NC}"
+        return 1
+    fi
+
+    # 初始化数据目录（如果不存在）
+    if [ ! -d "${POSTGRESQL_DATA_DIR}" ] || [ ! -f "${POSTGRESQL_DATA_DIR}/PG_VERSION" ]; then
+        echo -e "${BLUE}  初始化 PostgreSQL 数据目录...${NC}"
+        echo -e "${BLUE}  数据目录: ${POSTGRESQL_DATA_DIR}${NC}"
+        mkdir -p "${POSTGRESQL_DATA_DIR}"
+
+        initdb -D "${POSTGRESQL_DATA_DIR}" --encoding=UTF8 --locale=C 2>&1 | tee "${PROJECT_ROOT}/postgresql-init.log"
+
+        if [ $? -ne 0 ]; then
+            echo -e "${RED}  ✗ PostgreSQL 数据目录初始化失败${NC}"
+            echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/postgresql-init.log${NC}"
+            return 1
+        fi
+
+        echo -e "${GREEN}  ✓ PostgreSQL 数据目录初始化成功${NC}"
+
+        # 配置允许本地连接（无密码）
+        cat >> "${POSTGRESQL_DATA_DIR}/pg_hba.conf" << EOF
+
+# 项目本地开发配置
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+EOF
+    fi
+
+    # 启动 PostgreSQL 服务
+    echo -e "${BLUE}  启动 PostgreSQL 服务器...${NC}"
+
+    # 使用 /tmp 作为 socket 目录，避免路径过长的问题
+    nohup postgres -D "${POSTGRESQL_DATA_DIR}" \
+        -k /tmp \
+        > "${PROJECT_ROOT}/postgresql.log" 2>&1 &
+
+    local pg_pid=$!
+
+    # 等待 PostgreSQL 启动
+    echo -e "${BLUE}  等待 PostgreSQL 启动...${NC}"
+    local count=0
+    while ! check_port 5432 && [ ${count} -lt 10 ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+
+    # 验证进程是否存在
+    if [ -z "${pg_pid}" ] || ! ps -p ${pg_pid} > /dev/null 2>&1; then
+        # 尝试通过端口查找
+        pg_pid=$(find_pid_by_port 5432)
+    fi
+
+    if [ -z "${pg_pid}" ] || ! ps -p ${pg_pid} > /dev/null 2>&1; then
+        echo -e "${RED}  ✗ PostgreSQL 启动失败：无法找到进程${NC}"
+        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/postgresql.log${NC}"
+        show_log_tail "${PROJECT_ROOT}/postgresql.log" 10
+        return 1
+    fi
+
+    # 保存 PID 到文件
+    echo ${pg_pid} > "${PID_DIR}/postgresql.pid"
+
+    # 验证启动成功
+    if check_port 5432 && ps -p ${pg_pid} > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ PostgreSQL 启动成功 (PID: ${pg_pid})${NC}"
+        echo -e "${GREEN}  ✓ PostgreSQL 地址: localhost:5432${NC}"
+        echo -e "    数据目录: ${POSTGRESQL_DATA_DIR}"
+        echo -e "    日志文件: ${PROJECT_ROOT}/postgresql.log"
+        return 0
+    else
+        echo -e "${RED}  ✗ PostgreSQL 启动失败：进程或端口验证失败${NC}"
+        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/postgresql.log${NC}"
+        rm -f "${PID_DIR}/postgresql.pid"
+        return 1
+    fi
+}
+
+# 启动 MinIO 服务
+start_minio() {
+    echo ""
+    echo -e "${BLUE}[2/4] 启动 MinIO 服务...${NC}"
+
+    # 检查 PID 文件，如果存在且进程运行中，直接返回
+    if [ -f "${PID_DIR}/minio.pid" ]; then
+        local existing_pid=$(cat "${PID_DIR}/minio.pid" 2>/dev/null)
+        if [ -n "${existing_pid}" ] && ps -p ${existing_pid} > /dev/null 2>&1; then
+            echo -e "${YELLOW}警告: MinIO 已经在运行中 (PID: ${existing_pid})${NC}"
+            return 0
+        else
+            # PID 文件存在但进程不存在，清理文件
+            rm -f "${PID_DIR}/minio.pid"
+        fi
+    fi
+
+    # 检查端口是否被占用（防止端口冲突）
+    if check_port 9000 || check_port 9001; then
+        echo -e "${RED}  错误: 端口 (9000/9001) 已被占用${NC}"
+        echo -e "${YELLOW}  请先停止占用端口的服务或使用其他端口${NC}"
+        return 1
+    fi
+
+    # 检查 MinIO 是否安装
+    if ! command -v minio &> /dev/null; then
+        echo -e "${RED}  错误: 未找到 MinIO，请先安装${NC}"
+        echo -e "${YELLOW}  安装命令: brew install minio${NC}"
+        return 1
+    fi
+
+    # 启动 MinIO 服务
+    echo -e "${BLUE}  启动 MinIO 服务器...${NC}"
+    echo -e "${BLUE}  数据目录: ${MINIO_DATA_DIR}${NC}"
+
+    nohup minio server "${MINIO_DATA_DIR}" \
+        --address ":9000" \
+        --console-address ":9001" \
+        > "${PROJECT_ROOT}/minio.log" 2>&1 &
+
+    # 等待进程启动
+    sleep 3
+
+    # 通过端口查找 MinIO 进程 PID
+    local minio_pid=$(find_pid_by_port 9000)
+
+    # 验证进程是否存在
+    if [ -z "${minio_pid}" ] || ! ps -p ${minio_pid} > /dev/null 2>&1; then
+        echo -e "${RED}  ✗ MinIO 启动失败：无法找到进程${NC}"
+        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/minio.log${NC}"
+        show_log_tail "${PROJECT_ROOT}/minio.log"
+        return 1
+    fi
+
+    # 保存 PID 到文件
+    echo ${minio_pid} > "${PID_DIR}/minio.pid"
+
+    # 验证启动成功
+    if check_port 9000 && ps -p ${minio_pid} > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ MinIO 启动成功 (PID: ${minio_pid})${NC}"
+        echo -e "${GREEN}  ✓ MinIO API: http://localhost:9000${NC}"
+        echo -e "${GREEN}  ✓ MinIO 控制台: http://localhost:9001${NC}"
+        echo -e "    日志文件: ${PROJECT_ROOT}/minio.log"
+        echo -e "${YELLOW}  默认凭据: minioadmin / minioadmin${NC}"
+        return 0
+    else
+        echo -e "${RED}  ✗ MinIO 启动失败：进程或端口验证失败${NC}"
+        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/minio.log${NC}"
+        rm -f "${PID_DIR}/minio.pid"
+        return 1
+    fi
+}
+
+# 初始化数据库
+init_database() {
+    echo ""
+    echo -e "${BLUE}初始化数据库...${NC}"
+
+    # 检查后端 .env 文件以获取数据库配置
+    local db_name="project_oa"
+    local db_user="project_oa_user"
+    local db_password="project_oa_password"
+
+    if [ -f "${BACKEND_DIR}/.env" ]; then
+        # 从 .env 文件读取配置
+        source "${BACKEND_DIR}/.env" 2>/dev/null || true
+        db_name="${DB_NAME:-${db_name}}"
+        db_user="${DB_USER:-${db_user}}"
+        db_password="${DB_PASSWORD:-${db_password}}"
+    fi
+
+    # 检查数据库初始化脚本是否存在
+    if [ -f "${SCRIPTS_DIR}/init-db.sh" ]; then
+        echo -e "${BLUE}  运行数据库初始化脚本...${NC}"
+        DB_NAME="${db_name}" DB_USER="${db_user}" DB_PASSWORD="${db_password}" \
+            "${SCRIPTS_DIR}/init-db.sh"
+        return $?
+    else
+        echo -e "${YELLOW}  警告: 数据库初始化脚本不存在，跳过自动初始化${NC}"
+        echo -e "${YELLOW}  请手动创建数据库和用户，或运行: ${SCRIPTS_DIR}/init-db.sh${NC}"
+        return 0
+    fi
+}
+
 # 启动后端服务
 start_backend() {
-    echo -e "${BLUE}[1/2] 启动后端服务...${NC}"
-    
+    echo ""
+    echo -e "${BLUE}[3/4] 启动后端服务...${NC}"
+
     if check_running "${PID_DIR}/backend.pid" "后端服务"; then
         return 0
     fi
-    
+
+    # 检查端口 8080 是否被占用
+    if check_port 8080; then
+        local port_pid=$(find_pid_by_port 8080)
+        if [ -n "${port_pid}" ]; then
+            echo -e "${YELLOW}  警告: 端口 8080 已被进程 ${port_pid} 占用${NC}"
+            local process_args=$(ps -p ${port_pid} -o args= 2>/dev/null)
+            # 检查是否是后端服务进程
+            if echo "${process_args}" | grep -qE "go run.*server/main|cmd/server/main|project-oa-backend"; then
+                echo -e "${BLUE}  检测到旧的后端服务进程，尝试停止...${NC}"
+                stop_process_graceful ${port_pid} "旧后端进程"
+                if ! check_port 8080; then
+                    echo -e "${GREEN}  ✓ 旧进程已停止${NC}"
+                else
+                    echo -e "${RED}  ✗ 无法停止占用端口的进程${NC}"
+                    echo -e "${YELLOW}  请手动停止进程 ${port_pid}: kill -9 ${port_pid}${NC}"
+                    return 1
+                fi
+            else
+                echo -e "${RED}  错误: 端口 8080 被其他进程占用 (PID: ${port_pid})${NC}"
+                echo -e "${YELLOW}  进程信息: ${process_args}${NC}"
+                echo -e "${YELLOW}  请手动停止: kill ${port_pid} 或 kill -9 ${port_pid}${NC}"
+                return 1
+            fi
+        fi
+    fi
+
     cd "${BACKEND_DIR}"
-    
+
     # 检查 .env 文件
     if [ ! -f ".env" ]; then
         if [ -f "env.example" ]; then
@@ -58,35 +340,58 @@ start_backend() {
             return 1
         fi
     fi
-    
+
+    # 初始化数据库（在启动后端之前）
+    if ! init_database; then
+        echo -e "${YELLOW}  警告: 数据库初始化可能失败，继续尝试启动后端...${NC}"
+    fi
+
     # 检查 Go 是否安装
     if ! command -v go &> /dev/null; then
         echo -e "${RED}  错误: 未安装 Go，请先安装 Go 1.23+${NC}"
         return 1
     fi
-    
+
     # 下载依赖（如果需要）
     if [ ! -d "vendor" ] && [ ! -f "go.sum" ]; then
         echo -e "${BLUE}  下载 Go 依赖...${NC}"
         go mod download
     fi
-    
+
     # 启动后端服务
     echo -e "${BLUE}  启动 Go 服务器...${NC}"
     nohup go run cmd/server/main.go > "${PROJECT_ROOT}/backend.log" 2>&1 &
-    BACKEND_PID=$!
-    echo ${BACKEND_PID} > "${PID_DIR}/backend.pid"
-    
-    # 等待后端启动
-    sleep 2
-    
-    if ps -p ${BACKEND_PID} > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${BACKEND_PID})${NC}"
+
+    # 等待后端启动（Go 程序需要编译和启动时间）
+    sleep 3
+
+    # 通过端口查找实际的 Go 程序进程 PID（go run 会启动子进程）
+    local backend_pid=$(find_pid_by_port 8080)
+
+    # 如果通过端口找不到，尝试通过进程名查找
+    if [ -z "${backend_pid}" ]; then
+        backend_pid=$(pgrep -f "go-build.*main" | head -1)
+    fi
+
+    # 验证进程是否存在
+    if [ -z "${backend_pid}" ] || ! ps -p ${backend_pid} > /dev/null 2>&1; then
+        echo -e "${RED}  ✗ 后端服务启动失败：无法找到进程${NC}"
+        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
+        show_log_tail "${PROJECT_ROOT}/backend.log" 10
+        return 1
+    fi
+
+    # 保存 PID 到文件
+    echo ${backend_pid} > "${PID_DIR}/backend.pid"
+
+    # 验证启动成功
+    if check_port 8080 && ps -p ${backend_pid} > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${backend_pid})${NC}"
         echo -e "${GREEN}  ✓ 后端地址: http://localhost:8080${NC}"
         echo -e "    日志文件: ${PROJECT_ROOT}/backend.log"
         return 0
     else
-        echo -e "${RED}  ✗ 后端服务启动失败${NC}"
+        echo -e "${RED}  ✗ 后端服务启动失败：进程或端口验证失败${NC}"
         echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
         rm -f "${PID_DIR}/backend.pid"
         return 1
@@ -96,14 +401,14 @@ start_backend() {
 # 启动前端服务
 start_frontend() {
     echo ""
-    echo -e "${BLUE}[2/2] 启动前端服务...${NC}"
-    
+    echo -e "${BLUE}[4/4] 启动前端服务...${NC}"
+
     if check_running "${PID_DIR}/frontend.pid" "前端服务"; then
         return 0
     fi
-    
+
     cd "${FRONTEND_DIR}"
-    
+
     # 检查 .env.local 文件
     if [ ! -f ".env.local" ]; then
         if [ -f "env.example" ]; then
@@ -113,28 +418,28 @@ start_frontend() {
             echo -e "${YELLOW}  警告: 未找到环境配置文件${NC}"
         fi
     fi
-    
+
     # 检查 npm 是否安装
     if ! command -v npm &> /dev/null; then
         echo -e "${RED}  错误: 未安装 npm，请先安装 Node.js${NC}"
         return 1
     fi
-    
+
     # 安装依赖（如果需要）
     if [ ! -d "node_modules" ]; then
         echo -e "${BLUE}  安装 npm 依赖...${NC}"
         npm install
     fi
-    
+
     # 启动前端服务
     echo -e "${BLUE}  启动 Vite 开发服务器...${NC}"
     nohup npm run dev > "${PROJECT_ROOT}/frontend.log" 2>&1 &
     FRONTEND_PID=$!
     echo ${FRONTEND_PID} > "${PID_DIR}/frontend.pid"
-    
+
     # 等待前端启动
     sleep 3
-    
+
     if ps -p ${FRONTEND_PID} > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ 前端服务启动成功 (PID: ${FRONTEND_PID})${NC}"
         echo -e "${GREEN}  ✓ 前端地址: http://localhost:3000${NC}"
@@ -150,28 +455,56 @@ start_frontend() {
 
 # 主流程
 main() {
-    # 检查依赖服务
-    echo -e "${YELLOW}提示: 请确保以下服务已启动:${NC}"
-    echo -e "  - PostgreSQL (默认端口 5432)"
-    echo -e "  - MinIO (默认端口 9000/9001)"
-    echo ""
-    
+    local failed=0
+
+    # 启动 PostgreSQL
+    if ! start_postgresql; then
+        echo -e "${RED}PostgreSQL 启动失败，退出...${NC}"
+        exit 1
+    fi
+
+    # 启动 MinIO
+    if ! start_minio; then
+        echo -e "${RED}MinIO 启动失败，退出...${NC}"
+        exit 1
+    fi
+
     # 启动后端
     if ! start_backend; then
-        echo -e "${RED}后端启动失败，退出...${NC}"
-        exit 1
+        echo -e "${RED}后端启动失败，停止已启动的服务...${NC}"
+        failed=1
     fi
-    
+
     # 启动前端
     if ! start_frontend; then
-        echo -e "${RED}前端启动失败，停止后端服务...${NC}"
-        if [ -f "${PID_DIR}/backend.pid" ]; then
-            kill $(cat "${PID_DIR}/backend.pid") 2>/dev/null
-            rm -f "${PID_DIR}/backend.pid"
-        fi
+        echo -e "${RED}前端启动失败，停止已启动的服务...${NC}"
+        failed=1
+    fi
+
+    # 如果启动失败，清理已启动的服务
+    if [ ${failed} -eq 1 ]; then
+        echo ""
+        echo -e "${YELLOW}清理已启动的服务...${NC}"
+
+        # 清理失败的服务
+        for service in backend frontend; do
+            local pid_file="${PID_DIR}/${service}.pid"
+            if [ -f "${pid_file}" ]; then
+                local pid=$(cat "${pid_file}" 2>/dev/null)
+                stop_process_graceful "${pid}" "${service}服务"
+                rm -f "${pid_file}"
+            fi
+        done
+
+        # MinIO 和 PostgreSQL 是基础设施服务，即使后端/前端失败也保留
+        # 用户可以通过 stop.sh 手动停止
+        echo ""
+        echo -e "${YELLOW}提示: MinIO 和 PostgreSQL 服务仍在运行${NC}"
+        echo -e "${YELLOW}如需停止所有服务，请运行: ./stop.sh${NC}"
+        echo ""
         exit 1
     fi
-    
+
     echo ""
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}  所有服务已成功启动！${NC}"
@@ -180,10 +513,13 @@ main() {
     echo -e "访问地址:"
     echo -e "  前端应用: ${BLUE}http://localhost:3000${NC}"
     echo -e "  后端API:  ${BLUE}http://localhost:8080${NC}"
+    echo -e "  MinIO API: ${BLUE}http://localhost:9000${NC}"
+    echo -e "  MinIO 控制台: ${BLUE}http://localhost:9001${NC}"
     echo ""
     echo -e "日志文件:"
     echo -e "  后端日志: ${PROJECT_ROOT}/backend.log"
     echo -e "  前端日志: ${PROJECT_ROOT}/frontend.log"
+    echo -e "  MinIO 日志: ${PROJECT_ROOT}/minio.log"
     echo ""
     echo -e "停止服务: ${YELLOW}./stop.sh${NC}"
     echo -e "查看日志: ${YELLOW}tail -f backend.log${NC} 或 ${YELLOW}tail -f frontend.log${NC}"
@@ -192,4 +528,3 @@ main() {
 
 # 执行主流程
 main
-

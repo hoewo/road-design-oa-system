@@ -1,0 +1,90 @@
+# Pre-commit hooks configuration for 项目管理OA系统
+# This file configures pre-commit hooks for both frontend (React/TypeScript) and backend (Go)
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(.*\.md|.*\.yaml|.*\.yml|.*\.json|.*\.lock|.*\.sum)$
+      - id: end-of-file-fixer
+        exclude: ^(.*\.md|.*\.yaml|.*\.yml|.*\.json|.*\.lock|.*\.sum)$
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom YAML tags
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=10000]  # 10MB max file size
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Go hooks (using local installation)
+  - repo: local
+    hooks:
+      - id: go-fmt
+        name: Go Format (gofmt)
+        entry: bash -c 'cd backend && gofmt -w .'
+        language: system
+        files: ^backend/.*\.go$
+        pass_filenames: false
+      - id: go-vet
+        name: Go Vet
+        entry: bash -c 'cd backend && go vet ./...'
+        language: system
+        files: ^backend/.*\.go$
+        pass_filenames: false
+      - id: go-mod-tidy
+        name: Go Mod Tidy
+        entry: bash -c 'cd backend && go mod tidy'
+        language: system
+        files: ^backend/go\.(mod|sum)$
+        pass_filenames: false
+
+  # Frontend: Prettier (using local installation)
+  - repo: local
+    hooks:
+      - id: prettier-frontend
+        name: Prettier (Frontend)
+        entry: bash -c 'if [ -d "frontend/node_modules" ]; then cd frontend && npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,css}" 2>/dev/null || true; fi'
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json, css]
+        files: ^frontend/src/.*\.(js|jsx|ts|tsx|json|css)$
+        pass_filenames: false
+
+  # Frontend: ESLint (using local installation)
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: ESLint (Frontend)
+        entry: bash -c 'if [ -d "frontend/node_modules" ]; then cd frontend && npm run lint 2>/dev/null || true; fi'
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        files: ^frontend/src/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: false
+
+  # Commit message checks
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+# Global configuration
+default_language_version:
+  python: python3
+
+# Skip hooks on specific conditions
+exclude: |
+  (?x)^(
+    .*\.min\.(js|css)|
+    .*\.lock$|
+    .*\.sum$|
+    frontend/dist/.*|
+    frontend/node_modules/.*|
+    backend/vendor/.*|
+    .*\.md$
+  )$
+

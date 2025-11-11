@@ -136,8 +136,18 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# PostgreSQL 本地数据目录
+.postgresql-data/
+postgresql.log
+postgresql-init.log
+
 # MinIO
 minio-data/
+.minio-data/
+minio.log
+
+# Backend
+backend/server
 
 # Test coverage
 coverage/

@@ -25,7 +25,7 @@
 - [x] T003 [P] Initialize React frontend project with TypeScript in frontend/
 - [x] T004 [P] Setup Docker and Docker Compose configuration
 - [x] T005 [P] Configure linting and formatting tools for both frontend and backend
-- [ ] T006 [P] Setup Git hooks and pre-commit configuration
+- [x] T006 [P] Setup Git hooks and pre-commit configuration
 
 ---
 
@@ -36,12 +36,12 @@
 **⚠️ CRITICAL**: 任何用户故事工作开始前必须完成此阶段
 
 - [x] T007 Setup PostgreSQL database schema and migrations framework in backend/pkg/database/
-- [ ] T008 [P] Setup MinIO file storage configuration in backend/pkg/storage/
-- [ ] T009 [P] Implement JWT authentication middleware in backend/internal/middleware/auth.go
-- [ ] T010 [P] Setup CORS and logging middleware in backend/internal/middleware/
+- [x] T008 [P] Setup MinIO file storage configuration in backend/pkg/storage/
+- [x] T009 [P] Implement JWT authentication middleware in backend/internal/middleware/auth.go
+- [x] T010 [P] Setup CORS and logging middleware in backend/internal/middleware/
 - [x] T011 [P] Create base configuration management in backend/internal/config/config.go
 - [x] T012 [P] Setup API routing structure in backend/internal/handlers/
-- [ ] T013 [P] Configure error handling and logging infrastructure
+- [x] T013 [P] Configure error handling and logging infrastructure
 - [x] T014 [P] Setup environment configuration management (.env files)
 - [x] T015 [P] Create base database connection and GORM setup in backend/pkg/database/
 - [x] T016 [P] Setup React Query and API client in frontend/src/services/api.ts

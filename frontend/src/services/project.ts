@@ -1,11 +1,11 @@
 import { get, post, put, del, getPaginated } from './api'
-import type { 
-  Project, 
-  Client, 
-  CreateProjectRequest, 
-  UpdateProjectRequest, 
+import type {
+  Project,
+  Client,
+  CreateProjectRequest,
+  UpdateProjectRequest,
   CreateClientRequest,
-  PaginatedResponse 
+  PaginatedResponse,
 } from '@/types'
 
 export const projectService = {
@@ -27,7 +27,10 @@ export const projectService = {
     return post<Project>('/projects', data)
   },
 
-  updateProject: async (id: number, data: UpdateProjectRequest): Promise<Project> => {
+  updateProject: async (
+    id: number,
+    data: UpdateProjectRequest
+  ): Promise<Project> => {
     return put<Project>(`/projects/${id}`, data)
   },
 
@@ -52,7 +55,10 @@ export const projectService = {
     return post<Client>('/clients', data)
   },
 
-  updateClient: async (id: number, data: Partial<CreateClientRequest>): Promise<Client> => {
+  updateClient: async (
+    id: number,
+    data: Partial<CreateClientRequest>
+  ): Promise<Client> => {
     return put<Client>(`/clients/${id}`, data)
   },
 

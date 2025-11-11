@@ -6,45 +6,67 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 
 	"project-oa-backend/internal/config"
+	"project-oa-backend/internal/middleware"
 	"project-oa-backend/pkg/database"
+	"project-oa-backend/pkg/storage"
+	"project-oa-backend/pkg/utils"
 )
 
 func main() {
 	// Load configuration
 	cfg := config.Load()
 
+	// Initialize logger
+	logger, err := utils.InitLogger(cfg)
+	if err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	defer logger.Sync()
+
+	logger.Info("Starting Project OA System",
+		zap.String("version", "1.0.0"),
+		zap.String("environment", cfg.LogLevel),
+	)
+
 	// Connect to database
 	if err := database.Connect(cfg); err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	defer database.Close()
 
 	// Run database migrations
 	if err := database.Migrate(); err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		logger.Fatal("Failed to migrate database", zap.Error(err))
+	}
+
+	// Initialize MinIO storage
+	if err := storage.InitMinIO(cfg); err != nil {
+		logger.Warn("Failed to initialize MinIO storage", zap.Error(err))
+		logger.Info("Continuing without file storage - file uploads will not work")
 	}
 
 	// Setup Gin router
-	router := gin.Default()
+	router := gin.New()
+
+	// Add recovery middleware (must be first)
+	router.Use(middleware.RecoveryMiddleware(logger))
+
+	// Add request ID middleware
+	router.Use(middleware.RequestIDMiddleware())
+
+	// Add logging middleware
+	router.Use(middleware.LoggerMiddleware(logger))
 
 	// Add CORS middleware
-	router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", cfg.CORSAllowedOrigins)
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
-		c.Header("Access-Control-Allow-Credentials", "true")
+	router.Use(middleware.CORSMiddleware(cfg))
 
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-			return
-		}
+	// Add error handler middleware (must be before routes)
+	router.Use(middleware.ErrorHandlerMiddleware(logger))
 
-		c.Next()
-	})
-
-	// Health check endpoint
+	// Health check endpoint (no auth required)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":  "ok",
@@ -55,31 +77,43 @@ func main() {
 	// API routes
 	api := router.Group("/api/v1")
 	{
-		// Placeholder routes - will be implemented in user story tasks
-		api.GET("/projects", func(c *gin.Context) {
+		// Public routes (no auth required)
+		api.GET("/health", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
-				"data": []interface{}{},
-				"total": 0,
-				"page": 1,
-				"size": 10,
+				"status": "ok",
 			})
 		})
 
-		api.GET("/clients", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{
-				"data": []interface{}{},
-				"total": 0,
-				"page": 1,
-				"size": 10,
+		// Protected routes (auth required)
+		protected := api.Group("")
+		protected.Use(middleware.AuthMiddleware(cfg))
+		{
+			// Placeholder routes - will be implemented in user story tasks
+			protected.GET("/projects", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{
+					"data":  []interface{}{},
+					"total": 0,
+					"page":  1,
+					"size":  10,
+				})
 			})
-		})
+
+			protected.GET("/clients", func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{
+					"data":  []interface{}{},
+					"total": 0,
+					"page":  1,
+					"size":  10,
+				})
+			})
+		}
 	}
 
 	// Start server
 	addr := fmt.Sprintf("%s:%d", cfg.ServerHost, cfg.ServerPort)
-	log.Printf("Server starting on %s", addr)
-	
+	logger.Info("Server starting", zap.String("address", addr))
+
 	if err := router.Run(addr); err != nil {
-		log.Fatal("Failed to start server:", err)
+		logger.Fatal("Failed to start server", zap.Error(err))
 	}
 }

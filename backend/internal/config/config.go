@@ -18,15 +18,15 @@ type Config struct {
 	DBSSLMode  string
 
 	// JWT
-	JWTSecret     string
+	JWTSecret      string
 	JWTExpireHours int
 
 	// MinIO
-	MinIOEndpoint  string
-	MinIOAccessKey string
-	MinIOSecretKey string
+	MinIOEndpoint   string
+	MinIOAccessKey  string
+	MinIOSecretKey  string
 	MinIOBucketName string
-	MinIOUseSSL    bool
+	MinIOUseSSL     bool
 
 	// Server
 	ServerPort         int
@@ -34,7 +34,7 @@ type Config struct {
 	CORSAllowedOrigins string
 
 	// Log
-	LogLevel string
+	LogLevel  string
 	LogFormat string
 }
 

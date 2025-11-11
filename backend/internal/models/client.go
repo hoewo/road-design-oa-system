@@ -7,16 +7,16 @@ import (
 )
 
 type Client struct {
-	ID          uint      `json:"id" gorm:"primaryKey"`
-	ClientName  string    `json:"client_name" gorm:"not null"`
-	ContactName string    `json:"contact_name"`
-	ContactPhone string   `json:"contact_phone"`
-	Email       string    `json:"email"`
-	Address     string    `json:"address"`
-	TaxNumber   string    `json:"tax_number"`
-	BankAccount string    `json:"bank_account"`
-	BankName    string    `json:"bank_name"`
-	IsActive    bool      `json:"is_active" gorm:"default:true"`
+	ID           uint   `json:"id" gorm:"primaryKey"`
+	ClientName   string `json:"client_name" gorm:"not null"`
+	ContactName  string `json:"contact_name"`
+	ContactPhone string `json:"contact_phone"`
+	Email        string `json:"email"`
+	Address      string `json:"address"`
+	TaxNumber    string `json:"tax_number"`
+	BankAccount  string `json:"bank_account"`
+	BankName     string `json:"bank_name"`
+	IsActive     bool   `json:"is_active" gorm:"default:true"`
 
 	// 关联关系
 	Projects []Project `json:"projects" gorm:"foreignKey:ClientID"`

@@ -18,18 +18,25 @@ const ProjectList = () => {
   })
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['projects', pagination.current, pagination.pageSize, searchText, statusFilter],
-    queryFn: () => projectService.getProjects({
-      page: pagination.current,
-      size: pagination.pageSize,
-      keyword: searchText,
-      status: statusFilter,
-    }),
+    queryKey: [
+      'projects',
+      pagination.current,
+      pagination.pageSize,
+      searchText,
+      statusFilter,
+    ],
+    queryFn: () =>
+      projectService.getProjects({
+        page: pagination.current,
+        size: pagination.pageSize,
+        keyword: searchText,
+        status: statusFilter,
+      }),
   })
 
   useEffect(() => {
     if (data) {
-      setPagination(prev => ({
+      setPagination((prev) => ({
         ...prev,
         total: data.total,
       }))
@@ -88,7 +95,7 @@ const ProjectList = () => {
   ]
 
   const handleTableChange = (pagination: any) => {
-    setPagination(prev => ({
+    setPagination((prev) => ({
       ...prev,
       current: pagination.current,
       pageSize: pagination.pageSize,
@@ -97,12 +104,12 @@ const ProjectList = () => {
 
   const handleSearch = (value: string) => {
     setSearchText(value)
-    setPagination(prev => ({ ...prev, current: 1 }))
+    setPagination((prev) => ({ ...prev, current: 1 }))
   }
 
   const handleStatusFilter = (value: ProjectStatus | undefined) => {
     setStatusFilter(value)
-    setPagination(prev => ({ ...prev, current: 1 }))
+    setPagination((prev) => ({ ...prev, current: 1 }))
   }
 
   if (error) {
@@ -110,11 +117,14 @@ const ProjectList = () => {
   }
 
   return (
-    <Card title="项目管理" extra={
-      <Button type="primary" icon={<PlusOutlined />}>
-        新建项目
-      </Button>
-    }>
+    <Card
+      title="项目管理"
+      extra={
+        <Button type="primary" icon={<PlusOutlined />}>
+          新建项目
+        </Button>
+      }
+    >
       <Space style={{ marginBottom: 16 }}>
         <Search
           placeholder="搜索项目名称或编号"

@@ -12,7 +12,13 @@ export interface User {
   updated_at: string
 }
 
-export type UserRole = 'admin' | 'manager' | 'business' | 'designer' | 'reviewer' | 'finance'
+export type UserRole =
+  | 'admin'
+  | 'manager'
+  | 'business'
+  | 'designer'
+  | 'reviewer'
+  | 'finance'
 
 // Project types
 export interface Project {
@@ -29,7 +35,13 @@ export interface Project {
   updated_at: string
 }
 
-export type ProjectStatus = 'planning' | 'bidding' | 'contract' | 'production' | 'completed' | 'cancelled'
+export type ProjectStatus =
+  | 'planning'
+  | 'bidding'
+  | 'contract'
+  | 'production'
+  | 'completed'
+  | 'cancelled'
 
 // Client types
 export interface Client {

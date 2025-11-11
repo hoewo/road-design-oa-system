@@ -10,9 +10,7 @@ function App() {
   return (
     <Layout className="min-h-screen">
       <Header className="bg-white shadow-sm">
-        <div className="text-xl font-bold text-gray-800">
-          项目管理OA系统
-        </div>
+        <div className="text-xl font-bold text-gray-800">项目管理OA系统</div>
       </Header>
       <Content className="p-6">
         <Routes>
