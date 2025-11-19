@@ -1,0 +1,11 @@
+{
+  "id": "FR-009",
+  "type": "Functional_Requirement",
+  "description": "系统必须提供数据验证和必填字段检查（仅核心字段为必填：项目名称、项目编号；其他字段为可选）",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["项目"],
+  "category": "Data"
+}
+

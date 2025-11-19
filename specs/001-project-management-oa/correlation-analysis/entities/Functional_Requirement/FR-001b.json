@@ -1,0 +1,11 @@
+{
+  "id": "FR-001b",
+  "type": "Functional_Requirement",
+  "description": "系统必须确保甲方名称的唯一性，创建新甲方时自动检测重复名称并阻止创建，提示用户使用已存在的甲方",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["甲方"],
+  "category": "Data"
+}
+

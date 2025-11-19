@@ -1,0 +1,12 @@
+{
+  "id": "T008",
+  "type": "Task",
+  "description": "Setup MinIO file storage configuration in backend/pkg/storage/",
+  "is_parallel": true,
+  "task_type": "Config",
+  "file_path": null,
+  "user_story_label": null,
+  "phase_number": 2,
+  "phase_type": "Foundational",
+  "depends_on_tasks": []
+}

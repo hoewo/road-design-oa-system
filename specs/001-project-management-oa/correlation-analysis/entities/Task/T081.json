@@ -1,0 +1,12 @@
+{
+  "id": "T081",
+  "type": "Task",
+  "description": "Create BonusForm component in frontend/src/components/financial/BonusForm.tsx",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/components/financial/BonusForm.tsx",
+  "user_story_label": "US4",
+  "phase_number": 6,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

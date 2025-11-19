@@ -1,0 +1,14 @@
+{
+  "id": "file_download",
+  "path": "/api/v1/files/{id}/download",
+  "method": "GET",
+  "summary": "下载文件",
+  "source_user_story": "US5",
+  "implements_requirements": [
+    "FR-006"
+  ],
+  "tags": [
+    "文件管理"
+  ],
+  "type": "API_Endpoint"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "FR-001d",
+  "type": "Functional_Requirement",
+  "description": "系统必须在甲方选择下拉框中提供实时搜索功能，支持按甲方名称、联系人、电话等字段搜索，并提供\"最近使用\"、\"全部\"等快速筛选选项",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["甲方"],
+  "category": "Behavior"
+}
+

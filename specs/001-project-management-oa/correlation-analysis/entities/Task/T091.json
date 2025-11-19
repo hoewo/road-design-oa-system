@@ -1,0 +1,12 @@
+{
+  "id": "T091",
+  "type": "Task",
+  "description": "Add file upload validation and security checks",
+  "is_parallel": false,
+  "task_type": "Validation",
+  "file_path": null,
+  "user_story_label": "US5",
+  "phase_number": 7,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

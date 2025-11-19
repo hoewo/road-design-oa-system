@@ -1,0 +1,12 @@
+{
+  "id": "T082",
+  "type": "Task",
+  "description": "Integrate financial management with project detail page",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": null,
+  "user_story_label": "US4",
+  "phase_number": 6,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

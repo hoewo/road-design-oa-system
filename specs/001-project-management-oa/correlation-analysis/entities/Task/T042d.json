@@ -1,0 +1,14 @@
+{
+  "id": "T042d",
+  "type": "Task",
+  "description": "Implement delete project functionality with confirmation dialog in frontend/src/pages/ProjectList.tsx (depends on T036)",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/pages/ProjectList.tsx",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T036"
+  ]
+}

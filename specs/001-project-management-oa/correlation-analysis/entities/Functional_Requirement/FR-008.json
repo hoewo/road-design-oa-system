@@ -1,0 +1,11 @@
+{
+  "id": "FR-008",
+  "type": "Functional_Requirement",
+  "description": "系统必须支持奖金信息的管理和统计",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US2", "US4"],
+  "impacts_entities": ["奖金"],
+  "category": "Data"
+}
+

@@ -1,0 +1,12 @@
+{
+  "id": "T107",
+  "type": "Task",
+  "description": "Security testing and penetration testing",
+  "is_parallel": true,
+  "task_type": "Test",
+  "file_path": null,
+  "user_story_label": null,
+  "phase_number": 8,
+  "phase_type": "Polish",
+  "depends_on_tasks": []
+}

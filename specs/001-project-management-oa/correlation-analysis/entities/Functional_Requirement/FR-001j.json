@@ -1,0 +1,11 @@
+{
+  "id": "FR-001j",
+  "type": "Functional_Requirement",
+  "description": "系统必须在用户创建或更新甲方后自动刷新甲方列表，确保列表显示最新的甲方数据",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["甲方"],
+  "category": "Behavior"
+}
+

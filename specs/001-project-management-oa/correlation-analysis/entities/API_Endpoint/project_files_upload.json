@@ -1,0 +1,14 @@
+{
+  "id": "project_files_upload",
+  "path": "/api/v1/projects/{id}/files",
+  "method": "POST",
+  "summary": "上传文件",
+  "source_user_story": "US5",
+  "implements_requirements": [
+    "FR-006"
+  ],
+  "tags": [
+    "文件管理"
+  ],
+  "type": "API_Endpoint"
+}

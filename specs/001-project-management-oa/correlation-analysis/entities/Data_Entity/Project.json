@@ -1,0 +1,129 @@
+{
+  "id": "Project",
+  "type": "Data_Entity",
+  "name": "Project",
+  "source_key_entity": "项目",
+  "description": "项目实体，包含基本信息、经营信息、生产信息和财务信息",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uint",
+      "required": true,
+      "constraints": [
+        "primary_key"
+      ],
+      "description": "项目唯一标识"
+    },
+    {
+      "name": "project_name",
+      "type": "string",
+      "required": true,
+      "constraints": [
+        "min_length: 2",
+        "max_length: 100"
+      ],
+      "description": "项目名称（必填）",
+      "from_requirement": "FR-001"
+    },
+    {
+      "name": "project_number",
+      "type": "string",
+      "required": true,
+      "constraints": [
+        "unique",
+        "format: YYYY-XXX"
+      ],
+      "description": "项目编号（必填）",
+      "from_requirement": "FR-001"
+    },
+    {
+      "name": "start_date",
+      "type": "DateTime",
+      "required": false,
+      "constraints": [
+        "not_future"
+      ],
+      "description": "承接日期（可选）"
+    },
+    {
+      "name": "project_overview",
+      "type": "string",
+      "required": false,
+      "constraints": [
+        "max_length: 1000"
+      ],
+      "description": "项目概况（可选）"
+    },
+    {
+      "name": "drawing_unit",
+      "type": "string",
+      "required": false,
+      "description": "出图单位（可选）"
+    },
+    {
+      "name": "status",
+      "type": "ProjectStatus",
+      "required": false,
+      "constraints": [
+        "enum: planning, bidding, contract, production, completed, cancelled"
+      ],
+      "default": "planning",
+      "description": "项目状态（可选）"
+    }
+  ],
+  "relationships": [
+    {
+      "target_entity": "Client",
+      "relationship_type": "many_to_one",
+      "foreign_key": "client_id",
+      "description": "一个项目关联一个甲方"
+    },
+    {
+      "target_entity": "Contract",
+      "relationship_type": "one_to_many",
+      "foreign_key": "project_id",
+      "description": "一个项目可以有多个合同"
+    },
+    {
+      "target_entity": "ProjectMember",
+      "relationship_type": "one_to_many",
+      "foreign_key": "project_id",
+      "description": "一个项目可以有多个项目成员"
+    },
+    {
+      "target_entity": "File",
+      "relationship_type": "one_to_many",
+      "foreign_key": "project_id",
+      "description": "一个项目可以有多个文件"
+    },
+    {
+      "target_entity": "FinancialRecord",
+      "relationship_type": "one_to_many",
+      "foreign_key": "project_id",
+      "description": "一个项目可以有多个财务记录"
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "Project name and project number are required",
+      "related_fr": "FR-001, FR-009",
+      "error_message": "项目名称和项目编号为必填字段"
+    },
+    {
+      "rule": "Project number must be unique",
+      "related_fr": "FR-001",
+      "error_message": "项目编号已存在"
+    }
+  ],
+  "related_user_stories": [
+    "US1",
+    "US2",
+    "US3",
+    "US4",
+    "US5"
+  ],
+  "used_in_endpoints": [
+    "/projects",
+    "/projects/{id}"
+  ]
+}

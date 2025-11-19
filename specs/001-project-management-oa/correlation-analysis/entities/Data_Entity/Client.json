@@ -1,0 +1,82 @@
+{
+  "id": "Client",
+  "type": "Data_Entity",
+  "name": "Client",
+  "source_key_entity": "甲方",
+  "description": "甲方实体，代表项目的委托方",
+  "fields": [
+    {
+      "name": "id",
+      "type": "uint",
+      "required": true,
+      "constraints": [
+        "primary_key"
+      ],
+      "description": "甲方唯一标识"
+    },
+    {
+      "name": "client_name",
+      "type": "string",
+      "required": true,
+      "constraints": [
+        "unique",
+        "min_length: 2",
+        "max_length: 100"
+      ],
+      "description": "甲方名称（必填，唯一）",
+      "from_requirement": "FR-001b"
+    },
+    {
+      "name": "contact_name",
+      "type": "string",
+      "required": false,
+      "description": "联系人姓名"
+    },
+    {
+      "name": "contact_phone",
+      "type": "string",
+      "required": false,
+      "constraints": [
+        "phone_format"
+      ],
+      "description": "联系人电话"
+    },
+    {
+      "name": "email",
+      "type": "string",
+      "required": false,
+      "constraints": [
+        "email_format"
+      ],
+      "description": "邮箱地址"
+    }
+  ],
+  "relationships": [
+    {
+      "target_entity": "Project",
+      "relationship_type": "one_to_many",
+      "foreign_key": "client_id",
+      "description": "一个甲方可以有多个项目",
+      "cascade_behavior": "check_before_delete"
+    }
+  ],
+  "validation_rules": [
+    {
+      "rule": "Client name must be unique",
+      "related_fr": "FR-001b",
+      "error_message": "甲方名称已存在，请使用已存在的甲方"
+    },
+    {
+      "rule": "Cannot delete client if associated with projects",
+      "related_fr": "FR-001e",
+      "error_message": "该甲方已被项目使用，无法删除"
+    }
+  ],
+  "related_user_stories": [
+    "US1",
+    "US2"
+  ],
+  "used_in_endpoints": [
+    "/clients"
+  ]
+}

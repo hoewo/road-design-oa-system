@@ -1,0 +1,14 @@
+{
+  "id": "File",
+  "name": "File",
+  "source_key_entity": "文件",
+  "description": "文件实体，包含文件类型、上传时间、文件大小、存储位置等信息",
+  "related_user_stories": [
+    "US5"
+  ],
+  "used_in_endpoints": [
+    "/projects/{id}/files",
+    "/files/{id}/download"
+  ],
+  "type": "Data_Entity"
+}

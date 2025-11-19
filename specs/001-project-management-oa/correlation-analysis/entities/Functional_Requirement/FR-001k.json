@@ -1,0 +1,11 @@
+{
+  "id": "FR-001k",
+  "type": "Functional_Requirement",
+  "description": "系统必须一次性加载所有甲方数据（最多100条），按创建时间倒序排列，不进行分页处理",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["甲方"],
+  "category": "Performance"
+}
+

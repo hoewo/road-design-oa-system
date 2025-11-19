@@ -1,0 +1,14 @@
+{
+  "id": "project_financial_create",
+  "path": "/api/v1/projects/{id}/financial",
+  "method": "POST",
+  "summary": "添加财务记录",
+  "source_user_story": "US4",
+  "implements_requirements": [
+    "FR-005"
+  ],
+  "tags": [
+    "财务管理"
+  ],
+  "type": "API_Endpoint"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "T032a",
+  "type": "Task",
+  "description": "Add 409 Conflict response for duplicate client name in backend/internal/handlers/client_handler.go (depends on T029a, T032)",
+  "is_parallel": false,
+  "task_type": "Endpoint",
+  "file_path": "backend/internal/handlers/client_handler.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T029a",
+    "T032"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "Contract",
+  "name": "Contract",
+  "source_key_entity": "合同",
+  "description": "合同实体，包含合同文件、签订时间、合同费率、合同金额等信息",
+  "related_user_stories": [
+    "US2"
+  ],
+  "used_in_endpoints": [],
+  "type": "Data_Entity"
+}

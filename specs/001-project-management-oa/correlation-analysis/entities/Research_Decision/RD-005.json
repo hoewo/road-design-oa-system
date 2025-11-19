@@ -1,0 +1,10 @@
+{
+  "id": "RD-005",
+  "topic": "认证和授权方案",
+  "decision": "JWT + RBAC (基于角色的访问控制)",
+  "rationale": "JWT无状态，适合分布式部署；RBAC模型清晰，易于理解和实现；支持细粒度权限控制；前端可以基于角色显示不同功能",
+  "related_functional_requirements": [
+    "FR-010"
+  ],
+  "type": "Research_Decision"
+}

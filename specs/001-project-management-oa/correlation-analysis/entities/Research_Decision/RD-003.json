@@ -1,0 +1,8 @@
+{
+  "id": "RD-003",
+  "topic": "数据库选择",
+  "decision": "PostgreSQL",
+  "rationale": "对中文支持优秀，UTF-8编码完善；支持复杂查询和事务，适合财务数据管理；性能优秀，支持高并发；开源免费，社区活跃",
+  "related_functional_requirements": [],
+  "type": "Research_Decision"
+}

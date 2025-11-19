@@ -1,0 +1,12 @@
+{
+  "id": "T083",
+  "type": "Task",
+  "description": "Add financial reporting and statistics features",
+  "is_parallel": false,
+  "task_type": "Other",
+  "file_path": null,
+  "user_story_label": "US4",
+  "phase_number": 6,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

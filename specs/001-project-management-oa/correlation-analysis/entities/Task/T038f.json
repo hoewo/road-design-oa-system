@@ -1,0 +1,14 @@
+{
+  "id": "T038f",
+  "type": "Task",
+  "description": "Add empty state display (\"暂无数据\") for client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038)",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/components/project/ProjectForm.tsx",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T038"
+  ]
+}

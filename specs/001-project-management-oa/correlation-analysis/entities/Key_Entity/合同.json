@@ -1,0 +1,34 @@
+{
+  "id": "合同",
+  "name": "合同",
+  "description": "代表项目合同，包含合同文件、签订时间、合同费率、合同金额等信息",
+  "key_attributes": [
+    {
+      "attribute": "合同文件",
+      "description": "合同文档文件"
+    },
+    {
+      "attribute": "签订时间",
+      "description": "合同签订日期"
+    },
+    {
+      "attribute": "合同费率",
+      "description": "合同费率百分比"
+    },
+    {
+      "attribute": "合同金额",
+      "description": "合同总金额"
+    }
+  ],
+  "relationships": [
+    {
+      "related_entity": "项目",
+      "relationship_description": "一个项目可以有多个合同"
+    }
+  ],
+  "related_user_stories": [
+    "US2"
+  ],
+  "introduced_by_requirement": "FR-003",
+  "type": "Key_Entity"
+}

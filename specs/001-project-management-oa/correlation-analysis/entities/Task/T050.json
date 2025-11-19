@@ -1,0 +1,14 @@
+{
+  "id": "T050",
+  "type": "Task",
+  "description": "Implement ContractService in backend/internal/services/contract_service.go (depends on T049)",
+  "is_parallel": false,
+  "task_type": "Service",
+  "file_path": "backend/internal/services/contract_service.go",
+  "user_story_label": "US2",
+  "phase_number": 4,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T049"
+  ]
+}

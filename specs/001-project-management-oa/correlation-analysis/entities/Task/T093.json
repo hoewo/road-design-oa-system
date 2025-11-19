@@ -1,0 +1,14 @@
+{
+  "id": "T093",
+  "type": "Task",
+  "description": "Create FileList component in frontend/src/components/file/FileList.tsx (depends on T092)",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/components/file/FileList.tsx",
+  "user_story_label": "US5",
+  "phase_number": 7,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T092"
+  ]
+}

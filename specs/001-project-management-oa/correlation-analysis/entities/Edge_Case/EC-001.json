@@ -1,0 +1,10 @@
+{
+  "id": "EC-001",
+  "type": "Edge_Case",
+  "scenario": "当项目信息不完整时，系统如何处理必填字段的验证？",
+  "handling_requirement": "仅项目名称和项目编号为必填，其他字段允许为空",
+  "severity": "Medium",
+  "related_user_stories": [
+    "US1"
+  ]
+}

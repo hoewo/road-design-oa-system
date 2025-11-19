@@ -1,0 +1,10 @@
+{
+  "id": "EC-006",
+  "type": "Edge_Case",
+  "scenario": "当文件上传失败时，系统如何提供错误提示和重试机制？",
+  "handling_requirement": "提供错误提示和重试机制",
+  "severity": "Medium",
+  "related_user_stories": [
+    "US5"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "FR-006",
+  "type": "Functional_Requirement",
+  "description": "系统必须支持文件上传、存储、检索和下载功能",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US5"],
+  "impacts_entities": ["文件"],
+  "category": "Data"
+}
+

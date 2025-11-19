@@ -1,0 +1,11 @@
+{
+  "id": "FR-007",
+  "type": "Functional_Requirement",
+  "description": "系统必须提供项目搜索和筛选功能",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["项目"],
+  "category": "Behavior"
+}
+

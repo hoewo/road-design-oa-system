@@ -1,0 +1,11 @@
+{
+  "id": "FR-005",
+  "type": "Functional_Requirement",
+  "description": "系统必须提供财务信息管理功能（应收金额、开票信息、支付记录、管理费比例）",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US4"],
+  "impacts_entities": ["项目", "财务记录"],
+  "category": "Data"
+}
+

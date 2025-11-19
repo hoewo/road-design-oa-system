@@ -1,0 +1,14 @@
+{
+  "id": "projects_delete",
+  "path": "/api/v1/projects/{id}",
+  "method": "DELETE",
+  "summary": "删除项目",
+  "source_user_story": "US1",
+  "implements_requirements": [
+    "FR-001"
+  ],
+  "tags": [
+    "项目管理"
+  ],
+  "type": "API_Endpoint"
+}

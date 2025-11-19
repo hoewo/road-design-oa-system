@@ -1,0 +1,14 @@
+{
+  "id": "T030",
+  "type": "Task",
+  "description": "Implement AuthHandler in backend/internal/handlers/auth_handler.go (depends on T027)",
+  "is_parallel": false,
+  "task_type": "Endpoint",
+  "file_path": "backend/internal/handlers/auth_handler.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T027"
+  ]
+}

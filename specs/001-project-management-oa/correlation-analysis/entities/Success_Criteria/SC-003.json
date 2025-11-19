@@ -1,0 +1,13 @@
+{
+  "id": "SC-003",
+  "metric": "95%的用户能够成功完成项目信息的录入和编辑操作",
+  "measurable": true,
+  "technology_agnostic": true,
+  "metric_type": "Quantitative",
+  "target_value": "95%",
+  "measurement_method": "用户操作成功率统计",
+  "related_user_stories": [
+    "US1"
+  ],
+  "type": "Success_Criteria"
+}

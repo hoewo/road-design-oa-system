@@ -1,0 +1,14 @@
+{
+  "id": "T029b",
+  "type": "Task",
+  "description": "Add database migration to create unique index on client_name in backend/migrations/ (depends on T026)",
+  "is_parallel": false,
+  "task_type": "Config",
+  "file_path": null,
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T026"
+  ]
+}

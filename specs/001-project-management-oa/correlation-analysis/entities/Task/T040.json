@@ -1,0 +1,15 @@
+{
+  "id": "T040",
+  "type": "Task",
+  "description": "Create ProjectDetail component in frontend/src/components/project/ProjectDetail.tsx (depends on T035, T036)",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/components/project/ProjectDetail.tsx",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T035",
+    "T036"
+  ]
+}

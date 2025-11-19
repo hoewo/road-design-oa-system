@@ -1,0 +1,12 @@
+{
+  "id": "T068",
+  "type": "Task",
+  "description": "Add member notification system for role assignments",
+  "is_parallel": false,
+  "task_type": "Other",
+  "file_path": null,
+  "user_story_label": "US3",
+  "phase_number": 5,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

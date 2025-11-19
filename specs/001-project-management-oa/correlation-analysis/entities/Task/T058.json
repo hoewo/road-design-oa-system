@@ -1,0 +1,12 @@
+{
+  "id": "T058",
+  "type": "Task",
+  "description": "Integration test for project member management flow in backend/tests/integration/test_member_management.go",
+  "is_parallel": true,
+  "task_type": "Test",
+  "file_path": "backend/tests/integration/test_member_management.go",
+  "user_story_label": "US3",
+  "phase_number": 5,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

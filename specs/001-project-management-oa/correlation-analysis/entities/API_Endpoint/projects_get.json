@@ -1,0 +1,14 @@
+{
+  "id": "projects_get",
+  "path": "/api/v1/projects/{id}",
+  "method": "GET",
+  "summary": "获取项目详情",
+  "source_user_story": "US1",
+  "implements_requirements": [
+    "FR-001"
+  ],
+  "tags": [
+    "项目管理"
+  ],
+  "type": "API_Endpoint"
+}

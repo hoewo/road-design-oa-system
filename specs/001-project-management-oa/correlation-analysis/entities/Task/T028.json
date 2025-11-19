@@ -1,0 +1,15 @@
+{
+  "id": "T028",
+  "type": "Task",
+  "description": "Implement ProjectService in backend/internal/services/project_service.go (depends on T025, T026)",
+  "is_parallel": false,
+  "task_type": "Service",
+  "file_path": "backend/internal/services/project_service.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T025",
+    "T026"
+  ]
+}

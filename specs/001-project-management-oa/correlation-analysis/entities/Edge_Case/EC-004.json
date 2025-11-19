@@ -1,0 +1,10 @@
+{
+  "id": "EC-004",
+  "type": "Edge_Case",
+  "scenario": "当用户尝试删除已被项目使用的甲方时，系统如何阻止删除并提示用户？",
+  "handling_requirement": "硬删除 + 阻止：如果甲方已被项目使用，不允许删除；如果未被使用，可以硬删除（永久删除）",
+  "severity": "High",
+  "related_user_stories": [
+    "US1"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "Phase-2",
+  "type": "Phase",
+  "number": 2,
+  "type_enum": "Foundational",
+  "name": "核心基础设施",
+  "user_story_ref": null,
+  "user_story_priority": null,
+  "goal": "核心基础设施，所有用户故事实现前必须完成",
+  "independent_test": null,
+  "checkpoint_description": "基础设施就绪 - 用户故事实现现在可以并行开始",
+  "blocking": true,
+  "depends_on_phases": [
+    1
+  ],
+  "task_count": 10,
+  "parallel_task_count": 8
+}

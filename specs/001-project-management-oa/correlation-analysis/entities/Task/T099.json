@@ -1,0 +1,12 @@
+{
+  "id": "T099",
+  "type": "Task",
+  "description": "Performance optimization across all stories",
+  "is_parallel": true,
+  "task_type": "Frontend",
+  "file_path": null,
+  "user_story_label": null,
+  "phase_number": 8,
+  "phase_type": "Polish",
+  "depends_on_tasks": []
+}

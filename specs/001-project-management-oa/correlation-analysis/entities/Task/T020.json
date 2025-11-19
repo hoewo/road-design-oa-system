@@ -1,0 +1,12 @@
+{
+  "id": "T020",
+  "type": "Task",
+  "description": "Integration test for project creation flow in backend/tests/integration/test_project_creation.go",
+  "is_parallel": true,
+  "task_type": "Test",
+  "file_path": "backend/tests/integration/test_project_creation.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}

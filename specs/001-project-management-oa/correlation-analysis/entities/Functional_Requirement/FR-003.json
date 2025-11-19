@@ -1,0 +1,11 @@
+{
+  "id": "FR-003",
+  "type": "Functional_Requirement",
+  "description": "系统必须允许用户管理项目经营信息（甲方信息、联系人、招投标信息、合同信息）",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US2"],
+  "impacts_entities": ["项目", "甲方", "合同"],
+  "category": "Data"
+}
+

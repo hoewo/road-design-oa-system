@@ -1,0 +1,14 @@
+{
+  "id": "project_members_create",
+  "path": "/api/v1/projects/{id}/members",
+  "method": "POST",
+  "summary": "添加项目成员",
+  "source_user_story": "US3",
+  "implements_requirements": [
+    "FR-004"
+  ],
+  "tags": [
+    "项目成员"
+  ],
+  "type": "API_Endpoint"
+}

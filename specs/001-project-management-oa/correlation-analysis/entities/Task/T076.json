@@ -1,0 +1,15 @@
+{
+  "id": "T076",
+  "type": "Task",
+  "description": "Implement FinancialService in backend/internal/services/financial_service.go (depends on T074, T075)",
+  "is_parallel": false,
+  "task_type": "Service",
+  "file_path": "backend/internal/services/financial_service.go",
+  "user_story_label": "US4",
+  "phase_number": 6,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T074",
+    "T075"
+  ]
+}

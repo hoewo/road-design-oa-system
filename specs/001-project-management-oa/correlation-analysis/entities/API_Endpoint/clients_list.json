@@ -1,0 +1,16 @@
+{
+  "id": "clients_list",
+  "path": "/api/v1/clients",
+  "method": "GET",
+  "summary": "获取甲方列表",
+  "source_user_story": "US1",
+  "implements_requirements": [
+    "FR-001d",
+    "FR-001i",
+    "FR-001k"
+  ],
+  "tags": [
+    "甲方管理"
+  ],
+  "type": "API_Endpoint"
+}

@@ -1,0 +1,14 @@
+{
+  "id": "clients_update",
+  "path": "/api/v1/clients/{id}",
+  "method": "PUT",
+  "summary": "更新甲方信息",
+  "source_user_story": "US1",
+  "implements_requirements": [
+    "FR-001f"
+  ],
+  "tags": [
+    "甲方管理"
+  ],
+  "type": "API_Endpoint"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "FR-001c",
+  "type": "Functional_Requirement",
+  "description": "系统不提供独立的甲方管理页面，甲方维护仅通过项目创建/编辑表单中的快速创建功能完成",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["甲方"],
+  "category": "Behavior"
+}
+

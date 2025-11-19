@@ -1,0 +1,14 @@
+{
+  "id": "T029",
+  "type": "Task",
+  "description": "Implement ClientService in backend/internal/services/client_service.go (depends on T026)",
+  "is_parallel": false,
+  "task_type": "Service",
+  "file_path": "backend/internal/services/client_service.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T026"
+  ]
+}

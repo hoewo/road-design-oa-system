@@ -1,0 +1,15 @@
+{
+  "id": "clients_create",
+  "path": "/api/v1/clients",
+  "method": "POST",
+  "summary": "创建甲方",
+  "source_user_story": "US1",
+  "implements_requirements": [
+    "FR-001a",
+    "FR-001b"
+  ],
+  "tags": [
+    "甲方管理"
+  ],
+  "type": "API_Endpoint"
+}

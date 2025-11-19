@@ -1,0 +1,11 @@
+{
+  "id": "FR-004",
+  "type": "Functional_Requirement",
+  "description": "系统必须支持项目生产信息管理（人员配置、批复审计、生产文件、成本信息）",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US3"],
+  "impacts_entities": ["项目", "人员", "文件"],
+  "category": "Data"
+}
+

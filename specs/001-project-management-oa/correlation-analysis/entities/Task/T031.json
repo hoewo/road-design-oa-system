@@ -1,0 +1,14 @@
+{
+  "id": "T031",
+  "type": "Task",
+  "description": "Implement ProjectHandler in backend/internal/handlers/project_handler.go (depends on T028)",
+  "is_parallel": false,
+  "task_type": "Endpoint",
+  "file_path": "backend/internal/handlers/project_handler.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T028"
+  ]
+}

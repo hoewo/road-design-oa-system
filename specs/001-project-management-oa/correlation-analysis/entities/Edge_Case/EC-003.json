@@ -1,0 +1,10 @@
+{
+  "id": "EC-003",
+  "type": "Edge_Case",
+  "scenario": "当用户尝试创建与已存在甲方同名的甲方时，系统如何阻止并提示用户使用已存在的甲方？",
+  "handling_requirement": "强制唯一：系统不允许创建相同名称的甲方，创建时自动检测并阻止",
+  "severity": "High",
+  "related_user_stories": [
+    "US1"
+  ]
+}

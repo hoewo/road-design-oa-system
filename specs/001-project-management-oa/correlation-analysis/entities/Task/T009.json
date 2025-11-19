@@ -1,0 +1,12 @@
+{
+  "id": "T009",
+  "type": "Task",
+  "description": "Implement JWT authentication middleware in backend/internal/middleware/auth.go",
+  "is_parallel": true,
+  "task_type": "Other",
+  "file_path": "backend/internal/middleware/auth.go",
+  "user_story_label": null,
+  "phase_number": 2,
+  "phase_type": "Foundational",
+  "depends_on_tasks": []
+}

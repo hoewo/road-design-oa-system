@@ -1,0 +1,14 @@
+{
+  "id": "T038a",
+  "type": "Task",
+  "description": "Update ProjectForm field validation rules to make only project_name and project_number required in frontend/src/components/project/ProjectForm.tsx (depends on T038)",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/components/project/ProjectForm.tsx",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T038"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SC-001",
+  "metric": "用户能够在5分钟内完成新项目的基本信息录入",
+  "measurable": true,
+  "technology_agnostic": true,
+  "metric_type": "Quantitative",
+  "target_value": "< 5 minutes",
+  "measurement_method": "从打开项目创建表单到成功保存项目信息的总时间",
+  "related_user_stories": [
+    "US1"
+  ],
+  "type": "Success_Criteria"
+}

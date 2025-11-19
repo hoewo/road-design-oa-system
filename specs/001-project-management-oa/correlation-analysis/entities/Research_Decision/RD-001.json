@@ -1,0 +1,8 @@
+{
+  "id": "RD-001",
+  "topic": "React前端技术栈选择",
+  "decision": "React 18 + TypeScript + Ant Design + React Query",
+  "rationale": "React 18提供并发特性和更好的性能，TypeScript提供类型安全，Ant Design提供完整的中文UI组件库，React Query提供强大的数据获取和缓存能力",
+  "related_functional_requirements": [],
+  "type": "Research_Decision"
+}

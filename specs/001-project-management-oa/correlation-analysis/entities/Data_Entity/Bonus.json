@@ -1,0 +1,14 @@
+{
+  "id": "Bonus",
+  "name": "Bonus",
+  "source_key_entity": null,
+  "description": "奖金实体，包含经营奖金和生产奖金",
+  "related_user_stories": [
+    "US2",
+    "US4"
+  ],
+  "used_in_endpoints": [
+    "/projects/{id}/bonuses"
+  ],
+  "type": "Data_Entity"
+}

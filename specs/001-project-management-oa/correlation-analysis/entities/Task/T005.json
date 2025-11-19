@@ -1,0 +1,12 @@
+{
+  "id": "T005",
+  "type": "Task",
+  "description": "Configure linting and formatting tools for both frontend and backend",
+  "is_parallel": true,
+  "task_type": "Frontend",
+  "file_path": null,
+  "user_story_label": null,
+  "phase_number": 1,
+  "phase_type": "Setup",
+  "depends_on_tasks": []
+}

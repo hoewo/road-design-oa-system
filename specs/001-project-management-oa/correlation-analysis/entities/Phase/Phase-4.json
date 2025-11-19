@@ -1,0 +1,18 @@
+{
+  "id": "Phase-4",
+  "type": "Phase",
+  "number": 4,
+  "type_enum": "UserStory",
+  "name": "User Story 2 - 项目经营信息管理",
+  "user_story_ref": "US2",
+  "user_story_priority": "P1",
+  "goal": "经营人员能够管理项目的经营相关信息，包括甲方信息、联系人、招投标信息、合同信息、支付信息和奖金分配",
+  "independent_test": "可以通过为现有项目添加甲方信息、上传合同文件、记录支付信息来独立测试，验证经营数据的完整管理流程",
+  "checkpoint_description": "此时，用户故事1和2都应该独立工作",
+  "blocking": false,
+  "depends_on_phases": [
+    2
+  ],
+  "task_count": 12,
+  "parallel_task_count": 5
+}

@@ -1,0 +1,58 @@
+{
+  "id": "项目",
+  "name": "项目",
+  "description": "代表一个完整的工程项目，包含基本信息、经营信息、生产信息和财务信息",
+  "key_attributes": [
+    {
+      "attribute": "项目名称",
+      "description": "项目的名称标识"
+    },
+    {
+      "attribute": "项目编号",
+      "description": "项目的唯一编号"
+    },
+    {
+      "attribute": "承接日期",
+      "description": "项目承接时间"
+    },
+    {
+      "attribute": "项目概况",
+      "description": "项目的详细描述"
+    },
+    {
+      "attribute": "出图单位",
+      "description": "负责出图的单位"
+    }
+  ],
+  "relationships": [
+    {
+      "related_entity": "甲方",
+      "relationship_description": "一个项目关联一个甲方"
+    },
+    {
+      "related_entity": "合同",
+      "relationship_description": "一个项目可以有多个合同"
+    },
+    {
+      "related_entity": "人员",
+      "relationship_description": "一个项目可以有多个项目成员"
+    },
+    {
+      "related_entity": "文件",
+      "relationship_description": "一个项目可以有多个文件"
+    },
+    {
+      "related_entity": "财务记录",
+      "relationship_description": "一个项目可以有多个财务记录"
+    }
+  ],
+  "related_user_stories": [
+    "US1",
+    "US2",
+    "US3",
+    "US4",
+    "US5"
+  ],
+  "introduced_by_requirement": "FR-001",
+  "type": "Key_Entity"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "FR-001i",
+  "type": "Functional_Requirement",
+  "description": "系统必须在 ProjectForm 组件挂载时立即加载甲方列表数据，确保用户打开表单时即可选择甲方",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["甲方"],
+  "category": "Behavior"
+}
+

@@ -1,0 +1,11 @@
+{
+  "id": "FR-002",
+  "type": "Functional_Requirement",
+  "description": "系统必须支持项目信息的编辑、更新和历史记录追踪",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": ["US1"],
+  "impacts_entities": ["项目"],
+  "category": "Data"
+}
+

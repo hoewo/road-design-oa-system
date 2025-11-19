@@ -1,0 +1,14 @@
+{
+  "id": "T027",
+  "type": "Task",
+  "description": "Implement AuthService in backend/internal/services/auth_service.go (depends on T024)",
+  "is_parallel": false,
+  "task_type": "Service",
+  "file_path": "backend/internal/services/auth_service.go",
+  "user_story_label": "US1",
+  "phase_number": 3,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T024"
+  ]
+}

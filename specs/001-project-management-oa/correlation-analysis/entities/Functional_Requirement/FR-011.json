@@ -1,0 +1,11 @@
+{
+  "id": "FR-011",
+  "type": "Functional_Requirement",
+  "description": "系统必须提供项目状态跟踪和进度管理",
+  "testable": true,
+  "needs_clarification": false,
+  "related_user_stories": [],
+  "impacts_entities": ["项目"],
+  "category": "Behavior"
+}
+

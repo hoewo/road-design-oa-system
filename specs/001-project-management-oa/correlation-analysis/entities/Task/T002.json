@@ -1,0 +1,12 @@
+{
+  "id": "T002",
+  "type": "Task",
+  "description": "Initialize Go backend project with Gin dependencies in backend/",
+  "is_parallel": false,
+  "task_type": "Config",
+  "file_path": null,
+  "user_story_label": null,
+  "phase_number": 1,
+  "phase_type": "Setup",
+  "depends_on_tasks": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "T080",
+  "type": "Task",
+  "description": "Create FinancialDashboard component in frontend/src/components/financial/FinancialDashboard.tsx (depends on T079)",
+  "is_parallel": false,
+  "task_type": "Frontend",
+  "file_path": "frontend/src/components/financial/FinancialDashboard.tsx",
+  "user_story_label": "US4",
+  "phase_number": 6,
+  "phase_type": "UserStory",
+  "depends_on_tasks": [
+    "T079"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "id": "EC-005",
+  "type": "Edge_Case",
+  "scenario": "当甲方列表数据加载失败时，系统如何显示错误提示并提供重试功能？",
+  "handling_requirement": "显示错误提示并允许重试：加载失败时显示错误消息，提供重试按钮",
+  "severity": "Medium",
+  "related_user_stories": [
+    "US1"
+  ]
+}

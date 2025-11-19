@@ -1,0 +1,12 @@
+{
+  "id": "T061",
+  "type": "Task",
+  "description": "Create ProjectMember model in backend/internal/models/project_member.go",
+  "is_parallel": true,
+  "task_type": "Model",
+  "file_path": "backend/internal/models/project_member.go",
+  "user_story_label": "US3",
+  "phase_number": 5,
+  "phase_type": "UserStory",
+  "depends_on_tasks": []
+}
