@@ -91,14 +91,7 @@
 - [x] T037 [P] [US1] Create API service functions in frontend/src/services/auth.ts
 - [x] T038 [US1] Create ProjectForm component in frontend/src/components/project/ProjectForm.tsx (depends on T035, T036)
 - [x] T038a [US1] Update ProjectForm field validation rules to make only project_name and project_number required in frontend/src/components/project/ProjectForm.tsx (depends on T038)
-- [x] T038b [US1] Add quick client creation feature in ProjectForm with "新建甲方" button in client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038, T041)
-- [x] T038c [US1] Implement real-time search and filtering (Recently Used, All) in client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
-- [x] T038d [US1] Add client editing functionality in project editing form in frontend/src/components/project/ProjectForm.tsx (depends on T038, T041)
-- [x] T038e [US1] Implement client list error handling with retry functionality in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
-- [x] T038f [US1] Add empty state display ("暂无数据") for client dropdown in frontend/src/components/project/ProjectForm.tsx (depends on T038)
-- [x] T038g [US1] Ensure client list loads immediately on component mount in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
-- [x] T038h [US1] Implement automatic client list refresh after create/update in frontend/src/components/project/ProjectForm.tsx (depends on T038, T041)
-- [x] T038i [US1] Configure client list to load all clients (max 100) sorted by created_at DESC without pagination in frontend/src/components/project/ProjectForm.tsx (depends on T038, T036)
+- [x] T038b [US1] Remove client_id field from ProjectForm (client info now managed in business information module) in frontend/src/components/project/ProjectForm.tsx (depends on T038)
 - [x] T039 [US1] Create ProjectList component in frontend/src/components/project/ProjectList.tsx (depends on T035, T036)
 - [x] T040 [US1] Create ProjectDetail component in frontend/src/components/project/ProjectDetail.tsx (depends on T035, T036)
 - [x] T041 [US1] Create ClientForm component in frontend/src/components/client/ClientForm.tsx (depends on T035, T036)
@@ -121,27 +114,46 @@
 
 ## Phase 4: User Story 2 - 项目经营信息管理 (Priority: P1)
 
-**Goal**: 经营人员能够管理项目的经营相关信息，包括甲方信息、联系人、招投标信息、合同信息、支付信息和奖金分配
+**Goal**: 经营人员能够管理项目的经营相关信息，包括甲方信息、联系人、招投标信息、合同信息、支付信息和奖金分配。**注意：甲方信息统一在项目经营信息中管理，不在项目创建时填写**
 
 **Independent Test**: 可以通过为现有项目添加甲方信息、上传合同文件、记录支付信息来独立测试，验证经营数据的完整管理流程
 
 ### Tests for User Story 2
 
-- [ ] T045 [P] [US2] Contract test for contract endpoints in backend/tests/contract/test_contracts.go
-- [ ] T046 [P] [US2] Integration test for contract management flow in backend/tests/integration/test_contract_management.go
-- [ ] T047 [P] [US2] Frontend component test for ContractForm in frontend/tests/components/ContractForm.test.tsx
-- [ ] T048 [P] [US2] E2E test for contract management flow in frontend/tests/e2e/contract-management.spec.ts
+- [ ] T045 [P] [US2] Contract test for project business information endpoints in backend/tests/contract/test_project_business.go
+- [ ] T046 [P] [US2] Contract test for contract endpoints in backend/tests/contract/test_contracts.go
+- [ ] T047 [P] [US2] Integration test for project business information management flow in backend/tests/integration/test_business_management.go
+- [ ] T048 [P] [US2] Integration test for contract management flow in backend/tests/integration/test_contract_management.go
+- [ ] T049 [P] [US2] Frontend component test for ProjectBusinessForm in frontend/tests/components/ProjectBusinessForm.test.tsx
+- [ ] T050 [P] [US2] Frontend component test for ContractForm in frontend/tests/components/ContractForm.test.tsx
+- [ ] T051 [P] [US2] E2E test for project business information management flow in frontend/tests/e2e/business-management.spec.ts
+- [ ] T052 [P] [US2] E2E test for contract management flow in frontend/tests/e2e/contract-management.spec.ts
 
 ### Implementation for User Story 2
 
-- [ ] T049 [P] [US2] Create Contract model in backend/internal/models/contract.go
-- [ ] T050 [US2] Implement ContractService in backend/internal/services/contract_service.go (depends on T049)
-- [ ] T051 [US2] Implement ContractHandler in backend/internal/handlers/contract_handler.go (depends on T050)
-- [ ] T052 [US2] Add contract validation and business rules
-- [ ] T053 [P] [US2] Create ContractForm component in frontend/src/components/contract/ContractForm.tsx
-- [ ] T054 [US2] Create ContractList component in frontend/src/components/contract/ContractList.tsx (depends on T053)
-- [ ] T055 [US2] Integrate contract management with project detail page
-- [ ] T056 [US2] Add contract statistics and reporting features
+- [ ] T053 [P] [US2] Create Contract model in backend/internal/models/contract.go
+- [ ] T054 [US2] Implement ProjectBusinessService in backend/internal/services/project_business_service.go (depends on T025, T026, T053)
+- [ ] T054a [US2] Add client association management (select, create, change, remove) in backend/internal/services/project_business_service.go (depends on T054)
+- [ ] T054b [US2] Add client name uniqueness validation when creating new client in business info in backend/internal/services/project_business_service.go (depends on T054)
+- [ ] T055 [US2] Implement ContractService in backend/internal/services/contract_service.go (depends on T053)
+- [ ] T056 [US2] Implement ProjectBusinessHandler in backend/internal/handlers/project_business_handler.go (depends on T054)
+- [ ] T057 [US2] Implement ContractHandler in backend/internal/handlers/contract_handler.go (depends on T055)
+- [ ] T058 [US2] Add GET /projects/{id}/business endpoint in backend/internal/handlers/project_business_handler.go (depends on T056)
+- [ ] T059 [US2] Add PUT /projects/{id}/business endpoint in backend/internal/handlers/project_business_handler.go (depends on T056)
+- [ ] T060 [US2] Add contract validation and business rules in backend/internal/services/contract_service.go (depends on T055)
+- [ ] T061 [P] [US2] Create ProjectBusinessForm component in frontend/src/components/project/ProjectBusinessForm.tsx
+- [ ] T061a [US2] Add client selection dropdown with "Create New Client" option in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [ ] T061b [US2] Implement client selection, creation, change, and removal in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061, T041)
+- [ ] T061c [US2] Add real-time search and filtering for client dropdown in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [ ] T061d [US2] Implement client list error handling with retry in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [ ] T061e [US2] Add empty state display for client dropdown in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [ ] T061f [US2] Configure client list to load all clients (max 100) sorted by created_at DESC in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [ ] T062 [P] [US2] Create ContractForm component in frontend/src/components/contract/ContractForm.tsx
+- [ ] T063 [US2] Create ContractList component in frontend/src/components/contract/ContractList.tsx (depends on T062)
+- [ ] T064 [US2] Create ProjectBusiness page in frontend/src/pages/ProjectBusiness.tsx (depends on T061)
+- [ ] T065 [US2] Integrate ProjectBusinessForm with project detail page in frontend/src/pages/ProjectDetail.tsx (depends on T064)
+- [ ] T066 [US2] Integrate contract management with project business page in frontend/src/pages/ProjectBusiness.tsx (depends on T063, T064)
+- [ ] T067 [US2] Add contract statistics and reporting features in frontend/src/components/contract/ContractStatistics.tsx
 
 **Checkpoint**: 此时，用户故事1和2都应该独立工作
 
@@ -356,9 +368,9 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 132个任务 (原108 + 新增9个集成任务 + 新增3个UX改进任务 + 新增7个甲方维护功能任务 + 新增5个甲方列表数据展示任务)
-- **用户故事1任务数**: 52个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038i, T029a-T029c, T032a, T041a)
-- **用户故事2任务数**: 12个任务 (T045-T056)
+- **总任务数**: 142个任务 (更新后)
+- **用户故事1任务数**: 42个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038b, T029a-T029c, T032a, T041a) - 已移除项目创建表单中的甲方相关任务
+- **用户故事2任务数**: 30个任务 (T045-T067 + T054a-T054b, T058-T059, T061a-T061f) - 新增项目经营信息管理任务
 - **用户故事3任务数**: 12个任务 (T057-T068)
 - **用户故事4任务数**: 15个任务 (T069-T083)
 - **用户故事5任务数**: 13个任务 (T084-T096)

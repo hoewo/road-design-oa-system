@@ -103,8 +103,14 @@ const (
 - ProjectOverview: 可选，最多1000字符
 - DrawingUnit: 可选
 - Status: 可选，默认为"planning"
-- ClientID: 可选（创建项目时支持快速创建甲方）
+- ClientID: **不在项目创建时填写**，统一在项目经营信息中管理（可选，最多关联一个）
 - ManagerID: 可选
+
+**Business Rules** (Updated 2025-11-19):
+- **Client Association**: Client information is NOT part of project creation. It is managed separately in project business information module
+- **Client Relationship**: Each project can have at most one associated client (can be empty)
+- **Client Management**: Users can select existing clients or create new clients in business information module
+- **Client Changeability**: Users can change or remove client association after it's set
 
 ### 3. Client (甲方)
 
@@ -135,15 +141,13 @@ type Client struct {
 - Email: 有效的邮箱格式（可选）
 - TaxNumber: 18位统一社会信用代码格式（可选）
 
-**Business Rules**:
+**Business Rules** (Updated 2025-11-19):
 - **唯一性约束**: 甲方名称必须唯一，创建时自动检测重复并阻止
 - **删除保护**: 如果甲方已被项目使用，不允许删除；未使用的甲方可以硬删除
-- **维护方式**: 不提供独立管理页面，仅通过项目创建/编辑表单维护
-- **编辑场景**: 在项目编辑时允许编辑关联的甲方信息
-- **数据加载**: 组件挂载时立即加载，最多100条，按创建时间倒序排列
-- **错误处理**: 加载失败时显示错误提示并提供重试功能
-- **空状态**: 列表为空时显示"暂无数据"提示
-- **自动刷新**: 创建/更新甲方后自动刷新列表
+- **维护方式**: 在项目经营信息模块中管理，支持选择已有甲方或创建新甲方
+- **管理位置**: 不在项目创建表单中，统一在项目经营信息模块中管理
+- **关联规则**: 每个项目最多关联一个甲方（可以为空），可以更换或删除关联
+- **可选性**: 甲方信息在项目经营信息中是可选的，允许不填写
 
 ### 4. Contract (合同)
 

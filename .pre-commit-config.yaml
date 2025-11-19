@@ -26,19 +26,19 @@ repos:
     hooks:
       - id: go-fmt
         name: Go Format (gofmt)
-        entry: bash -c 'cd backend && gofmt -w .'
+        entry: bash -c 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH" && cd backend && gofmt -w .'
         language: system
         files: ^backend/.*\.go$
         pass_filenames: false
       - id: go-vet
         name: Go Vet
-        entry: bash -c 'cd backend && go vet ./...'
+        entry: bash -c 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH" && cd backend && go vet ./...'
         language: system
         files: ^backend/.*\.go$
         pass_filenames: false
       - id: go-mod-tidy
         name: Go Mod Tidy
-        entry: bash -c 'cd backend && go mod tidy'
+        entry: bash -c 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH" && cd backend && go mod tidy'
         language: system
         files: ^backend/go\.(mod|sum)$
         pass_filenames: false

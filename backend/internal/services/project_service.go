@@ -25,13 +25,13 @@ func NewProjectService() *ProjectService {
 }
 
 // CreateProjectRequest represents the request to create a project
+// Note: client_id is NOT included as client information is managed separately in project business information module
 type CreateProjectRequest struct {
 	ProjectName     string      `json:"project_name" binding:"required"`
 	ProjectNumber   string      `json:"project_number" binding:"required"`
 	StartDate       *types.Date `json:"start_date"`
 	ProjectOverview string      `json:"project_overview"`
 	DrawingUnit     string      `json:"drawing_unit"`
-	ClientID        *uint       `json:"client_id"`
 	ManagerID       *uint       `json:"manager_id"`
 }
 
@@ -60,16 +60,7 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 		return nil, errors.New("project number already exists")
 	}
 
-	// Validate client exists (if provided)
-	if req.ClientID != nil {
-		var client models.Client
-		if err := s.db.First(&client, *req.ClientID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, errors.New("client not found")
-			}
-			return nil, err
-		}
-	}
+	// Note: Client validation removed - client information is managed separately in project business information module
 
 	// Validate manager exists (if provided)
 	if req.ManagerID != nil {
@@ -93,6 +84,7 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 	}
 
 	// Create project
+	// Note: ClientID is not set during creation - it will be managed in project business information module
 	project := &models.Project{
 		ProjectName:     req.ProjectName,
 		ProjectNumber:   req.ProjectNumber,
@@ -100,7 +92,7 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 		DrawingUnit:     req.DrawingUnit,
 		Status:          models.StatusPlanning,
 		StartDate:       startDate,
-		ClientID:        req.ClientID,
+		ClientID:        nil, // Client information managed in business information module
 		ManagerID:       req.ManagerID,
 	}
 

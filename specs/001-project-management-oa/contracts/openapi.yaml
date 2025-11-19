@@ -191,6 +191,54 @@ paths:
         '404':
           description: 项目不存在
 
+  # 项目经营信息管理
+  /projects/{id}/business:
+    get:
+      tags:
+        - 项目经营信息
+      summary: 获取项目经营信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 经营信息
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectBusiness'
+        '404':
+          description: 项目不存在
+
+    put:
+      tags:
+        - 项目经营信息
+      summary: 更新项目经营信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectBusinessRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectBusiness'
+        '404':
+          description: 项目不存在
+
   # 项目成员管理
   /projects/{id}/members:
     get:
@@ -578,6 +626,66 @@ components:
               items:
                 $ref: '#/components/schemas/Bonus'
 
+    ProjectBusiness:
+      type: object
+      description: 项目经营信息
+      properties:
+        project_id:
+          type: integer
+        client_id:
+          type: integer
+          nullable: true
+          description: 甲方ID（可选，最多关联一个）
+        client:
+          $ref: '#/components/schemas/Client'
+          nullable: true
+          description: 甲方信息（可选）
+        contact_name:
+          type: string
+          description: 联系人姓名（可选）
+        contact_phone:
+          type: string
+          description: 联系电话（可选）
+        business_manager:
+          type: string
+          description: 经营负责人（可选）
+        bidding_info:
+          type: object
+          description: 招投标信息（可选）
+          properties:
+            bidding_documents:
+              type: array
+              items:
+                $ref: '#/components/schemas/File'
+            bidding_status:
+              type: string
+              enum: [not_started, in_progress, won, lost]
+        contracts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contract'
+        updated_at:
+          type: string
+          format: date-time
+
+    UpdateProjectBusinessRequest:
+      type: object
+      description: 更新项目经营信息请求
+      properties:
+        client_id:
+          type: integer
+          nullable: true
+          description: 甲方ID（可选，设置为null可删除关联）
+        contact_name:
+          type: string
+          description: 联系人姓名（可选）
+        contact_phone:
+          type: string
+          description: 联系电话（可选）
+        business_manager:
+          type: string
+          description: 经营负责人（可选）
+
     Client:
       type: object
       properties:
@@ -828,9 +936,6 @@ components:
         drawing_unit:
           type: string
           description: 出图单位（可选）
-        client_id:
-          type: integer
-          description: 甲方ID（可选，支持创建项目时快速新建甲方）
         manager_id:
           type: integer
           description: 项目经理ID（可选）

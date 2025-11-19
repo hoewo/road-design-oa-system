@@ -194,63 +194,52 @@ README.md
 
 ## Design Decisions & Clarifications
 
-### Field Validation Rules (Updated 2025-01-27)
+### Field Validation Rules (Updated 2025-11-19)
 
 Based on user feedback and clarification:
 - **Project Creation Form**: Only `project_name` and `project_number` are required fields
-- **All other fields** (start_date, project_overview, drawing_unit, status, client_id, manager_id) are optional
-- **Client Selection**: Supports quick creation of new clients directly from project creation form to avoid blocking workflow
-- **Rationale**: Improves user experience by reducing form friction and allowing incremental data entry
+- **All other fields** (start_date, project_overview, drawing_unit, status, manager_id) are optional
+- **Client Information**: Client information is NOT included in project creation form. Clients are managed separately in project business information module
+- **Rationale**: Separates project creation from business information management, allowing projects to be created without client information
 
 ### UX Enhancements
 
-- **Quick Client Creation**: Project creation form includes "新建甲方" (New Client) button in client dropdown
+- **Separated Client Management**: Client information is managed in project business information module, not during project creation
 - **Flexible Data Entry**: Users can create projects with minimal information and complete details later
 - **Non-blocking Workflow**: Users are not required to have all information before creating a project
 
-### Client Management & Selection Design (Updated 2025-01-27)
+### Client Management & Selection Design (Updated 2025-11-19)
 
-Based on comprehensive clarification session:
+Based on comprehensive clarification session (2025-11-19):
 
-1. **Client Name Uniqueness**:
+1. **Client Management Location**:
+   - **Decision**: Client information is managed in project business information module, NOT in project creation form
+   - **Rationale**: Separates project creation from business information management, allowing projects to be created without client information
+   - **Impact**: Project creation form does not include client selection. Client management is available in project business information page
+
+2. **Client Management Approach**:
+   - **Decision**: Support both selecting existing clients and creating new clients in business information module
+   - **Maintenance Location**: Project business information module
+   - **Rationale**: Allows flexible client management while maintaining context within business information
+   - **Implementation**: Provide client selection dropdown with "Create New Client" option in business information form
+
+3. **Client Association Rules**:
+   - **Rule**: Each project can have at most one associated client (can be empty)
+   - **Association**: Client association is optional in project business information
+   - **Changeability**: Users can change or remove client association after it's set
+   - **Rationale**: Provides flexibility while maintaining data integrity
+
+4. **Client Name Uniqueness**:
    - **Rule**: Enforce strict uniqueness - system prevents creation of clients with duplicate names
    - **Implementation**: Backend validation checks for existing client names before creation
    - **User Experience**: Show clear error message suggesting user to use existing client if duplicate detected
    - **Rationale**: Prevents data duplication and maintains data integrity
 
-2. **Client Maintenance Approach**:
-   - **Decision**: No standalone client management page
-   - **Maintenance Location**: Only through project creation/editing forms
-   - **Rationale**: Simplifies UI, reduces navigation overhead, maintains context during project creation
-   - **Impact**: All client CRUD operations must be accessible from project forms
-
-3. **Client Selection Strategy**:
-   - **Real-time Search**: Dropdown supports live search as user types
-   - **Search Fields**: Client name, contact name, phone number
-   - **Quick Filters**: "Recently Used" and "All" options for quick access
-   - **Implementation**: Frontend filtering with debounced API calls for large datasets
-   - **Rationale**: Improves selection efficiency, especially with large client lists
-
-4. **Client Deletion Rules**:
+5. **Client Deletion Rules**:
    - **Hard Delete with Protection**: Clients can be permanently deleted only if not associated with any projects
    - **Protection Logic**: Check for project associations before allowing deletion
    - **User Feedback**: Clear error message explaining why deletion is blocked
    - **Rationale**: Prevents data integrity issues while allowing cleanup of unused clients
-
-5. **Client Editing Scenarios**:
-   - **Edit Context**: Allow editing client information when editing associated project
-   - **Edit Location**: Within project editing form, not standalone
-   - **Scope**: Full client information can be modified when project is being edited
-   - **Rationale**: Maintains data consistency and allows corrections without creating duplicates
-
-6. **Client List Data Loading & Display** (Updated 2025-01-27):
-   - **Loading Timing**: Load immediately when ProjectForm component mounts
-   - **Error Handling**: Display error message with retry button when loading fails
-   - **Empty State**: Show "暂无数据" (No data) message when list is empty
-   - **Auto Refresh**: Automatically refresh list after client creation/update
-   - **Pagination & Sorting**: No pagination, load all clients (max 100) sorted by created_at DESC
-   - **Implementation**: Use React Query's useQuery with proper error handling and retry logic
-   - **Rationale**: Ensures users always see up-to-date data and can recover from loading failures
 
 ## Complexity Tracking
 

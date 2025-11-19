@@ -74,13 +74,13 @@ export interface PaginatedResponse<T> {
 }
 
 // Form types
+// Note: client_id is NOT included in CreateProjectRequest as client information is managed separately in project business information module
 export interface CreateProjectRequest {
   project_name: string
   project_number: string
   start_date?: string | Date
   project_overview?: string
   drawing_unit?: string
-  client_id?: number
   manager_id?: number
 }
 
