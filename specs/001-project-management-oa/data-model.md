@@ -12,10 +12,12 @@
 2. **Project** - 项目实体
 3. **Client** - 甲方实体
 4. **Contract** - 合同实体
-5. **ProjectMember** - 项目成员实体
-6. **File** - 文件实体
-7. **FinancialRecord** - 财务记录实体
-8. **Bonus** - 奖金实体
+5. **ContractAmendment** - 合同补充协议实体（新增）
+6. **ProjectMember** - 项目成员实体
+7. **ExpertFeePayment** - 专家费支付实体（新增）
+8. **File** - 文件实体
+9. **FinancialRecord** - 财务记录实体
+10. **Bonus** - 奖金实体
 
 ## Detailed Entity Models
 
@@ -158,12 +160,18 @@ type Contract struct {
     ContractType    string    `json:"contract_type" gorm:"not null"` // 设计费、勘察费、咨询费
     SignDate        time.Time `json:"sign_date" gorm:"not null"`
     ContractRate    float64   `json:"contract_rate"` // 合同费率%
-    ContractAmount  float64   `json:"contract_amount" gorm:"not null"` // 合同金额
+    ContractAmount  float64   `json:"contract_amount" gorm:"not null"` // 合同金额（应等于设计费+勘察费+咨询费之和）
+    DesignFee       float64   `json:"design_fee"` // 设计费
+    SurveyFee       float64   `json:"survey_fee"` // 勘察费
+    ConsultationFee float64  `json:"consultation_fee"` // 咨询费
     FilePath        string    `json:"file_path"` // 合同文件路径
     
     // 关联关系
     ProjectID       uint      `json:"project_id" gorm:"not null"`
     Project         Project   `json:"project" gorm:"foreignKey:ProjectID"`
+    
+    // 关联数据
+    Amendments      []ContractAmendment `json:"amendments" gorm:"foreignKey:ContractID"`
     
     CreatedAt       time.Time `json:"created_at"`
     UpdatedAt       time.Time `json:"updated_at"`
@@ -173,10 +181,72 @@ type Contract struct {
 **Validation Rules**:
 - ContractNumber: 唯一，格式：HT-YYYY-XXX
 - ContractRate: 0-100之间的数值
-- ContractAmount: 大于0的数值
+- ContractAmount: 大于0的数值，应等于DesignFee + SurveyFee + ConsultationFee
+- DesignFee, SurveyFee, ConsultationFee: 大于等于0的数值
 - SignDate: 不能晚于当前日期
 
-### 5. ProjectMember (项目成员)
+### 4a. ContractAmendment (合同补充协议)
+
+```go
+type ContractAmendment struct {
+    ID              uint      `json:"id" gorm:"primaryKey"`
+    AmendmentNumber string    `json:"amendment_number" gorm:"uniqueIndex;not null"`
+    SignDate        time.Time `json:"sign_date" gorm:"not null"`
+    FilePath        string    `json:"file_path"` // 补充协议文件路径
+    Description     string    `json:"description" gorm:"type:text"`
+    
+    // 关联关系
+    ContractID      uint      `json:"contract_id" gorm:"not null"`
+    Contract        Contract  `json:"contract" gorm:"foreignKey:ContractID"`
+    
+    CreatedAt       time.Time `json:"created_at"`
+    UpdatedAt       time.Time `json:"updated_at"`
+}
+```
+
+**Validation Rules**:
+- AmendmentNumber: 唯一，格式：XIE-YYYY-XXX
+- SignDate: 不能晚于当前日期，不能早于主合同签订日期
+- FilePath: 必填，文件必须存在
+
+### 5. ExpertFeePayment (专家费支付)
+
+```go
+type ExpertFeePayment struct {
+    ID            uint          `json:"id" gorm:"primaryKey"`
+    PaymentMethod PaymentMethod `json:"payment_method" gorm:"not null"` // 支付方式
+    Amount        float64       `json:"amount" gorm:"not null"` // 金额
+    ExpertName    string        `json:"expert_name" gorm:"not null"` // 专家姓名
+    ExpertID      *uint         `json:"expert_id"` // 专家用户ID（如果是系统内用户）
+    Expert         *User         `json:"expert,omitempty" gorm:"foreignKey:ExpertID"`
+    Description   string        `json:"description" gorm:"type:text"`
+    
+    // 关联关系
+    ProjectID     uint      `json:"project_id" gorm:"not null"`
+    Project       Project   `json:"project" gorm:"foreignKey:ProjectID"`
+    
+    CreatedByID   uint      `json:"created_by_id" gorm:"not null"`
+    CreatedBy     User      `json:"created_by" gorm:"foreignKey:CreatedByID"`
+    
+    CreatedAt     time.Time `json:"created_at"`
+    UpdatedAt     time.Time `json:"updated_at"`
+}
+
+type PaymentMethod string
+
+const (
+    PaymentMethodCash     PaymentMethod = "cash"     // 现金
+    PaymentMethodTransfer PaymentMethod = "transfer" // 转账
+)
+```
+
+**Validation Rules**:
+- Amount: 大于0的数值
+- ExpertName: 必填，2-50字符
+- PaymentMethod: 必须是cash或transfer
+- ExpertID: 可选，如果填写则必须是有效的用户ID
+
+### 6. ProjectMember (项目成员)
 
 ```go
 type ProjectMember struct {
@@ -199,20 +269,24 @@ type ProjectMember struct {
 type MemberRole string
 
 const (
-    MemberRoleManager     MemberRole = "manager"     // 项目负责人
-    MemberRoleDesigner    MemberRole = "designer"    // 专业设计人
-    MemberRoleParticipant MemberRole = "participant" // 专业参与人
-    MemberRoleReviewer    MemberRole = "reviewer"    // 专业复核人
-    MemberRoleAuditor     MemberRole = "auditor"     // 审核、审定
+    MemberRoleManager          MemberRole = "manager"          // 项目负责人
+    MemberRoleDesigner         MemberRole = "designer"         // 专业设计人
+    MemberRoleParticipant       MemberRole = "participant"      // 专业参与人
+    MemberRoleReviewer          MemberRole = "reviewer"        // 专业复核人
+    MemberRoleAuditor           MemberRole = "auditor"          // 审核、审定
+    MemberRoleBusinessManager  MemberRole = "business_manager"  // 经营负责人（新增）
+    MemberRoleBusinessPersonnel MemberRole = "business_personnel" // 经营人员（新增）
 )
 ```
 
-**Validation Rules**:
-- 同一项目同一角色只能有一个用户
+**Validation Rules** (Updated 2025-01-28):
+- **一人多角色支持**: 同一用户在同一项目中可以有多个角色（通过多条ProjectMember记录实现）
+- **角色唯一性**: 同一项目同一角色只能有一个用户（保持原有约束）
 - JoinDate: 不能晚于当前日期
 - LeaveDate: 如果填写，必须晚于JoinDate
+- **业务规则**: 经营负责人和经营人员通过项目成员系统管理，在项目经营信息模块中配置
 
-### 6. File (文件)
+### 7. File (文件)
 
 ```go
 type File struct {
@@ -251,20 +325,26 @@ const (
 
 **Validation Rules**:
 - FileSize: 最大100MB
-- FileType: 允许的文件类型列表
+- FileType: 仅限制危险文件类型（可执行文件、脚本文件等），其他文件类型均允许上传
+  - **禁止的文件类型**: `.exe`, `.bat`, `.cmd`, `.com`, `.pif`, `.scr`, `.vbs`, `.js`, `.jar`, `.sh`, `.ps1`, `.app`, `.dmg`, `.deb`, `.rpm`, `.msi`, `.apk`, `.ipa`
+  - **允许的文件类型**: 除上述危险类型外的所有文件类型（如：pdf, doc, docx, xls, xlsx, ppt, pptx, dwg, dxf, md, txt, jpg, jpeg, png, zip, rar等）
 - OriginalName: 不能包含特殊字符
 
-### 7. FinancialRecord (财务记录)
+### 8. FinancialRecord (财务记录)
 
 ```go
 type FinancialRecord struct {
-    ID              uint      `json:"id" gorm:"primaryKey"`
+    ID              uint          `json:"id" gorm:"primaryKey"`
     RecordType      FinancialType `json:"record_type" gorm:"not null"`
-    Amount          float64   `json:"amount" gorm:"not null"`
-    InvoiceNumber   string    `json:"invoice_number"`
-    InvoiceDate     *time.Time `json:"invoice_date"`
-    PaymentDate     *time.Time `json:"payment_date"`
-    Description     string    `json:"description"`
+    FeeType         FeeType       `json:"fee_type" gorm:"not null"` // 费用类型（新增）
+    ReceivableAmount float64      `json:"receivable_amount"` // 应收金额
+    InvoiceNumber   string        `json:"invoice_number"`
+    InvoiceDate     *time.Time    `json:"invoice_date"` // 开票时间
+    InvoiceAmount   float64       `json:"invoice_amount"` // 开票金额
+    PaymentDate     *time.Time    `json:"payment_date"` // 支付时间
+    PaymentAmount   float64       `json:"payment_amount"` // 支付金额
+    UnpaidAmount    float64       `json:"unpaid_amount"` // 未收金额（计算字段）
+    Description     string        `json:"description"`
     
     // 关联关系
     ProjectID       uint      `json:"project_id" gorm:"not null"`
@@ -285,15 +365,27 @@ const (
     FinancialTypePayment     FinancialType = "payment"     // 支付金额
     FinancialTypeExpense     FinancialType = "expense"     // 费用支出
 )
+
+type FeeType string
+
+const (
+    FeeTypeDesign       FeeType = "design_fee"       // 设计费（新增）
+    FeeTypeSurvey       FeeType = "survey_fee"       // 勘察费（新增）
+    FeeTypeConsultation FeeType = "consultation_fee" // 咨询费（新增）
+)
 ```
 
-**Validation Rules**:
-- Amount: 大于0的数值
-- InvoiceNumber: 发票号格式验证
-- InvoiceDate: 不能晚于当前日期
-- PaymentDate: 如果填写，不能早于InvoiceDate
+**Validation Rules** (Updated 2025-01-28):
+- ReceivableAmount: 大于0的数值
+- InvoiceAmount: 大于等于0的数值，不能超过ReceivableAmount
+- PaymentAmount: 大于等于0的数值，不能超过ReceivableAmount
+- UnpaidAmount: 自动计算为 ReceivableAmount - PaymentAmount
+- InvoiceNumber: 发票号格式验证（可选）
+- InvoiceDate: 不能晚于当前日期（可选）
+- PaymentDate: 如果填写，不能早于InvoiceDate（可选）
+- **按费用类型分别记录**: 每个费用类型（设计费、勘察费、咨询费）应创建独立的财务记录
 
-### 8. Bonus (奖金)
+### 9. Bonus (奖金)
 
 ```go
 type Bonus struct {
@@ -350,6 +442,22 @@ CREATE INDEX idx_contracts_number ON contracts(contract_number);
 CREATE INDEX idx_contracts_project_id ON contracts(project_id);
 CREATE INDEX idx_contracts_sign_date ON contracts(sign_date);
 
+-- 合同补充协议表索引
+CREATE INDEX idx_contract_amendments_number ON contract_amendments(amendment_number);
+CREATE INDEX idx_contract_amendments_contract_id ON contract_amendments(contract_id);
+CREATE INDEX idx_contract_amendments_sign_date ON contract_amendments(sign_date);
+
+-- 专家费支付表索引
+CREATE INDEX idx_expert_fee_payments_project_id ON expert_fee_payments(project_id);
+CREATE INDEX idx_expert_fee_payments_expert_id ON expert_fee_payments(expert_id);
+CREATE INDEX idx_expert_fee_payments_payment_method ON expert_fee_payments(payment_method);
+
+-- 项目成员表索引
+CREATE INDEX idx_project_members_project_id ON project_members(project_id);
+CREATE INDEX idx_project_members_user_id ON project_members(user_id);
+CREATE INDEX idx_project_members_role ON project_members(role);
+CREATE UNIQUE INDEX idx_project_members_project_user_role ON project_members(project_id, user_id, role);
+
 -- 文件表索引
 CREATE INDEX idx_files_project_id ON files(project_id);
 CREATE INDEX idx_files_category ON files(category);
@@ -359,21 +467,31 @@ CREATE INDEX idx_files_created_at ON files(created_at);
 -- 财务记录表索引
 CREATE INDEX idx_financial_records_project_id ON financial_records(project_id);
 CREATE INDEX idx_financial_records_type ON financial_records(record_type);
+CREATE INDEX idx_financial_records_fee_type ON financial_records(fee_type);
 CREATE INDEX idx_financial_records_invoice_date ON financial_records(invoice_date);
+CREATE INDEX idx_financial_records_payment_date ON financial_records(payment_date);
+
+-- 奖金表索引
+CREATE INDEX idx_bonuses_project_id ON bonuses(project_id);
+CREATE INDEX idx_bonuses_user_id ON bonuses(user_id);
+CREATE INDEX idx_bonuses_type ON bonuses(bonus_type);
 ```
 
 ### Relationships
 
 1. **User** 1:N **Project** (Manager)
-2. **User** 1:N **ProjectMember** (Project Members)
+2. **User** 1:N **ProjectMember** (Project Members) - 支持一人多角色
 3. **Client** 1:N **Project**
 4. **Project** 1:N **Contract**
-5. **Project** 1:N **File**
-6. **Project** 1:N **FinancialRecord**
-7. **Project** 1:N **Bonus**
-8. **User** 1:N **File** (Uploader)
-9. **User** 1:N **FinancialRecord** (Creator)
-10. **User** 1:N **Bonus** (Recipient)
+5. **Contract** 1:N **ContractAmendment** (主合同与补充协议)
+6. **Project** 1:N **ExpertFeePayment** (项目与专家费支付)
+7. **Project** 1:N **File**
+8. **Project** 1:N **FinancialRecord** (按费用类型分别记录)
+9. **Project** 1:N **Bonus**
+10. **User** 1:N **File** (Uploader)
+11. **User** 1:N **FinancialRecord** (Creator)
+12. **User** 1:N **Bonus** (Recipient)
+13. **User** 0..1:N **ExpertFeePayment** (Expert, 如果是系统内用户)
 
 ## Data Validation Rules
 

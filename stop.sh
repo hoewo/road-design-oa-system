@@ -23,6 +23,22 @@ stop_service() {
 
     if [ ! -f "${pid_file}" ]; then
         echo -e "${YELLOW}  ${service_name}: 未找到 PID 文件，服务可能未运行${NC}"
+        # 对于后端服务，尝试通过端口查找并停止
+        if [ "${service_name}" = "后端服务" ]; then
+            if lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null 2>&1; then
+                local port_pid=$(lsof -ti :8080 2>/dev/null | head -1)
+                if [ -n "${port_pid}" ]; then
+                    echo -e "${YELLOW}  检测到端口 8080 被占用 (PID: ${port_pid})，尝试停止...${NC}"
+                    kill ${port_pid} 2>/dev/null
+                    sleep 2
+                    if ps -p ${port_pid} > /dev/null 2>&1; then
+                        kill -9 ${port_pid} 2>/dev/null
+                    fi
+                    # 停止所有相关的 go run 进程
+                    pkill -f "go run.*cmd/server/main" 2>/dev/null
+                fi
+            fi
+        fi
         return 0
     fi
 
@@ -36,8 +52,27 @@ stop_service() {
 
     echo -e "${BLUE}  停止 ${service_name} (PID: ${pid})...${NC}"
 
-    # 尝试优雅关闭
-    kill ${pid} 2>/dev/null
+    # 对于后端服务，需要停止所有相关进程
+    if [ "${service_name}" = "后端服务" ]; then
+        # 停止主进程
+        kill ${pid} 2>/dev/null
+
+        # 停止所有相关的 go run 进程
+        pkill -f "go run.*cmd/server/main" 2>/dev/null
+
+        # 停止所有占用 8080 端口的进程
+        local port_pids=$(lsof -ti :8080 2>/dev/null)
+        if [ -n "${port_pids}" ]; then
+            for port_pid in ${port_pids}; do
+                if [ "${port_pid}" != "${pid}" ]; then
+                    kill ${port_pid} 2>/dev/null
+                fi
+            done
+        fi
+    else
+        # 其他服务直接停止
+        kill ${pid} 2>/dev/null
+    fi
 
     # 等待进程结束
     local count=0
@@ -50,6 +85,21 @@ stop_service() {
     if ps -p ${pid} > /dev/null 2>&1; then
         echo -e "${YELLOW}  进程未响应，强制终止...${NC}"
         kill -9 ${pid} 2>/dev/null
+        sleep 1
+    fi
+
+    # 对于后端服务，再次检查并清理所有相关进程
+    if [ "${service_name}" = "后端服务" ]; then
+        # 强制停止所有相关的 go run 进程
+        pkill -9 -f "go run.*cmd/server/main" 2>/dev/null
+
+        # 强制停止所有占用 8080 端口的进程
+        local port_pids=$(lsof -ti :8080 2>/dev/null)
+        if [ -n "${port_pids}" ]; then
+            for port_pid in ${port_pids}; do
+                kill -9 ${port_pid} 2>/dev/null
+            done
+        fi
         sleep 1
     fi
 

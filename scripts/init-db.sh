@@ -95,10 +95,11 @@ create_database() {
     if database_exists; then
         echo -e "${YELLOW}  数据库已存在${NC}"
 
-        # 询问是否重建
+        # 询问是否重建（默认 N，任何非 y/Y 的输入都视为不删除）
         read -p "  是否要删除并重建数据库? (y/N): " -n 1 -r
         echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        # 只有明确输入 y 或 Y 时才删除，其他任何输入（包括空输入、回车、n、N 等）都视为不删除
+        if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
             echo -e "${YELLOW}  删除旧数据库...${NC}"
 
             # 断开所有连接
@@ -116,6 +117,7 @@ EOF
                 return 1
             fi
         else
+            # 默认行为：保留现有数据库（包括空输入、n、N 或其他任何字符）
             echo -e "${YELLOW}  保留现有数据库${NC}"
             return 0
         fi

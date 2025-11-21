@@ -6,6 +6,8 @@ import { authService } from '@/services/auth'
 import Login from './pages/Login'
 import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
+import ProjectBusiness from './pages/ProjectBusiness'
+import ContractDetail from './components/contract/ContractDetail'
 import './App.css'
 
 const { Header, Content } = Layout
@@ -50,6 +52,14 @@ function App() {
                   />
                   <Route path="/projects" element={<ProjectList />} />
                   <Route path="/projects/:id" element={<ProjectDetail />} />
+                  <Route
+                    path="/projects/:id/business"
+                    element={<ProjectBusiness />}
+                  />
+                  <Route
+                    path="/contracts/:id"
+                    element={<ContractDetail />}
+                  />
                 </Routes>
               </Content>
             </Layout>

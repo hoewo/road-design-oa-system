@@ -77,10 +77,14 @@ const ProjectDetail = ({
         <Descriptions.Item label="更新时间">
           {new Date(project.updated_at).toLocaleString('zh-CN')}
         </Descriptions.Item>
-        <Descriptions.Item label="项目概况" span={2}>
-          {project.project_overview || '-'}
-        </Descriptions.Item>
       </Descriptions>
+      {project.project_overview && (
+        <Descriptions column={1} bordered style={{ marginTop: 16 }}>
+          <Descriptions.Item label="项目概况">
+            {project.project_overview}
+          </Descriptions.Item>
+        </Descriptions>
+      )}
     </Card>
   )
 }

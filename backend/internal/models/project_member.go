@@ -7,11 +7,13 @@ import (
 type MemberRole string
 
 const (
-	MemberRoleManager     MemberRole = "manager"     // 项目负责人
-	MemberRoleDesigner    MemberRole = "designer"    // 专业设计人
-	MemberRoleParticipant MemberRole = "participant" // 专业参与人
-	MemberRoleReviewer    MemberRole = "reviewer"    // 专业复核人
-	MemberRoleAuditor     MemberRole = "auditor"     // 审核、审定
+	MemberRoleManager           MemberRole = "manager"            // 项目负责人
+	MemberRoleDesigner          MemberRole = "designer"           // 专业设计人
+	MemberRoleParticipant       MemberRole = "participant"        // 专业参与人
+	MemberRoleReviewer          MemberRole = "reviewer"           // 专业复核人
+	MemberRoleAuditor           MemberRole = "auditor"            // 审核、审定
+	MemberRoleBusinessManager   MemberRole = "business_manager"   // 经营负责人
+	MemberRoleBusinessPersonnel MemberRole = "business_personnel" // 经营人员
 )
 
 type ProjectMember struct {

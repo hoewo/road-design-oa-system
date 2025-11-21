@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Button, Space, message, Modal, Tag } from 'antd'
-import { EditOutlined, ArrowLeftOutlined } from '@ant-design/icons'
+import { EditOutlined, ArrowLeftOutlined, ShopOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
 import ProjectForm from '@/components/project/ProjectForm'
+import { ProjectBusinessForm } from '@/components/project/ProjectBusinessForm'
 import type { ProjectStatus } from '@/types'
 
 const ProjectDetail = () => {
@@ -74,6 +75,12 @@ const ProjectDetail = () => {
         <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
           编辑项目
         </Button>
+        <Button
+          icon={<ShopOutlined />}
+          onClick={() => navigate(`/projects/${project.id}/business`)}
+        >
+          经营信息管理
+        </Button>
       </Space>
 
       <Card title="项目详情" loading={isLoading}>
@@ -99,10 +106,18 @@ const ProjectDetail = () => {
           <Descriptions.Item label="更新时间">
             {new Date(project.updated_at).toLocaleString('zh-CN')}
           </Descriptions.Item>
-          <Descriptions.Item label="项目概况" span={2}>
-            {project.project_overview || '-'}
-          </Descriptions.Item>
         </Descriptions>
+        {project.project_overview && (
+          <Descriptions column={1} bordered style={{ marginTop: 16 }}>
+            <Descriptions.Item label="项目概况">
+              {project.project_overview}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
+      </Card>
+
+      <Card title="项目经营信息" style={{ marginTop: 16 }}>
+        <ProjectBusinessForm projectId={project.id} />
       </Card>
 
       <Modal
@@ -111,7 +126,7 @@ const ProjectDetail = () => {
         onCancel={handleModalClose}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <ProjectForm
           projectId={project.id}

@@ -87,6 +87,10 @@ func main() {
 	authHandler := handlers.NewAuthHandler(cfg, logger)
 	projectHandler := handlers.NewProjectHandler(logger)
 	clientHandler := handlers.NewClientHandler(logger)
+	projectBusinessHandler := handlers.NewProjectBusinessHandler(logger)
+	contractHandler := handlers.NewContractHandler(cfg, logger)
+	contractAmendmentHandler := handlers.NewContractAmendmentHandler(logger)
+	expertFeePaymentHandler := handlers.NewExpertFeePaymentHandler(logger)
 
 	// API routes
 	api := router.Group("/api/v1")
@@ -118,6 +122,53 @@ func main() {
 				projects.POST("", projectHandler.CreateProject)
 				projects.PUT("/:id", projectHandler.UpdateProject)
 				projects.DELETE("/:id", projectHandler.DeleteProject)
+
+				// Project business information routes
+				projects.GET("/:id/business", projectBusinessHandler.GetProjectBusiness)
+				projects.PUT("/:id/business", projectBusinessHandler.UpdateProjectBusiness)
+
+				// Contract file search route (project-level) - must be before /:id/contracts to avoid route conflict
+				projects.GET("/:id/contracts/files", contractHandler.SearchContractFiles)
+
+				// Project contracts routes
+				projects.GET("/:id/contracts", contractHandler.GetContractsByProject)
+				projects.POST("/:id/contracts", contractHandler.CreateContract)
+
+				// Expert fee payment routes
+				projects.GET("/:id/expert-fee-payments", expertFeePaymentHandler.GetExpertFeePayments)
+				projects.POST("/:id/expert-fee-payments", expertFeePaymentHandler.CreateExpertFeePayment)
+			}
+
+			// Contract routes
+			contracts := protected.Group("/contracts")
+			{
+				contracts.GET("/:id", contractHandler.GetContract)
+				contracts.PUT("/:id", contractHandler.UpdateContract)
+				contracts.DELETE("/:id", contractHandler.DeleteContract)
+
+				// Contract amendment routes
+				contracts.GET("/:id/amendments", contractAmendmentHandler.GetContractAmendments)
+				contracts.POST("/:id/amendments", contractAmendmentHandler.CreateContractAmendment)
+
+				// Contract file routes
+				contracts.POST("/:id/files", contractHandler.UploadContractFile)
+				contracts.GET("/files/:fileId/download", contractHandler.DownloadContractFile)
+			}
+
+			// Contract amendment routes (standalone)
+			contractAmendments := protected.Group("/contract-amendments")
+			{
+				contractAmendments.GET("/:id", contractAmendmentHandler.GetContractAmendment)
+				contractAmendments.PUT("/:id", contractAmendmentHandler.UpdateContractAmendment)
+				contractAmendments.DELETE("/:id", contractAmendmentHandler.DeleteContractAmendment)
+			}
+
+			// Expert fee payment routes (standalone)
+			expertFeePayments := protected.Group("/expert-fee-payments")
+			{
+				expertFeePayments.GET("/:id", expertFeePaymentHandler.GetExpertFeePayment)
+				expertFeePayments.PUT("/:id", expertFeePaymentHandler.UpdateExpertFeePayment)
+				expertFeePayments.DELETE("/:id", expertFeePaymentHandler.DeleteExpertFeePayment)
 			}
 
 			// Client routes

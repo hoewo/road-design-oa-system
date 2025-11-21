@@ -265,7 +265,7 @@ const ProjectList = () => {
         onCancel={handleModalClose}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <ProjectForm
           projectId={editingProject?.id}

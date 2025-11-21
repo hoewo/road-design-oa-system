@@ -360,42 +360,136 @@ start_backend() {
 
     # 启动后端服务
     echo -e "${BLUE}  启动 Go 服务器...${NC}"
+
+    # 清空之前的日志文件，以便检查新的启动错误
+    > "${PROJECT_ROOT}/backend.log"
+
     nohup go run cmd/server/main.go > "${PROJECT_ROOT}/backend.log" 2>&1 &
+    local go_run_pid=$!
 
-    # 等待后端启动（Go 程序需要编译和启动时间）
-    sleep 3
+    # 等待编译和启动（Go 程序需要编译和启动时间）
+    echo -e "${BLUE}  等待后端服务启动（编译中...）...${NC}"
 
-    # 通过端口查找实际的 Go 程序进程 PID（go run 会启动子进程）
-    local backend_pid=$(find_pid_by_port 8080)
+    local max_wait=20  # 最多等待20秒
+    local wait_count=0
+    local backend_pid=""
+    local compile_error=false
 
-    # 如果通过端口找不到，尝试通过进程名查找
-    if [ -z "${backend_pid}" ]; then
-        backend_pid=$(pgrep -f "go-build.*main" | head -1)
-    fi
+    # 循环等待，直到找到进程或超时
+    while [ ${wait_count} -lt ${max_wait} ]; do
+        sleep 1
+        wait_count=$((wait_count + 1))
 
-    # 验证进程是否存在
+        # 检查 go run 进程是否还在运行（如果编译失败或运行时错误，go run 进程会退出）
+        if ! ps -p ${go_run_pid} > /dev/null 2>&1; then
+            # go run 进程已退出，检查是否有错误
+            if [ -f "${PROJECT_ROOT}/backend.log" ]; then
+                # 检查编译错误、运行时错误（panic）或退出状态
+                if grep -qE "(error|Error|ERROR|failed|Failed|FAILED|panic|PANIC|exit status)" "${PROJECT_ROOT}/backend.log" 2>/dev/null; then
+                    compile_error=true
+                    echo -e "${RED}  ✗ 后端服务启动失败（编译或运行时错误）${NC}"
+                    echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
+                    show_log_tail "${PROJECT_ROOT}/backend.log" 20
+                    return 1
+                fi
+            fi
+        fi
+
+        # 检查日志中是否有 panic 或运行时错误（即使进程还在运行）
+        if [ -f "${PROJECT_ROOT}/backend.log" ]; then
+            if grep -qE "panic:|PANIC|fatal error|runtime error" "${PROJECT_ROOT}/backend.log" 2>/dev/null; then
+                echo -e "${RED}  ✗ 后端服务运行时错误（panic）${NC}"
+                echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
+                show_log_tail "${PROJECT_ROOT}/backend.log" 20
+                # 清理进程
+                if ps -p ${go_run_pid} > /dev/null 2>&1; then
+                    kill ${go_run_pid} 2>/dev/null
+                fi
+                return 1
+            fi
+        fi
+
+        # 尝试通过端口查找进程（优先）
+        backend_pid=$(find_pid_by_port 8080)
+        if [ -n "${backend_pid}" ] && ps -p ${backend_pid} > /dev/null 2>&1; then
+            # 验证是否是实际的后端程序（不是 go run 进程）
+            # 通过检查进程的命令行参数来判断
+            local process_args=$(ps -p ${backend_pid} -o args= 2>/dev/null)
+            # 如果是 go run 或 go-build 进程，跳过
+            if echo "${process_args}" | grep -qvE "go run|go-build"; then
+                # 确认是后端程序进程
+                if echo "${process_args}" | grep -qE "cmd/server/main|project-oa-backend|/tmp/go-build"; then
+                    break
+                fi
+            fi
+        fi
+
+        # 如果通过端口找不到，尝试通过进程名查找实际运行的程序
+        if [ -z "${backend_pid}" ]; then
+            # 查找所有可能的进程
+            local all_pids=$(pgrep -f "cmd/server/main|project-oa-backend" 2>/dev/null)
+            for pid in ${all_pids}; do
+                # 排除 go run 进程本身
+                if [ "${pid}" != "${go_run_pid}" ] && ps -p ${pid} > /dev/null 2>&1; then
+                    local process_args=$(ps -p ${pid} -o args= 2>/dev/null)
+                    # 确认不是 go run 进程
+                    if echo "${process_args}" | grep -qvE "^go run"; then
+                        backend_pid=${pid}
+                        break
+                    fi
+                fi
+            done
+            if [ -n "${backend_pid}" ]; then
+                break
+            fi
+        fi
+
+        # 每3秒显示一次等待提示
+        if [ $((wait_count % 3)) -eq 0 ]; then
+            echo -e "${BLUE}    等待中... (${wait_count}/${max_wait}秒)${NC}"
+        fi
+    done
+
+    # 如果超时仍未找到进程，检查日志
     if [ -z "${backend_pid}" ] || ! ps -p ${backend_pid} > /dev/null 2>&1; then
-        echo -e "${RED}  ✗ 后端服务启动失败：无法找到进程${NC}"
+        echo -e "${RED}  ✗ 后端服务启动失败：无法找到进程（等待超时）${NC}"
         echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
-        show_log_tail "${PROJECT_ROOT}/backend.log" 10
+        show_log_tail "${PROJECT_ROOT}/backend.log" 15
+
+        # 清理 go run 进程（如果还在运行）
+        if ps -p ${go_run_pid} > /dev/null 2>&1; then
+            kill ${go_run_pid} 2>/dev/null
+            sleep 1
+            if ps -p ${go_run_pid} > /dev/null 2>&1; then
+                kill -9 ${go_run_pid} 2>/dev/null
+            fi
+        fi
         return 1
     fi
 
     # 保存 PID 到文件
     echo ${backend_pid} > "${PID_DIR}/backend.pid"
 
-    # 验证启动成功
-    if check_port 8080 && ps -p ${backend_pid} > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${backend_pid})${NC}"
-        echo -e "${GREEN}  ✓ 后端地址: http://localhost:8080${NC}"
-        echo -e "    日志文件: ${PROJECT_ROOT}/backend.log"
-        return 0
-    else
-        echo -e "${RED}  ✗ 后端服务启动失败：进程或端口验证失败${NC}"
-        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
-        rm -f "${PID_DIR}/backend.pid"
-        return 1
-    fi
+    # 再次验证启动成功（确保端口已监听且进程在运行）
+    local verify_count=0
+    local max_verify=5
+    while [ ${verify_count} -lt ${max_verify} ]; do
+        if check_port 8080 && ps -p ${backend_pid} > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${backend_pid})${NC}"
+            echo -e "${GREEN}  ✓ 后端地址: http://localhost:8080${NC}"
+            echo -e "    日志文件: ${PROJECT_ROOT}/backend.log"
+            return 0
+        fi
+        sleep 1
+        verify_count=$((verify_count + 1))
+    done
+
+    # 验证失败
+    echo -e "${RED}  ✗ 后端服务启动失败：进程或端口验证失败${NC}"
+    echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
+    show_log_tail "${PROJECT_ROOT}/backend.log" 10
+    rm -f "${PID_DIR}/backend.pid"
+    return 1
 }
 
 # 启动前端服务

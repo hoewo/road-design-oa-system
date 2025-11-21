@@ -45,6 +45,8 @@ func Migrate() error {
 		&models.Project{},
 		&models.Client{},
 		&models.Contract{},
+		&models.ContractAmendment{},
+		&models.ExpertFeePayment{},
 		&models.ProjectMember{},
 		&models.File{},
 		&models.FinancialRecord{},

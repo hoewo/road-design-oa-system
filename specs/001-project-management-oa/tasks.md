@@ -37,6 +37,8 @@
 
 - [x] T007 Setup PostgreSQL database schema and migrations framework in backend/pkg/database/
 - [x] T008 [P] Setup MinIO file storage configuration in backend/pkg/storage/
+- [x] T008a [P] Create File model in backend/internal/models/file.go (foundation layer for file management)
+- [x] T008b [P] Implement FileService (foundation layer) in backend/internal/services/file_service.go (depends on T008, T008a)
 - [x] T009 [P] Implement JWT authentication middleware in backend/internal/middleware/auth.go
 - [x] T010 [P] Setup CORS and logging middleware in backend/internal/middleware/
 - [x] T011 [P] Create base configuration management in backend/internal/config/config.go
@@ -131,29 +133,62 @@
 
 ### Implementation for User Story 2
 
-- [ ] T053 [P] [US2] Create Contract model in backend/internal/models/contract.go
-- [ ] T054 [US2] Implement ProjectBusinessService in backend/internal/services/project_business_service.go (depends on T025, T026, T053)
-- [ ] T054a [US2] Add client association management (select, create, change, remove) in backend/internal/services/project_business_service.go (depends on T054)
-- [ ] T054b [US2] Add client name uniqueness validation when creating new client in business info in backend/internal/services/project_business_service.go (depends on T054)
-- [ ] T055 [US2] Implement ContractService in backend/internal/services/contract_service.go (depends on T053)
-- [ ] T056 [US2] Implement ProjectBusinessHandler in backend/internal/handlers/project_business_handler.go (depends on T054)
-- [ ] T057 [US2] Implement ContractHandler in backend/internal/handlers/contract_handler.go (depends on T055)
-- [ ] T058 [US2] Add GET /projects/{id}/business endpoint in backend/internal/handlers/project_business_handler.go (depends on T056)
-- [ ] T059 [US2] Add PUT /projects/{id}/business endpoint in backend/internal/handlers/project_business_handler.go (depends on T056)
-- [ ] T060 [US2] Add contract validation and business rules in backend/internal/services/contract_service.go (depends on T055)
-- [ ] T061 [P] [US2] Create ProjectBusinessForm component in frontend/src/components/project/ProjectBusinessForm.tsx
-- [ ] T061a [US2] Add client selection dropdown with "Create New Client" option in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
-- [ ] T061b [US2] Implement client selection, creation, change, and removal in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061, T041)
-- [ ] T061c [US2] Add real-time search and filtering for client dropdown in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
-- [ ] T061d [US2] Implement client list error handling with retry in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
-- [ ] T061e [US2] Add empty state display for client dropdown in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
-- [ ] T061f [US2] Configure client list to load all clients (max 100) sorted by created_at DESC in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
-- [ ] T062 [P] [US2] Create ContractForm component in frontend/src/components/contract/ContractForm.tsx
-- [ ] T063 [US2] Create ContractList component in frontend/src/components/contract/ContractList.tsx (depends on T062)
-- [ ] T064 [US2] Create ProjectBusiness page in frontend/src/pages/ProjectBusiness.tsx (depends on T061)
-- [ ] T065 [US2] Integrate ProjectBusinessForm with project detail page in frontend/src/pages/ProjectDetail.tsx (depends on T064)
-- [ ] T066 [US2] Integrate contract management with project business page in frontend/src/pages/ProjectBusiness.tsx (depends on T063, T064)
-- [ ] T067 [US2] Add contract statistics and reporting features in frontend/src/components/contract/ContractStatistics.tsx
+- [X] T053 [P] [US2] Create Contract model with fee breakdown fields (design_fee, survey_fee, consultation_fee) in backend/internal/models/contract.go
+- [X] T053a [P] [US2] Create ContractAmendment model in backend/internal/models/contract_amendment.go
+- [X] T053b [P] [US2] Create ExpertFeePayment model in backend/internal/models/expert_fee_payment.go
+- [X] T053c [US2] Update ProjectMember model to support multi-role (add business_manager and business_personnel roles) in backend/internal/models/project_member.go (depends on T061)
+- [X] T053d [US2] Update ProjectMember validation to allow multiple roles per user per project in backend/internal/models/project_member.go (depends on T053c)
+- [X] T054 [US2] Implement ProjectBusinessService in backend/internal/services/project_business_service.go (depends on T025, T026, T053)
+- [X] T054a [US2] Add client association management (select, create, change, remove) in backend/internal/services/project_business_service.go (depends on T054)
+- [X] T054b [US2] Add client name uniqueness validation when creating new client in business info in backend/internal/services/project_business_service.go (depends on T054)
+- [X] T054c [US2] Add business manager and business personnel management through ProjectMember system in backend/internal/services/project_business_service.go (depends on T053c, T054)
+- [X] T055 [US2] Implement ContractService with fee breakdown validation in backend/internal/services/contract_service.go (depends on T053)
+- [X] T055a [US2] Implement ContractAmendmentService in backend/internal/services/contract_amendment_service.go (depends on T053a)
+- [X] T055b [US2] Implement ExpertFeePaymentService in backend/internal/services/expert_fee_payment_service.go (depends on T053b)
+- [X] T056 [US2] Implement ProjectBusinessHandler in backend/internal/handlers/project_business_handler.go (depends on T054)
+- [X] T057 [US2] Implement ContractHandler in backend/internal/handlers/contract_handler.go (depends on T055)
+- [X] T057a [US2] Implement ContractAmendmentHandler in backend/internal/handlers/contract_amendment_handler.go (depends on T055a)
+- [X] T057b [US2] Implement ExpertFeePaymentHandler in backend/internal/handlers/expert_fee_payment_handler.go (depends on T055b)
+- [X] T058 [US2] Add GET /projects/{id}/business endpoint in backend/internal/handlers/project_business_handler.go (depends on T056)
+- [X] T059 [US2] Add PUT /projects/{id}/business endpoint in backend/internal/handlers/project_business_handler.go (depends on T056)
+- [X] T059a [US2] Add GET /projects/{id}/expert-fee-payments endpoint in backend/internal/handlers/expert_fee_payment_handler.go (depends on T057b)
+- [X] T059b [US2] Add POST /projects/{id}/expert-fee-payments endpoint in backend/internal/handlers/expert_fee_payment_handler.go (depends on T057b)
+- [X] T059c [US2] Add GET /projects/{id}/contracts endpoint in backend/internal/handlers/contract_handler.go (depends on T057)
+- [X] T059d [US2] Add POST /projects/{id}/contracts endpoint in backend/internal/handlers/contract_handler.go (depends on T057)
+- [X] T059e [US2] Add GET /contracts/{id}/amendments endpoint in backend/internal/handlers/contract_amendment_handler.go (depends on T057a)
+- [X] T059f [US2] Add POST /contracts/{id}/amendments endpoint in backend/internal/handlers/contract_amendment_handler.go (depends on T057a)
+- [X] T059g [US2] Add PUT /contracts/{id} endpoint in backend/internal/handlers/contract_handler.go (depends on T057)
+- [X] T059h [US2] Add PUT /expert-fee-payments/{id} endpoint in backend/internal/handlers/expert_fee_payment_handler.go (depends on T057b)
+- [X] T060 [US2] Add contract validation and business rules (contract_amount = design_fee + survey_fee + consultation_fee) in backend/internal/services/contract_service.go (depends on T055)
+- [X] T061 [P] [US2] Create ProjectBusinessForm component in frontend/src/components/project/ProjectBusinessForm.tsx
+- [X] T061a [US2] Add client selection dropdown with "Create New Client" option in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [X] T061b [US2] Implement client selection, creation, change, and removal in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061, T041)
+- [X] T061c [US2] Add real-time search and filtering for client dropdown in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [X] T061d [US2] Implement client list error handling with retry in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [X] T061e [US2] Add empty state display for client dropdown in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [X] T061f [US2] Configure client list to load all clients (max 100) sorted by created_at DESC in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T061)
+- [X] T062 [P] [US2] Create ContractForm component with fee breakdown fields (design_fee, survey_fee, consultation_fee) in frontend/src/components/contract/ContractForm.tsx
+- [X] T062a [P] [US2] Create ContractAmendmentForm component in frontend/src/components/contract/ContractAmendmentForm.tsx
+- [X] T062b [P] [US2] Create ExpertFeePaymentForm component in frontend/src/components/project/ExpertFeePaymentForm.tsx
+- [X] T062d [US2] Implement contract edit functionality in ContractForm (load existing data and update) in frontend/src/components/contract/ContractForm.tsx (depends on T062, T059g)
+- [X] T062e [US2] Implement expert fee payment edit functionality in ExpertFeePaymentForm (load existing data and update) in frontend/src/components/project/ExpertFeePaymentForm.tsx (depends on T062b, T059h)
+- [ ] T062c [US2] Update ProjectMemberForm to support multi-role selection (including business_manager and business_personnel) in frontend/src/components/project/ProjectMemberForm.tsx (depends on T065)
+- [X] T063 [US2] Create ContractList component in frontend/src/components/contract/ContractList.tsx (depends on T062)
+- [X] T063a [US2] Create ContractAmendmentList component in frontend/src/components/contract/ContractAmendmentList.tsx (depends on T062a)
+- [X] T063b [US2] Create ExpertFeePaymentList component in frontend/src/components/project/ExpertFeePaymentList.tsx (depends on T062b)
+- [X] T064 [US2] Create ProjectBusiness page in frontend/src/pages/ProjectBusiness.tsx (depends on T061)
+- [X] T064a [US2] Add business manager and business personnel configuration section in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T062c, T064)
+- [X] T065 [US2] Integrate ProjectBusinessForm with project detail page in frontend/src/pages/ProjectDetail.tsx (depends on T064)
+- [X] T066 [US2] Integrate contract management with project business page in frontend/src/pages/ProjectBusiness.tsx (depends on T063, T064)
+- [X] T066a [US2] Integrate contract amendment management with contract detail view in frontend/src/components/contract/ContractDetail.tsx (depends on T063a, T066)
+- [X] T066b [US2] Integrate expert fee payment management with project business page in frontend/src/pages/ProjectBusiness.tsx (depends on T063b, T064)
+- [X] T067 [US2] Add contract statistics and reporting features in frontend/src/components/contract/ContractStatistics.tsx
+- [X] T067a [P] [US2] Add contract file upload endpoint using file_service in backend/internal/handlers/contract_handler.go (depends on T008b, T057)
+- [X] T067b [P] [US2] Add contract file download endpoint using file_service in backend/internal/handlers/contract_handler.go (depends on T008b, T057)
+- [X] T067c [P] [US2] Add contract file search endpoint using file_service in backend/internal/handlers/contract_handler.go (depends on T008b, T057)
+- [X] T067d [US2] Create ContractFileUpload component using file_service in frontend/src/components/contract/ContractFileUpload.tsx (depends on T067a)
+- [X] T067e [US2] Create ContractFileList component with search and filter in frontend/src/components/contract/ContractFileList.tsx (depends on T067c)
+- [X] T067f [US2] Integrate contract file management with contract detail view in frontend/src/components/contract/ContractDetail.tsx (depends on T067d, T067e)
 
 **Checkpoint**: 此时，用户故事1和2都应该独立工作
 
@@ -167,79 +202,63 @@
 
 ### Tests for User Story 3
 
-- [ ] T057 [P] [US3] Contract test for project member endpoints in backend/tests/contract/test_project_members.go
-- [ ] T058 [P] [US3] Integration test for project member management flow in backend/tests/integration/test_member_management.go
-- [ ] T059 [P] [US3] Frontend component test for ProjectMemberForm in frontend/tests/components/ProjectMemberForm.test.tsx
-- [ ] T060 [P] [US3] E2E test for project member management flow in frontend/tests/e2e/member-management.spec.ts
+- [ ] T068 [P] [US3] Contract test for project member endpoints in backend/tests/contract/test_project_members.go
+- [ ] T069 [P] [US3] Integration test for project member management flow in backend/tests/integration/test_member_management.go
+- [ ] T070 [P] [US3] Frontend component test for ProjectMemberForm in frontend/tests/components/ProjectMemberForm.test.tsx
+- [ ] T071 [P] [US3] E2E test for project member management flow in frontend/tests/e2e/member-management.spec.ts
 
 ### Implementation for User Story 3
 
-- [ ] T061 [P] [US3] Create ProjectMember model in backend/internal/models/project_member.go
-- [ ] T062 [US3] Implement ProjectMemberService in backend/internal/services/project_member_service.go (depends on T061)
-- [ ] T063 [US3] Implement ProjectMemberHandler in backend/internal/handlers/project_member_handler.go (depends on T062)
-- [ ] T064 [US3] Add member role validation and business rules
-- [ ] T065 [P] [US3] Create ProjectMemberForm component in frontend/src/components/project/ProjectMemberForm.tsx
-- [ ] T066 [US3] Create ProjectMemberList component in frontend/src/components/project/ProjectMemberList.tsx (depends on T065)
-- [ ] T067 [US3] Integrate member management with project detail page
-- [ ] T068 [US3] Add member notification system for role assignments
+- [ ] T072 [P] [US3] Create ProjectMember model in backend/internal/models/project_member.go (Note: business_manager and business_personnel roles added in US2)
+- [ ] T073 [US3] Implement ProjectMemberService with multi-role support in backend/internal/services/project_member_service.go (depends on T072)
+- [ ] T074 [US3] Implement ProjectMemberHandler in backend/internal/handlers/project_member_handler.go (depends on T073)
+- [ ] T075 [US3] Add member role validation and business rules (support multiple roles per user per project) in backend/internal/services/project_member_service.go (depends on T073)
+- [ ] T076 [P] [US3] Create ProjectMemberForm component in frontend/src/components/project/ProjectMemberForm.tsx (Note: multi-role support added in US2)
+- [ ] T077 [US3] Create ProjectMemberList component in frontend/src/components/project/ProjectMemberList.tsx (depends on T076)
+- [ ] T078 [US3] Integrate member management with project detail page in frontend/src/pages/ProjectDetail.tsx
+- [ ] T079 [US3] Add member notification system for role assignments in backend/internal/services/project_member_service.go (depends on T073)
+- [ ] T079a [P] [US3] Add production file upload endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
+- [ ] T079b [P] [US3] Add production file download endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
+- [ ] T079c [P] [US3] Add production file search endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
+- [ ] T079d [US3] Create ProductionFileUpload component using file_service in frontend/src/components/production/ProductionFileUpload.tsx (depends on T079a)
+- [ ] T079e [US3] Create ProductionFileList component with search, filter, and permission verification in frontend/src/components/production/ProductionFileList.tsx (depends on T079c)
+- [ ] T079f [US3] Integrate production file management with production management page in frontend/src/pages/ProjectProduction.tsx (depends on T079d, T079e)
 
 **Checkpoint**: 所有用户故事现在都应该独立功能化
 
 ---
 
-## Phase 6: User Story 4 - 财务信息管理与统计 (Priority: P2)
+## Phase 6: User Story 4 - 公司收入信息管理 (Priority: P2)
 
-**Goal**: 财务人员能够管理项目的财务信息，包括应收金额、开票信息、支付记录、管理费比例和奖金分配
+**Goal**: 财务人员能够管理公司的收入信息，包括项目应收款项、开票信息、支付记录、管理费比例、奖金分配和公司级别的收入统计，提供完整的财务跟踪和统计功能
 
-**Independent Test**: 可以通过录入财务数据、生成财务报表、查看收入统计来独立测试，验证财务管理的准确性和完整性
+**Independent Test**: 可以通过录入财务数据、生成财务报表、查看公司收入统计来独立测试，验证财务管理的准确性和完整性
 
 ### Tests for User Story 4
 
-- [ ] T069 [P] [US4] Contract test for financial record endpoints in backend/tests/contract/test_financial.go
-- [ ] T070 [P] [US4] Contract test for bonus endpoints in backend/tests/contract/test_bonuses.go
-- [ ] T071 [P] [US4] Integration test for financial management flow in backend/tests/integration/test_financial_management.go
-- [ ] T072 [P] [US4] Frontend component test for FinancialForm in frontend/tests/components/FinancialForm.test.tsx
-- [ ] T073 [P] [US4] E2E test for financial management flow in frontend/tests/e2e/financial-management.spec.ts
+- [ ] T080 [P] [US4] Contract test for financial record endpoints in backend/tests/contract/test_financial.go
+- [ ] T081 [P] [US4] Contract test for bonus endpoints in backend/tests/contract/test_bonuses.go
+- [ ] T082 [P] [US4] Integration test for financial management flow in backend/tests/integration/test_financial_management.go
+- [ ] T083 [P] [US4] Frontend component test for FinancialForm in frontend/tests/components/FinancialForm.test.tsx
+- [ ] T084 [P] [US4] E2E test for financial management flow in frontend/tests/e2e/financial-management.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T074 [P] [US4] Create FinancialRecord model in backend/internal/models/financial_record.go
-- [ ] T075 [P] [US4] Create Bonus model in backend/internal/models/bonus.go
-- [ ] T076 [US4] Implement FinancialService in backend/internal/services/financial_service.go (depends on T074, T075)
-- [ ] T077 [US4] Implement FinancialHandler in backend/internal/handlers/financial_handler.go (depends on T076)
-- [ ] T078 [US4] Add financial calculation and validation logic
-- [ ] T079 [P] [US4] Create FinancialForm component in frontend/src/components/financial/FinancialForm.tsx
-- [ ] T080 [US4] Create FinancialDashboard component in frontend/src/components/financial/FinancialDashboard.tsx (depends on T079)
-- [ ] T081 [US4] Create BonusForm component in frontend/src/components/financial/BonusForm.tsx
-- [ ] T082 [US4] Integrate financial management with project detail page
-- [ ] T083 [US4] Add financial reporting and statistics features
-
----
-
-## Phase 7: User Story 5 - 文件管理与存档 (Priority: P3)
-
-**Goal**: 系统用户能够上传、管理和检索项目相关的各种文件，包括合同文件、设计文件、审计报告等
-
-**Independent Test**: 可以通过上传各种类型的项目文件、设置文件权限、搜索和下载文件来独立测试，验证文件管理的完整功能
-
-### Tests for User Story 5
-
-- [ ] T084 [P] [US5] Contract test for file endpoints in backend/tests/contract/test_files.go
-- [ ] T085 [P] [US5] Integration test for file management flow in backend/tests/integration/test_file_management.go
-- [ ] T086 [P] [US5] Frontend component test for FileUpload in frontend/tests/components/FileUpload.test.tsx
-- [ ] T087 [P] [US5] E2E test for file management flow in frontend/tests/e2e/file-management.spec.ts
-
-### Implementation for User Story 5
-
-- [ ] T088 [P] [US5] Create File model in backend/internal/models/file.go
-- [ ] T089 [US5] Implement FileService in backend/internal/services/file_service.go (depends on T088)
-- [ ] T090 [US5] Implement FileHandler in backend/internal/handlers/file_handler.go (depends on T089)
-- [ ] T091 [US5] Add file upload validation and security checks
-- [ ] T092 [P] [US5] Create FileUpload component in frontend/src/components/file/FileUpload.tsx
-- [ ] T093 [US5] Create FileList component in frontend/src/components/file/FileList.tsx (depends on T092)
-- [ ] T094 [US5] Create FileManagement page in frontend/src/pages/FileManagement.tsx (depends on T093)
-- [ ] T095 [US5] Integrate file management with project detail page
-- [ ] T096 [US5] Add file search and filtering capabilities
+- [ ] T085 [P] [US4] Update FinancialRecord model with FeeType field and payment fields (receivable_amount, invoice_date, invoice_amount, payment_date, payment_amount, unpaid_amount) in backend/internal/models/financial_record.go
+- [ ] T085a [US4] Add database migration for FinancialRecord fee_type field and new payment fields in backend/migrations/ (depends on T085)
+- [ ] T086 [P] [US4] Create Bonus model in backend/internal/models/bonus.go (ensure bonus_type supports business and production)
+- [ ] T087 [US4] Implement FinancialService with fee type separation (design_fee, survey_fee, consultation_fee) in backend/internal/services/financial_service.go (depends on T085, T086)
+- [ ] T087a [US4] Add unpaid_amount calculation logic (receivable_amount - payment_amount) in backend/internal/services/financial_service.go (depends on T087)
+- [ ] T087b [US4] Add validation for payment_amount not exceeding receivable_amount per fee type in backend/internal/services/financial_service.go (depends on T087)
+- [ ] T088 [US4] Implement FinancialHandler in backend/internal/handlers/financial_handler.go (depends on T087)
+- [ ] T089 [US4] Add financial calculation and validation logic for fee type aggregation in backend/internal/services/financial_service.go (depends on T087)
+- [ ] T090 [P] [US4] Create FinancialForm component with fee type selection (design_fee, survey_fee, consultation_fee) in frontend/src/components/financial/FinancialForm.tsx
+- [ ] T090a [US4] Add separate financial record creation for each fee type in FinancialForm in frontend/src/components/financial/FinancialForm.tsx (depends on T090)
+- [ ] T091 [US4] Create FinancialDashboard component with fee type breakdown in frontend/src/components/financial/FinancialDashboard.tsx (depends on T090)
+- [ ] T092 [US4] Create BonusForm component supporting business and production bonus types in frontend/src/components/financial/BonusForm.tsx
+- [ ] T093 [US4] Integrate financial management with project detail page in frontend/src/pages/ProjectDetail.tsx
+- [ ] T094 [US4] Add financial reporting and statistics features with company-level revenue aggregation in frontend/src/components/financial/FinancialStatistics.tsx
+- [ ] T094a [US4] Add company-level revenue statistics dashboard in frontend/src/components/financial/CompanyRevenueDashboard.tsx (depends on T094)
 
 ---
 
@@ -247,18 +266,18 @@
 
 **Purpose**: 影响多个用户故事的改进
 
-- [ ] T097 [P] Documentation updates in docs/
-- [ ] T098 [P] Code cleanup and refactoring across all modules
-- [ ] T099 [P] Performance optimization across all stories
-- [ ] T100 [P] Additional unit tests in backend/tests/unit/ and frontend/tests/unit/
-- [ ] T101 [P] Security hardening and vulnerability assessment
-- [ ] T102 [P] Run quickstart.md validation and update if needed
-- [ ] T103 [P] Add comprehensive error handling and user feedback
-- [ ] T104 [P] Implement comprehensive logging and monitoring
-- [ ] T105 [P] Add data export and reporting features
-- [ ] T106 [P] Performance testing and optimization
-- [ ] T107 [P] Security testing and penetration testing
-- [ ] T108 [P] User acceptance testing and feedback integration
+- [ ] T108 [P] Documentation updates in docs/
+- [ ] T109 [P] Code cleanup and refactoring across all modules
+- [ ] T110 [P] Performance optimization across all stories
+- [ ] T111 [P] Additional unit tests in backend/tests/unit/ and frontend/tests/unit/
+- [ ] T112 [P] Security hardening and vulnerability assessment
+- [ ] T113 [P] Run quickstart.md validation and update if needed
+- [ ] T114 [P] Add comprehensive error handling and user feedback
+- [ ] T115 [P] Implement comprehensive logging and monitoring
+- [ ] T116 [P] Add data export and reporting features
+- [ ] T117 [P] Performance testing and optimization
+- [ ] T118 [P] Security testing and penetration testing
+- [ ] T119 [P] User acceptance testing and feedback integration
 
 ---
 
@@ -268,18 +287,18 @@
 
 - **Setup (Phase 1)**: 无依赖 - 可以立即开始
 - **Foundational (Phase 2)**: 依赖Setup完成 - 阻塞所有用户故事
-- **User Stories (Phase 3-7)**: 都依赖Foundational阶段完成
+  - **文件管理基础能力层** (T008a, T008b): 必须在User Story 2和3的文件管理功能之前完成
+- **User Stories (Phase 3-6)**: 都依赖Foundational阶段完成
   - 用户故事可以并行进行（如果有足够人员）
-  - 或者按优先级顺序进行（P1 → P2 → P3）
+  - 或者按优先级顺序进行（P1 → P2）
 - **Polish (Phase 8)**: 依赖所有期望的用户故事完成
 
 ### User Story Dependencies
 
 - **User Story 1 (P1)**: Foundational完成后可以开始 - 不依赖其他故事
-- **User Story 2 (P1)**: Foundational完成后可以开始 - 可能与US1集成但应该独立可测试
-- **User Story 3 (P2)**: Foundational完成后可以开始 - 可能与US1/US2集成但应该独立可测试
+- **User Story 2 (P1)**: Foundational完成后可以开始 - 文件管理功能依赖T008b (file_service)
+- **User Story 3 (P2)**: Foundational完成后可以开始 - 文件管理功能依赖T008b (file_service)
 - **User Story 4 (P2)**: Foundational完成后可以开始 - 可能与US1/US2集成但应该独立可测试
-- **User Story 5 (P3)**: Foundational完成后可以开始 - 可能与所有故事集成但应该独立可测试
 
 ### Within Each User Story
 
@@ -333,25 +352,23 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ### Incremental Delivery
 
-1. 完成Setup + Foundational → 基础设施就绪
+1. 完成Setup + Foundational → 基础设施就绪（包括文件管理基础能力层）
 2. 添加用户故事1 → 独立测试 → 部署/演示 (MVP!)
-3. 添加用户故事2 → 独立测试 → 部署/演示
-4. 添加用户故事3 → 独立测试 → 部署/演示
-5. 添加用户故事4 → 独立测试 → 部署/演示
-6. 添加用户故事5 → 独立测试 → 部署/演示
-7. 每个故事都增加价值而不破坏之前的故事
+3. 添加用户故事2 → 独立测试 → 部署/演示（包括合同文件管理）
+4. 添加用户故事3 → 独立测试 → 部署/演示（包括生产文件管理）
+5. 添加用户故事4 → 独立测试 → 部署/演示（公司收入信息管理）
+6. 每个故事都增加价值而不破坏之前的故事
 
 ### Parallel Team Strategy
 
 多开发者团队：
 
-1. 团队一起完成Setup + Foundational
+1. 团队一起完成Setup + Foundational（包括文件管理基础能力层）
 2. Foundational完成后：
    - 开发者A: 用户故事1
-   - 开发者B: 用户故事2
-   - 开发者C: 用户故事3
-   - 开发者D: 用户故事4
-   - 开发者E: 用户故事5
+   - 开发者B: 用户故事2（使用file_service进行合同文件管理）
+   - 开发者C: 用户故事3（使用file_service进行生产文件管理）
+   - 开发者D: 用户故事4（公司收入信息管理）
 3. 故事独立完成和集成
 
 ---
@@ -368,14 +385,39 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 142个任务 (更新后)
+- **总任务数**: 207个任务 (更新后)
+- **Foundational阶段任务数**: 18个任务 (T007-T016 + T008a-T008b) - 新增文件管理基础能力层
 - **用户故事1任务数**: 42个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038b, T029a-T029c, T032a, T041a) - 已移除项目创建表单中的甲方相关任务
-- **用户故事2任务数**: 30个任务 (T045-T067 + T054a-T054b, T058-T059, T061a-T061f) - 新增项目经营信息管理任务
-- **用户故事3任务数**: 12个任务 (T057-T068)
-- **用户故事4任务数**: 15个任务 (T069-T083)
-- **用户故事5任务数**: 13个任务 (T084-T096)
-- **Polish阶段任务数**: 12个任务 (T097-T108)
+- **用户故事2任务数**: 54个任务 (T045-T067 + T053a-T053d, T054a-T054c, T055a-T055b, T057a-T057b, T059a-T059h, T060, T062a-T062e, T063a-T063b, T064a, T066a-T066b, T067a-T067f) - 新增专家费支付、合同补充协议、经营负责人/人员、一人多角色支持、合同文件管理（使用file_service）
+- **用户故事3任务数**: 18个任务 (T068-T079 + T079a-T079f) - 新增生产文件管理（使用file_service）
+- **用户故事4任务数**: 22个任务 (T080-T094 + T085a, T087a-T087b, T090a, T094a) - 更新为公司收入信息管理，新增公司级别统计
+- **Polish阶段任务数**: 12个任务 (T108-T119) - 保持不变
 - **并行机会**: 所有标记[P]的任务可以并行执行
 - **独立测试标准**: 每个用户故事都有明确的独立测试标准
 - **建议MVP范围**: 仅用户故事1 (项目信息录入与管理)
 - **格式验证**: 所有任务都遵循检查清单格式 (checkbox, ID, labels, file paths)
+
+## New Requirements Added (2025-01-28, 2025-11-19)
+
+### User Story 2 Enhancements:
+- **经营负责人和经营人员**: 通过ProjectMember系统管理，支持一人多角色 (T053c, T053d, T054c, T062c, T064a)
+- **专家费支付**: 新增ExpertFeePayment实体和相关端点 (T053b, T055b, T057b, T059a-T059b, T059h, T062b, T062e, T063b, T066b)
+- **合同补充协议**: 新增ContractAmendment实体和相关端点 (T053a, T055a, T057a, T059e-T059f, T062a, T063a, T066a)
+- **合同金额明细**: 合同实体添加费用明细字段 (T053, T060, T062, T062d, T059g)
+- **合同文件管理**: 使用file_service进行合同文件的上传、下载、搜索 (T067a-T067f)
+
+### User Story 3 Enhancements:
+- **生产文件管理**: 使用file_service进行生产文件的上传、下载、搜索和权限验证 (T079a-T079f)
+
+### User Story 4 Enhancements (2025-11-19):
+- **重命名为公司收入信息管理**: 从"财务信息管理与统计"改为"公司收入信息管理"，强调公司级别统计 (Phase 6标题更新)
+- **按费用类型分别记录**: FinancialRecord支持按设计费、勘察费、咨询费分别记录 (T085, T085a, T087, T087a-T087b, T090, T090a)
+- **支付信息完整字段**: 添加应收金额、开票时间、开票金额、支付时间、支付金额、未收金额 (T085, T087a)
+- **公司级别收入统计**: 新增公司级别收入统计和报表功能 (T094, T094a)
+- **经营奖金**: Bonus实体支持business类型 (T086, T092)
+
+### Architecture Changes (2025-11-19):
+- **文件管理两层架构**: 
+  - 基础能力层: File模型 (T008a) 和 FileService (T008b) 在Foundational阶段
+  - 业务使用层: 合同文件管理在User Story 2 (T067a-T067f)，生产文件管理在User Story 3 (T079a-T079f)
+- **删除User Story 5**: 文件管理功能已分散到User Story 2和3中，不再需要独立的文件管理用户故事

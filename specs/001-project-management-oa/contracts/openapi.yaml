@@ -239,6 +239,56 @@ paths:
         '404':
           description: 项目不存在
 
+  # 专家费支付管理
+  /projects/{id}/expert-fee-payments:
+    get:
+      tags:
+        - 项目经营信息
+      summary: 获取项目专家费支付列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 专家费支付列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpertFeePayment'
+        '404':
+          description: 项目不存在
+
+    post:
+      tags:
+        - 项目经营信息
+      summary: 添加专家费支付记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpertFeePaymentRequest'
+      responses:
+        '201':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpertFeePayment'
+        '404':
+          description: 项目不存在
+
   # 项目成员管理
   /projects/{id}/members:
     get:
@@ -366,6 +416,106 @@ paths:
                 format: binary
         '404':
           description: 文件不存在
+
+  # 合同管理
+  /projects/{id}/contracts:
+    get:
+      tags:
+        - 合同管理
+      summary: 获取项目合同列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 合同列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contract'
+        '404':
+          description: 项目不存在
+
+    post:
+      tags:
+        - 合同管理
+      summary: 创建合同
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contract'
+        '404':
+          description: 项目不存在
+
+  # 合同补充协议管理
+  /contracts/{id}/amendments:
+    get:
+      tags:
+        - 合同管理
+      summary: 获取合同补充协议列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 补充协议列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContractAmendment'
+        '404':
+          description: 合同不存在
+
+    post:
+      tags:
+        - 合同管理
+      summary: 添加合同补充协议
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractAmendmentRequest'
+      responses:
+        '201':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContractAmendment'
+        '404':
+          description: 合同不存在
 
   # 财务管理
   /projects/{id}/financial:
@@ -746,10 +896,52 @@ components:
         contract_amount:
           type: number
           format: float
+          description: 合同金额（应等于设计费+勘察费+咨询费之和）
+        design_fee:
+          type: number
+          format: float
+          description: 设计费
+        survey_fee:
+          type: number
+          format: float
+          description: 勘察费
+        consultation_fee:
+          type: number
+          format: float
+          description: 咨询费
         file_path:
           type: string
         project_id:
           type: integer
+        amendments:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContractAmendment'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ContractAmendment:
+      type: object
+      properties:
+        id:
+          type: integer
+        amendment_number:
+          type: string
+        sign_date:
+          type: string
+          format: date
+        file_path:
+          type: string
+        description:
+          type: string
+        contract_id:
+          type: integer
+        contract:
+          $ref: '#/components/schemas/Contract'
         created_at:
           type: string
           format: date-time
@@ -768,7 +960,8 @@ components:
           type: integer
         role:
           type: string
-          enum: [manager, designer, participant, reviewer, auditor]
+          enum: [manager, designer, participant, reviewer, auditor, business_manager, business_personnel]
+          description: 项目成员角色，支持一人多角色（通过多条记录实现）
         join_date:
           type: string
           format: date
@@ -829,17 +1022,37 @@ components:
         record_type:
           type: string
           enum: [receivable, invoice, payment, expense]
-        amount:
+        fee_type:
+          type: string
+          enum: [design_fee, survey_fee, consultation_fee]
+          description: 费用类型（设计费、勘察费、咨询费）
+        receivable_amount:
           type: number
           format: float
+          description: 应收金额
         invoice_number:
           type: string
+          description: 发票号
         invoice_date:
           type: string
           format: date
+          description: 开票时间
+        invoice_amount:
+          type: number
+          format: float
+          description: 开票金额
         payment_date:
           type: string
           format: date
+          description: 支付时间
+        payment_amount:
+          type: number
+          format: float
+          description: 支付金额
+        unpaid_amount:
+          type: number
+          format: float
+          description: 未收金额（计算字段：应收金额-支付金额）
         description:
           type: string
         project_id:
@@ -1000,7 +1213,8 @@ components:
           type: integer
         role:
           type: string
-          enum: [manager, designer, participant, reviewer, auditor]
+          enum: [manager, designer, participant, reviewer, auditor, business_manager, business_personnel]
+          description: 项目成员角色，支持一人多角色（通过多条记录实现）
         join_date:
           type: string
           format: date
@@ -1009,22 +1223,39 @@ components:
       type: object
       required:
         - record_type
-        - amount
+        - fee_type
+        - receivable_amount
       properties:
         record_type:
           type: string
           enum: [receivable, invoice, payment, expense]
-        amount:
+        fee_type:
+          type: string
+          enum: [design_fee, survey_fee, consultation_fee]
+          description: 费用类型（设计费、勘察费、咨询费）
+        receivable_amount:
           type: number
           format: float
+          description: 应收金额
         invoice_number:
           type: string
+          description: 发票号
         invoice_date:
           type: string
           format: date
+          description: 开票时间
+        invoice_amount:
+          type: number
+          format: float
+          description: 开票金额
         payment_date:
           type: string
           format: date
+          description: 支付时间
+        payment_amount:
+          type: number
+          format: float
+          description: 支付金额
         description:
           type: string
 
@@ -1043,6 +1274,122 @@ components:
         amount:
           type: number
           format: float
+        description:
+          type: string
+
+    ExpertFeePayment:
+      type: object
+      properties:
+        id:
+          type: integer
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+          description: 支付方式（现金/转账）
+        amount:
+          type: number
+          format: float
+          description: 金额
+        expert_name:
+          type: string
+          description: 专家姓名
+        expert_id:
+          type: integer
+          nullable: true
+          description: 专家用户ID（如果是系统内用户）
+        expert:
+          $ref: '#/components/schemas/User'
+        description:
+          type: string
+        project_id:
+          type: integer
+        created_by_id:
+          type: integer
+        created_by:
+          $ref: '#/components/schemas/User'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateExpertFeePaymentRequest:
+      type: object
+      required:
+        - payment_method
+        - amount
+        - expert_name
+      properties:
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+          description: 支付方式（现金/转账）
+        amount:
+          type: number
+          format: float
+          description: 金额
+        expert_name:
+          type: string
+          description: 专家姓名
+        expert_id:
+          type: integer
+          nullable: true
+          description: 专家用户ID（如果是系统内用户，可选）
+        description:
+          type: string
+
+    CreateContractRequest:
+      type: object
+      required:
+        - contract_number
+        - contract_type
+        - sign_date
+        - contract_amount
+      properties:
+        contract_number:
+          type: string
+        contract_type:
+          type: string
+        sign_date:
+          type: string
+          format: date
+        contract_rate:
+          type: number
+          format: float
+        contract_amount:
+          type: number
+          format: float
+        design_fee:
+          type: number
+          format: float
+          description: 设计费
+        survey_fee:
+          type: number
+          format: float
+          description: 勘察费
+        consultation_fee:
+          type: number
+          format: float
+          description: 咨询费
+        file_path:
+          type: string
+
+    CreateContractAmendmentRequest:
+      type: object
+      required:
+        - amendment_number
+        - sign_date
+        - file_path
+      properties:
+        amendment_number:
+          type: string
+        sign_date:
+          type: string
+          format: date
+        file_path:
+          type: string
+          description: 补充协议文件路径
         description:
           type: string
 
