@@ -191,6 +191,7 @@
 - [X] T067d [US2] Create ContractFileUpload component using file_service in frontend/src/components/contract/ContractFileUpload.tsx (depends on T067a)
 - [X] T067e [US2] Create ContractFileList component with search and filter in frontend/src/components/contract/ContractFileList.tsx (depends on T067c)
 - [X] T067f [US2] Integrate contract file management with contract detail view in frontend/src/components/contract/ContractDetail.tsx (depends on T067d, T067e)
+- [X] T067g [US2] Add back navigation button to contract detail page in frontend/src/components/contract/ContractDetail.tsx (depends on T067f)
 
 **Checkpoint**: 此时，用户故事1和2都应该独立工作
 

@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { Card, Descriptions, Tag, Divider, Tabs } from 'antd'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Card, Descriptions, Divider, Tabs, Button, Space } from 'antd'
+import { ArrowLeftOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import { ContractAmendmentList } from './ContractAmendmentList'
@@ -10,6 +10,7 @@ import dayjs from 'dayjs'
 
 const ContractDetail = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const contractId = Number(id)
 
   const { data: contract, isLoading } = useQuery({
@@ -17,6 +18,14 @@ const ContractDetail = () => {
     queryFn: () => businessService.getContract(contractId),
     enabled: !!contractId,
   })
+
+  const handleBack = () => {
+    if (contract?.project_id) {
+      navigate(`/projects/${contract.project_id}/business`)
+    } else {
+      navigate('/projects')
+    }
+  }
 
   if (isLoading) {
     return <div>加载中...</div>
@@ -28,6 +37,12 @@ const ContractDetail = () => {
 
   return (
     <>
+      <Space style={{ marginBottom: 16 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
+          返回项目经营信息
+        </Button>
+      </Space>
+
       <Card title="合同详情" loading={isLoading}>
         <Descriptions column={2} bordered>
           <Descriptions.Item label="合同编号">
