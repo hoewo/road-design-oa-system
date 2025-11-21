@@ -120,11 +120,7 @@ export const ContractAmendmentList = ({
   return (
     <>
       <Space style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           新建补充协议
         </Button>
       </Space>

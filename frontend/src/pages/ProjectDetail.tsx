@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Card, Descriptions, Button, Space, message, Modal, Tag } from 'antd'
-import { EditOutlined, ArrowLeftOutlined, ShopOutlined } from '@ant-design/icons'
+import {
+  EditOutlined,
+  ArrowLeftOutlined,
+  ShopOutlined,
+} from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
 import ProjectForm from '@/components/project/ProjectForm'

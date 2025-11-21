@@ -1,4 +1,14 @@
-import { Form, Input, DatePicker, Button, Space, message, Row, Col, Card } from 'antd'
+import {
+  Form,
+  Input,
+  DatePicker,
+  Button,
+  Space,
+  message,
+  Row,
+  Col,
+  Card,
+} from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import type { CreateContractAmendmentRequest } from '@/types'
@@ -27,7 +37,9 @@ export const ContractAmendmentForm = ({
       businessService.createContractAmendment(contractId, data),
     onSuccess: () => {
       message.success('补充协议创建成功')
-      queryClient.invalidateQueries({ queryKey: ['contractAmendments', contractId] })
+      queryClient.invalidateQueries({
+        queryKey: ['contractAmendments', contractId],
+      })
       form.resetFields()
       onSuccess?.()
     },
@@ -49,11 +61,7 @@ export const ContractAmendmentForm = ({
 
   return (
     <Card title={amendmentId ? '编辑补充协议' : '新建补充协议'}>
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-      >
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item

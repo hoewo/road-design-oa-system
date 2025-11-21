@@ -19,10 +19,14 @@ export const ContractStatistics = ({ projectId }: ContractStatisticsProps) => {
   }
 
   // Calculate statistics
-  const totalAmount = contracts?.reduce((sum, c) => sum + c.contract_amount, 0) || 0
-  const totalDesignFee = contracts?.reduce((sum, c) => sum + (c.design_fee || 0), 0) || 0
-  const totalSurveyFee = contracts?.reduce((sum, c) => sum + (c.survey_fee || 0), 0) || 0
-  const totalConsultationFee = contracts?.reduce((sum, c) => sum + (c.consultation_fee || 0), 0) || 0
+  const totalAmount =
+    contracts?.reduce((sum, c) => sum + c.contract_amount, 0) || 0
+  const totalDesignFee =
+    contracts?.reduce((sum, c) => sum + (c.design_fee || 0), 0) || 0
+  const totalSurveyFee =
+    contracts?.reduce((sum, c) => sum + (c.survey_fee || 0), 0) || 0
+  const totalConsultationFee =
+    contracts?.reduce((sum, c) => sum + (c.consultation_fee || 0), 0) || 0
   const contractCount = contracts?.length || 0
 
   const summaryData = [
@@ -72,11 +76,7 @@ export const ContractStatistics = ({ projectId }: ContractStatisticsProps) => {
     <Card title="合同统计">
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Statistic
-            title="合同数量"
-            value={contractCount}
-            suffix="个"
-          />
+          <Statistic title="合同数量" value={contractCount} suffix="个" />
         </Col>
         <Col span={6}>
           <Statistic

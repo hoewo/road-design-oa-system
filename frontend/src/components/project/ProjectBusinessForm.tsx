@@ -38,7 +38,8 @@ export const ProjectBusinessForm = ({
   const [clients, setClients] = useState<Client[]>([])
   const [loadingClients, setLoadingClients] = useState(false)
   const [clientSearchValue, setClientSearchValue] = useState('')
-  const [createClientModalVisible, setCreateClientModalVisible] = useState(false)
+  const [createClientModalVisible, setCreateClientModalVisible] =
+    useState(false)
   const [retryCount, setRetryCount] = useState(0)
 
   // Load project business data
@@ -78,8 +79,9 @@ export const ProjectBusinessForm = ({
           size: 100,
         })
         // Sort by created_at DESC (backend should already do this, but ensure it)
-        const sortedClients = (response.data || []).sort((a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        const sortedClients = (response.data || []).sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
         setClients(sortedClients)
       } catch (error) {
@@ -111,7 +113,9 @@ export const ProjectBusinessForm = ({
       businessService.updateProjectBusiness(projectId, data),
     onSuccess: () => {
       message.success('项目经营信息更新成功')
-      queryClient.invalidateQueries({ queryKey: ['projectBusiness', projectId] })
+      queryClient.invalidateQueries({
+        queryKey: ['projectBusiness', projectId],
+      })
       onSuccess?.()
     },
     onError: (error: any) => {
@@ -191,11 +195,7 @@ export const ProjectBusinessForm = ({
                   <>
                     {menu}
                     <Divider style={{ margin: '8px 0' }} />
-                    <Button
-                      type="link"
-                      block
-                      onClick={handleCreateClient}
-                    >
+                    <Button type="link" block onClick={handleCreateClient}>
                       + 创建新甲方
                     </Button>
                   </>
@@ -241,11 +241,7 @@ export const ProjectBusinessForm = ({
               name="business_manager_ids"
               tooltip="可以选择多个经营负责人"
             >
-              <Select
-                mode="multiple"
-                placeholder="选择经营负责人"
-                allowClear
-              >
+              <Select mode="multiple" placeholder="选择经营负责人" allowClear>
                 {/* TODO: Load users and populate options */}
               </Select>
             </Form.Item>
@@ -256,11 +252,7 @@ export const ProjectBusinessForm = ({
               name="business_personnel_ids"
               tooltip="可以选择多个经营人员"
             >
-              <Select
-                mode="multiple"
-                placeholder="选择经营人员"
-                allowClear
-              >
+              <Select mode="multiple" placeholder="选择经营人员" allowClear>
                 {/* TODO: Load users and populate options */}
               </Select>
             </Form.Item>

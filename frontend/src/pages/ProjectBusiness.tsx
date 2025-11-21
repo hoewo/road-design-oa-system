@@ -5,6 +5,8 @@ import { ProjectBusinessForm } from '@/components/project/ProjectBusinessForm'
 import { ContractList } from '@/components/contract/ContractList'
 import { ExpertFeePaymentList } from '@/components/project/ExpertFeePaymentList'
 import { ContractStatistics } from '@/components/contract/ContractStatistics'
+import { FinancialList } from '@/components/financial/FinancialList'
+import { BonusList } from '@/components/financial/BonusList'
 
 const ProjectBusiness = () => {
   const { id } = useParams<{ id: string }>()
@@ -30,6 +32,16 @@ const ProjectBusiness = () => {
       key: 'expert-payments',
       label: '专家费支付',
       children: <ExpertFeePaymentList projectId={projectId} />,
+    },
+    {
+      key: 'financial',
+      label: '支付信息',
+      children: <FinancialList projectId={projectId} />,
+    },
+    {
+      key: 'bonuses',
+      label: '奖金管理',
+      children: <BonusList projectId={projectId} />,
     },
     {
       key: 'statistics',

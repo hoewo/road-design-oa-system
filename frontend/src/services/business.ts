@@ -13,6 +13,11 @@ import type {
   File,
   SearchFilesParams,
   SearchFilesResponse,
+  FinancialRecord,
+  CreateFinancialRecordRequest,
+  ProjectFinancial,
+  Bonus,
+  CreateBonusRequest,
 } from '@/types'
 
 export const businessService = {
@@ -37,9 +42,7 @@ export const businessService = {
 
   // Contracts
   getContracts: async (projectId: number): Promise<Contract[]> => {
-    const response = await get<Contract[]>(
-      `/projects/${projectId}/contracts`
-    )
+    const response = await get<Contract[]>(`/projects/${projectId}/contracts`)
     return response || []
   },
 
@@ -63,10 +66,7 @@ export const businessService = {
     contractId: number,
     data: Partial<CreateContractRequest>
   ): Promise<Contract> => {
-    const response = await put<Contract>(
-      `/contracts/${contractId}`,
-      data
-    )
+    const response = await put<Contract>(`/contracts/${contractId}`, data)
     return response
   },
 
@@ -152,9 +152,7 @@ export const businessService = {
     return response
   },
 
-  getExpertFeePayment: async (
-    paymentId: number
-  ): Promise<ExpertFeePayment> => {
+  getExpertFeePayment: async (paymentId: number): Promise<ExpertFeePayment> => {
     const response = await get<ExpertFeePayment>(
       `/expert-fee-payments/${paymentId}`
     )
@@ -251,5 +249,38 @@ export const businessService = {
       page: response.page || 1,
       size: response.size || 20,
     }
+  },
+
+  // Financial Records
+  getProjectFinancial: async (projectId: number): Promise<ProjectFinancial> => {
+    const response = await get<ProjectFinancial>(
+      `/projects/${projectId}/financial`
+    )
+    return response || ({} as ProjectFinancial)
+  },
+
+  createFinancialRecord: async (
+    projectId: number,
+    data: CreateFinancialRecordRequest
+  ): Promise<FinancialRecord> => {
+    const response = await post<FinancialRecord>(
+      `/projects/${projectId}/financial`,
+      data
+    )
+    return response
+  },
+
+  // Bonuses
+  getBonuses: async (projectId: number): Promise<Bonus[]> => {
+    const response = await get<Bonus[]>(`/projects/${projectId}/bonuses`)
+    return response || []
+  },
+
+  createBonus: async (
+    projectId: number,
+    data: CreateBonusRequest
+  ): Promise<Bonus> => {
+    const response = await post<Bonus>(`/projects/${projectId}/bonuses`, data)
+    return response
   },
 }

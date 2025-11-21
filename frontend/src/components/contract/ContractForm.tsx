@@ -240,11 +240,7 @@ export const ContractForm = ({
 
         <Form.Item>
           <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isSubmitting}
-            >
+            <Button type="primary" htmlType="submit" loading={isSubmitting}>
               保存
             </Button>
             {onCancel && <Button onClick={onCancel}>取消</Button>}

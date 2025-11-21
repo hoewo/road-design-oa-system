@@ -46,7 +46,13 @@ function App() {
                   padding: '0 24px',
                 }}
               >
-                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#262626' }}>
+                <div
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    color: '#262626',
+                  }}
+                >
                   项目管理OA系统
                 </div>
                 <Button icon={<LogoutOutlined />} onClick={handleLogout}>
@@ -65,10 +71,7 @@ function App() {
                     path="/projects/:id/business"
                     element={<ProjectBusiness />}
                   />
-                  <Route
-                    path="/contracts/:id"
-                    element={<ContractDetail />}
-                  />
+                  <Route path="/contracts/:id" element={<ContractDetail />} />
                 </Routes>
               </Content>
             </Layout>

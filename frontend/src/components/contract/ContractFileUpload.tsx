@@ -93,11 +93,7 @@ export const ContractFileUpload = ({
   }
 
   return (
-    <Form
-      form={form}
-      layout="vertical"
-      onFinish={handleFormFinish}
-    >
+    <Form form={form} layout="vertical" onFinish={handleFormFinish}>
       <Form.Item label="选择文件" required>
         <Upload
           fileList={fileList}

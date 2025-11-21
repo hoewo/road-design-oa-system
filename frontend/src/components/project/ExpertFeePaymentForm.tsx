@@ -1,5 +1,16 @@
 import { useEffect } from 'react'
-import { Form, Input, InputNumber, Select, Button, Space, message, Row, Col, Card } from 'antd'
+import {
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  Button,
+  Space,
+  message,
+  Row,
+  Col,
+  Card,
+} from 'antd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import type { CreateExpertFeePaymentRequest } from '@/types'
@@ -48,7 +59,9 @@ export const ExpertFeePaymentForm = ({
       businessService.createExpertFeePayment(projectId, data),
     onSuccess: () => {
       message.success('专家费支付记录创建成功')
-      queryClient.invalidateQueries({ queryKey: ['expertFeePayments', projectId] })
+      queryClient.invalidateQueries({
+        queryKey: ['expertFeePayments', projectId],
+      })
       form.resetFields()
       onSuccess?.()
     },
@@ -62,8 +75,12 @@ export const ExpertFeePaymentForm = ({
       businessService.updateExpertFeePayment(paymentId!, data),
     onSuccess: () => {
       message.success('专家费支付记录更新成功')
-      queryClient.invalidateQueries({ queryKey: ['expertFeePayments', projectId] })
-      queryClient.invalidateQueries({ queryKey: ['expertFeePayment', paymentId] })
+      queryClient.invalidateQueries({
+        queryKey: ['expertFeePayments', projectId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['expertFeePayment', paymentId],
+      })
       onSuccess?.()
     },
     onError: (error: any) => {
@@ -91,12 +108,11 @@ export const ExpertFeePaymentForm = ({
   const isSubmitting = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Card title={paymentId ? '编辑专家费支付' : '新建专家费支付'} loading={isLoading}>
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-      >
+    <Card
+      title={paymentId ? '编辑专家费支付' : '新建专家费支付'}
+      loading={isLoading}
+    >
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -160,11 +176,7 @@ export const ExpertFeePaymentForm = ({
 
         <Form.Item>
           <Space>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isSubmitting}
-            >
+            <Button type="primary" htmlType="submit" loading={isSubmitting}>
               保存
             </Button>
             {onCancel && <Button onClick={onCancel}>取消</Button>}

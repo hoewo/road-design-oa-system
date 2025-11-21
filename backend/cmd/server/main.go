@@ -91,6 +91,8 @@ func main() {
 	contractHandler := handlers.NewContractHandler(cfg, logger)
 	contractAmendmentHandler := handlers.NewContractAmendmentHandler(logger)
 	expertFeePaymentHandler := handlers.NewExpertFeePaymentHandler(logger)
+	financialHandler := handlers.NewFinancialHandler(logger)
+	bonusHandler := handlers.NewBonusHandler(logger)
 
 	// API routes
 	api := router.Group("/api/v1")
@@ -137,6 +139,14 @@ func main() {
 				// Expert fee payment routes
 				projects.GET("/:id/expert-fee-payments", expertFeePaymentHandler.GetExpertFeePayments)
 				projects.POST("/:id/expert-fee-payments", expertFeePaymentHandler.CreateExpertFeePayment)
+
+				// Financial routes
+				projects.GET("/:id/financial", financialHandler.GetProjectFinancial)
+				projects.POST("/:id/financial", financialHandler.CreateFinancialRecord)
+
+				// Bonus routes
+				projects.GET("/:id/bonuses", bonusHandler.GetBonuses)
+				projects.POST("/:id/bonuses", bonusHandler.CreateBonus)
 			}
 
 			// Contract routes

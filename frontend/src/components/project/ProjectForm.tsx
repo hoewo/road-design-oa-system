@@ -86,7 +86,6 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
     },
   })
 
-
   const handleSubmit = async (values: any) => {
     if (projectId) {
       // Update existing project

@@ -82,7 +82,7 @@ export const ContractFileList = ({
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
   const columns = [
@@ -175,17 +175,11 @@ export const ContractFileList = ({
           value={dateRange}
           onChange={(dates) =>
             setDateRange(
-              dates
-                ? [dates[0] as dayjs.Dayjs, dates[1] as dayjs.Dayjs]
-                : null
+              dates ? [dates[0] as dayjs.Dayjs, dates[1] as dayjs.Dayjs] : null
             )
           }
         />
-        <Button
-          type="primary"
-          icon={<SearchOutlined />}
-          onClick={handleSearch}
-        >
+        <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
           搜索
         </Button>
         <Button onClick={handleReset}>重置</Button>

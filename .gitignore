@@ -1,5 +1,6 @@
 .cursor/commands/speckit.*
 .specify
+.tools
 
 # Go
 *.exe
@@ -147,6 +148,7 @@ minio-data/
 minio.log
 
 # Backend
+backend/main
 backend/server
 backend/bin/
 

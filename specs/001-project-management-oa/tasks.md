@@ -132,6 +132,11 @@
 - [ ] T050 [P] [US2] Frontend component test for ContractForm in frontend/tests/components/ContractForm.test.tsx
 - [ ] T051 [P] [US2] E2E test for project business information management flow in frontend/tests/e2e/business-management.spec.ts
 - [ ] T052 [P] [US2] E2E test for contract management flow in frontend/tests/e2e/contract-management.spec.ts
+- [ ] T080 [P] [US2] Contract test for financial record endpoints in backend/tests/contract/test_financial.go
+- [ ] T081 [P] [US2] Contract test for bonus endpoints in backend/tests/contract/test_bonuses.go
+- [ ] T082 [P] [US2] Integration test for financial management flow in backend/tests/integration/test_financial_management.go
+- [ ] T083 [P] [US2] Frontend component test for FinancialForm in frontend/tests/components/FinancialForm.test.tsx
+- [ ] T084 [P] [US2] E2E test for financial management flow in frontend/tests/e2e/financial-management.spec.ts
 
 ### Implementation for User Story 2
 
@@ -192,6 +197,25 @@
 - [X] T067e [US2] Create ContractFileList component with search and filter in frontend/src/components/contract/ContractFileList.tsx (depends on T067c)
 - [X] T067f [US2] Integrate contract file management with contract detail view in frontend/src/components/contract/ContractDetail.tsx (depends on T067d, T067e)
 - [X] T067g [US2] Add back navigation button to contract detail page in frontend/src/components/contract/ContractDetail.tsx (depends on T067f)
+- [ ] T085 [P] [US2] Update FinancialRecord model with FeeType field and payment fields (receivable_amount, invoice_date, invoice_amount, payment_date, payment_amount, unpaid_amount) in backend/internal/models/financial_record.go
+- [ ] T085a [US2] Add database migration for FinancialRecord fee_type field and new payment fields in backend/migrations/ (depends on T085)
+- [ ] T086 [P] [US2] Create Bonus model in backend/internal/models/bonus.go (ensure bonus_type supports business and production)
+- [ ] T087 [US2] Implement FinancialService with fee type separation (design_fee, survey_fee, consultation_fee) in backend/internal/services/financial_service.go (depends on T085, T086)
+- [ ] T087a [US2] Add unpaid_amount calculation logic (receivable_amount - payment_amount) in backend/internal/services/financial_service.go (depends on T087)
+- [ ] T087b [US2] Add validation for payment_amount not exceeding receivable_amount per fee type in backend/internal/services/financial_service.go (depends on T087)
+- [ ] T088 [US2] Implement FinancialHandler in backend/internal/handlers/financial_handler.go (depends on T087)
+- [X] T088a [US2] Add GET /projects/{id}/financial endpoint in backend/internal/handlers/financial_handler.go (depends on T088)
+- [X] T088b [US2] Add POST /projects/{id}/financial endpoint in backend/internal/handlers/financial_handler.go (depends on T088)
+- [ ] T089 [US2] Add financial calculation and validation logic for fee type aggregation in backend/internal/services/financial_service.go (depends on T087)
+- [ ] T090 [P] [US2] Create FinancialForm component with fee type selection (design_fee, survey_fee, consultation_fee) in frontend/src/components/financial/FinancialForm.tsx
+- [ ] T090a [US2] Add separate financial record creation for each fee type in FinancialForm in frontend/src/components/financial/FinancialForm.tsx (depends on T090)
+- [X] T091 [US2] Create FinancialList component with fee type filtering in frontend/src/components/financial/FinancialList.tsx (depends on T090, T088a)
+- [ ] T092 [US2] Create BonusForm component supporting business and production bonus types in frontend/src/components/financial/BonusForm.tsx
+- [X] T092a [US2] Implement BonusHandler in backend/internal/handlers/bonus_handler.go (depends on T086)
+- [X] T092b [US2] Add GET /projects/{id}/bonuses endpoint in backend/internal/handlers/bonus_handler.go (depends on T092a)
+- [X] T092c [US2] Add POST /projects/{id}/bonuses endpoint in backend/internal/handlers/bonus_handler.go (depends on T092a)
+- [X] T092d [US2] Create BonusList component with type filtering in frontend/src/components/financial/BonusList.tsx (depends on T092, T092b)
+- [X] T093 [US2] Integrate financial management and bonus management with project business page in frontend/src/pages/ProjectBusiness.tsx (depends on T090, T091, T092, T092d)
 
 **Checkpoint**: 此时，用户故事1和2都应该独立工作
 
@@ -239,27 +263,15 @@
 
 ### Tests for User Story 4
 
-- [ ] T080 [P] [US4] Contract test for financial record endpoints in backend/tests/contract/test_financial.go
-- [ ] T081 [P] [US4] Contract test for bonus endpoints in backend/tests/contract/test_bonuses.go
-- [ ] T082 [P] [US4] Integration test for financial management flow in backend/tests/integration/test_financial_management.go
-- [ ] T083 [P] [US4] Frontend component test for FinancialForm in frontend/tests/components/FinancialForm.test.tsx
-- [ ] T084 [P] [US4] E2E test for financial management flow in frontend/tests/e2e/financial-management.spec.ts
+- [ ] T080 [P] [US4] Contract test for company-level financial statistics endpoints in backend/tests/contract/test_financial.go
+- [ ] T081 [P] [US4] Integration test for company-level revenue aggregation flow in backend/tests/integration/test_financial_management.go
+- [ ] T082 [P] [US4] Frontend component test for FinancialDashboard in frontend/tests/components/FinancialDashboard.test.tsx
+- [ ] T083 [P] [US4] Frontend component test for CompanyRevenueDashboard in frontend/tests/components/CompanyRevenueDashboard.test.tsx
+- [ ] T084 [P] [US4] E2E test for company-level revenue statistics flow in frontend/tests/e2e/financial-management.spec.ts
 
 ### Implementation for User Story 4
 
-- [ ] T085 [P] [US4] Update FinancialRecord model with FeeType field and payment fields (receivable_amount, invoice_date, invoice_amount, payment_date, payment_amount, unpaid_amount) in backend/internal/models/financial_record.go
-- [ ] T085a [US4] Add database migration for FinancialRecord fee_type field and new payment fields in backend/migrations/ (depends on T085)
-- [ ] T086 [P] [US4] Create Bonus model in backend/internal/models/bonus.go (ensure bonus_type supports business and production)
-- [ ] T087 [US4] Implement FinancialService with fee type separation (design_fee, survey_fee, consultation_fee) in backend/internal/services/financial_service.go (depends on T085, T086)
-- [ ] T087a [US4] Add unpaid_amount calculation logic (receivable_amount - payment_amount) in backend/internal/services/financial_service.go (depends on T087)
-- [ ] T087b [US4] Add validation for payment_amount not exceeding receivable_amount per fee type in backend/internal/services/financial_service.go (depends on T087)
-- [ ] T088 [US4] Implement FinancialHandler in backend/internal/handlers/financial_handler.go (depends on T087)
-- [ ] T089 [US4] Add financial calculation and validation logic for fee type aggregation in backend/internal/services/financial_service.go (depends on T087)
-- [ ] T090 [P] [US4] Create FinancialForm component with fee type selection (design_fee, survey_fee, consultation_fee) in frontend/src/components/financial/FinancialForm.tsx
-- [ ] T090a [US4] Add separate financial record creation for each fee type in FinancialForm in frontend/src/components/financial/FinancialForm.tsx (depends on T090)
-- [ ] T091 [US4] Create FinancialDashboard component with fee type breakdown in frontend/src/components/financial/FinancialDashboard.tsx (depends on T090)
-- [ ] T092 [US4] Create BonusForm component supporting business and production bonus types in frontend/src/components/financial/BonusForm.tsx
-- [ ] T093 [US4] Integrate financial management with project detail page in frontend/src/pages/ProjectDetail.tsx
+- [ ] T091 [US4] Create FinancialDashboard component with company-level fee type breakdown in frontend/src/components/financial/FinancialDashboard.tsx (depends on T090 from US2)
 - [ ] T094 [US4] Add financial reporting and statistics features with company-level revenue aggregation in frontend/src/components/financial/FinancialStatistics.tsx
 - [ ] T094a [US4] Add company-level revenue statistics dashboard in frontend/src/components/financial/CompanyRevenueDashboard.tsx (depends on T094)
 
@@ -388,36 +400,43 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 207个任务 (更新后)
+- **总任务数**: 207个任务 (任务归属已调整，总数不变)
 - **Foundational阶段任务数**: 18个任务 (T007-T016 + T008a-T008b) - 新增文件管理基础能力层
 - **用户故事1任务数**: 42个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038b, T029a-T029c, T032a, T041a) - 已移除项目创建表单中的甲方相关任务
-- **用户故事2任务数**: 54个任务 (T045-T067 + T053a-T053d, T054a-T054c, T055a-T055b, T057a-T057b, T059a-T059h, T060, T062a-T062e, T063a-T063b, T064a, T066a-T066b, T067a-T067f) - 新增专家费支付、合同补充协议、经营负责人/人员、一人多角色支持、合同文件管理（使用file_service）
+- **用户故事2任务数**: 80个任务 (T045-T067, T080-T084, T085-T093 + T053a-T053d, T054a-T054c, T055a-T055b, T057a-T057b, T059a-T059h, T060, T062a-T062e, T063a-T063b, T064a, T066a-T066b, T067a-T067f, T085a, T087a-T087b, T088a-T088b, T090a, T091, T092a-T092d) - 新增专家费支付、合同补充协议、经营负责人/人员、一人多角色支持、合同文件管理（使用file_service）、甲方支付信息、经营奖金
 - **用户故事3任务数**: 18个任务 (T068-T079 + T079a-T079f) - 新增生产文件管理（使用file_service）
-- **用户故事4任务数**: 22个任务 (T080-T094 + T085a, T087a-T087b, T090a, T094a) - 更新为公司收入信息管理，新增公司级别统计
+- **用户故事4任务数**: 7个任务 (T080-T084, T091, T094, T094a) - 更新为公司收入信息管理，仅包含公司级别统计功能
 - **Polish阶段任务数**: 12个任务 (T108-T119) - 保持不变
 - **并行机会**: 所有标记[P]的任务可以并行执行
 - **独立测试标准**: 每个用户故事都有明确的独立测试标准
 - **建议MVP范围**: 仅用户故事1 (项目信息录入与管理)
 - **格式验证**: 所有任务都遵循检查清单格式 (checkbox, ID, labels, file paths)
 
-## New Requirements Added (2025-01-28, 2025-11-19)
+## New Requirements Added (2025-01-28, 2025-11-19, 2025-01-27)
 
-### User Story 2 Enhancements:
+### Task Reorganization (2025-01-27):
+- **任务归属调整**: 根据一致性分析结果，将项目级别的支付信息和经营奖金相关任务从User Story 4移动到User Story 2
+  - 甲方支付信息 (FR-005): T085, T085a, T087, T087a-T087b, T088, T089, T090, T090a, T093 → 移至US2
+  - 经营奖金 (FR-008): T086, T092 → 移至US2
+  - 测试任务: T080-T084 → 移至US2
+  - User Story 4仅保留公司级别统计功能: T091, T094, T094a
+
+### User Story 3 Enhancements:
+- **生产文件管理**: 使用file_service进行生产文件的上传、下载、搜索和权限验证 (T079a-T079f)
+
+### User Story 2 Enhancements (2025-01-28, 2025-11-19):
 - **经营负责人和经营人员**: 通过ProjectMember系统管理，支持一人多角色 (T053c, T053d, T054c, T062c, T064a)
 - **专家费支付**: 新增ExpertFeePayment实体和相关端点 (T053b, T055b, T057b, T059a-T059b, T059h, T062b, T062e, T063b, T066b)
 - **合同补充协议**: 新增ContractAmendment实体和相关端点 (T053a, T055a, T057a, T059e-T059f, T062a, T063a, T066a)
 - **合同金额明细**: 合同实体添加费用明细字段 (T053, T060, T062, T062d, T059g)
 - **合同文件管理**: 使用file_service进行合同文件的上传、下载、搜索 (T067a-T067f)
-
-### User Story 3 Enhancements:
-- **生产文件管理**: 使用file_service进行生产文件的上传、下载、搜索和权限验证 (T079a-T079f)
+- **甲方支付信息**: 按费用类型分别记录应收金额、开票时间、开票金额、支付时间、支付金额、未收金额 (T085, T085a, T087, T087a-T087b, T088, T088a-T088b, T089, T090, T090a, T091, T093)
+- **经营奖金**: Bonus实体支持business类型，经营奖金管理 (T086, T092, T092a-T092d, T093)
 
 ### User Story 4 Enhancements (2025-11-19):
 - **重命名为公司收入信息管理**: 从"财务信息管理与统计"改为"公司收入信息管理"，强调公司级别统计 (Phase 6标题更新)
-- **按费用类型分别记录**: FinancialRecord支持按设计费、勘察费、咨询费分别记录 (T085, T085a, T087, T087a-T087b, T090, T090a)
-- **支付信息完整字段**: 添加应收金额、开票时间、开票金额、支付时间、支付金额、未收金额 (T085, T087a)
-- **公司级别收入统计**: 新增公司级别收入统计和报表功能 (T094, T094a)
-- **经营奖金**: Bonus实体支持business类型 (T086, T092)
+- **公司级别收入统计**: 新增公司级别收入统计和报表功能 (T091, T094, T094a)
+- **注意**: 项目级别的支付信息和经营奖金已移至User Story 2
 
 ### Architecture Changes (2025-11-19):
 - **文件管理两层架构**: 

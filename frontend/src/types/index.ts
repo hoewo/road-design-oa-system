@@ -270,3 +270,80 @@ export interface SearchFilesResponse {
   page: number
   size: number
 }
+
+// Financial Record types
+export type FinancialType = 'receivable' | 'invoice' | 'payment' | 'expense'
+export type FeeType = 'design_fee' | 'survey_fee' | 'consultation_fee'
+
+export interface FinancialRecord {
+  id: number
+  record_type: FinancialType
+  fee_type: FeeType
+  receivable_amount: number
+  invoice_number?: string
+  invoice_date?: string
+  invoice_amount: number
+  payment_date?: string
+  payment_amount: number
+  unpaid_amount: number
+  description?: string
+  project_id: number
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateFinancialRecordRequest {
+  record_type: FinancialType
+  fee_type: FeeType
+  receivable_amount: number
+  invoice_number?: string
+  invoice_date?: string
+  invoice_amount?: number
+  payment_date?: string
+  payment_amount?: number
+  description?: string
+}
+
+export interface FeeTypeFinancial {
+  fee_type: string
+  receivable: number
+  invoiced: number
+  paid: number
+  outstanding: number
+}
+
+export interface ProjectFinancial {
+  total_contract_amount: number
+  total_receivable: number
+  total_invoiced: number
+  total_paid: number
+  total_outstanding: number
+  financial_records: FinancialRecord[]
+  fee_type_breakdown: Record<string, FeeTypeFinancial>
+}
+
+// Bonus types
+export type BonusType = 'business' | 'production'
+
+export interface Bonus {
+  id: number
+  bonus_type: BonusType
+  amount: number
+  description?: string
+  project_id: number
+  user_id: number
+  user?: User
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateBonusRequest {
+  user_id: number
+  bonus_type: BonusType
+  amount: number
+  description?: string
+}

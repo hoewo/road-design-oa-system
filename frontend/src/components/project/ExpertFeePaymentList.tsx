@@ -15,8 +15,9 @@ export const ExpertFeePaymentList = ({
   projectId,
 }: ExpertFeePaymentListProps) => {
   const [modalVisible, setModalVisible] = useState(false)
-  const [editingPayment, setEditingPayment] =
-    useState<ExpertFeePayment | null>(null)
+  const [editingPayment, setEditingPayment] = useState<ExpertFeePayment | null>(
+    null
+  )
   const queryClient = useQueryClient()
 
   const { data: payments, isLoading } = useQuery({
@@ -138,11 +139,7 @@ export const ExpertFeePaymentList = ({
   return (
     <>
       <Space style={{ marginBottom: 16 }}>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleCreate}
-        >
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
           新建专家费支付
         </Button>
       </Space>
