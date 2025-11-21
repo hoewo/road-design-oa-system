@@ -109,6 +109,8 @@
 - [x] T044 [US1] Setup routing for project management pages in frontend/src/App.tsx
 - [x] T044a [US1] Create Login page for user authentication in frontend/src/pages/Login.tsx
 - [x] T044b [US1] Implement route protection and authentication check in frontend/src/App.tsx
+- [x] T044c [US1] Implement logout functionality with logout button in Header component in frontend/src/App.tsx (depends on T044b)
+- [x] T044d [US1] Ensure logout button is visible and properly styled in all protected pages using Ant Design Layout in frontend/src/App.tsx (depends on T044c)
 
 **Checkpoint**: 此时，用户故事1应该完全功能化并可独立测试
 

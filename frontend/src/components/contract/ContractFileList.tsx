@@ -47,7 +47,7 @@ export const ContractFileList = ({
     ],
     queryFn: () =>
       businessService.searchContractFiles(projectId, {
-        category: category,
+        category: category || 'contract',
         keyword,
         startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
         endDate: dateRange?.[1]?.format('YYYY-MM-DD'),

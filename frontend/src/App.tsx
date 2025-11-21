@@ -35,16 +35,25 @@ function App() {
         path="/*"
         element={
           <ProtectedRoute>
-            <Layout className="min-h-screen">
-              <Header className="bg-white shadow-sm flex justify-between items-center">
-                <div className="text-xl font-bold text-gray-800">
+            <Layout style={{ minHeight: '100vh' }}>
+              <Header
+                style={{
+                  background: '#fff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '0 24px',
+                }}
+              >
+                <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#262626' }}>
                   项目管理OA系统
                 </div>
                 <Button icon={<LogoutOutlined />} onClick={handleLogout}>
                   退出登录
                 </Button>
               </Header>
-              <Content className="p-6">
+              <Content style={{ padding: '24px' }}>
                 <Routes>
                   <Route
                     path="/"
