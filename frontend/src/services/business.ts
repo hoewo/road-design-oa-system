@@ -1,4 +1,4 @@
-import { get, post, put, getPaginated } from './api'
+import { get, post, put, getPaginated, del } from './api'
 import api from './api'
 import type {
   ProjectBusiness,
@@ -270,6 +270,21 @@ export const businessService = {
     return response
   },
 
+  updateFinancialRecord: async (
+    recordId: number,
+    data: Partial<CreateFinancialRecordRequest>
+  ): Promise<FinancialRecord> => {
+    const response = await put<FinancialRecord>(
+      `/financial-records/${recordId}`,
+      data
+    )
+    return response
+  },
+
+  deleteFinancialRecord: async (recordId: number): Promise<void> => {
+    await del(`/financial-records/${recordId}`)
+  },
+
   // Bonuses
   getBonuses: async (projectId: number): Promise<Bonus[]> => {
     const response = await get<Bonus[]>(`/projects/${projectId}/bonuses`)
@@ -282,5 +297,17 @@ export const businessService = {
   ): Promise<Bonus> => {
     const response = await post<Bonus>(`/projects/${projectId}/bonuses`, data)
     return response
+  },
+
+  updateBonus: async (
+    bonusId: number,
+    data: Partial<CreateBonusRequest>
+  ): Promise<Bonus> => {
+    const response = await put<Bonus>(`/bonuses/${bonusId}`, data)
+    return response
+  },
+
+  deleteBonus: async (bonusId: number): Promise<void> => {
+    await del(`/bonuses/${bonusId}`)
   },
 }

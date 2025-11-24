@@ -221,3 +221,126 @@ func (s *FinancialService) ListFinancialRecordsByProject(projectID uint) ([]mode
 
 	return records, nil
 }
+
+// UpdateFinancialRecordRequest represents the request to update a financial record
+type UpdateFinancialRecordRequest struct {
+	RecordType       *models.FinancialType `json:"record_type"`
+	FeeType          *models.FeeType       `json:"fee_type"`
+	ReceivableAmount *float64              `json:"receivable_amount"`
+	InvoiceNumber    *string               `json:"invoice_number"`
+	InvoiceDate      *time.Time            `json:"invoice_date"`
+	InvoiceAmount    *float64              `json:"invoice_amount"`
+	PaymentDate      *time.Time            `json:"payment_date"`
+	PaymentAmount    *float64              `json:"payment_amount"`
+	Description      *string               `json:"description"`
+}
+
+// UpdateFinancialRecord updates an existing financial record (allows modification of business fields except system fields)
+func (s *FinancialService) UpdateFinancialRecord(recordID uint, req *UpdateFinancialRecordRequest) (*models.FinancialRecord, error) {
+	var record models.FinancialRecord
+	if err := s.db.First(&record, recordID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("financial record not found")
+		}
+		return nil, err
+	}
+
+	// Update fields if provided
+	if req.RecordType != nil {
+		record.RecordType = *req.RecordType
+	}
+
+	if req.FeeType != nil {
+		// Validate fee type
+		if *req.FeeType != models.FeeTypeDesign && *req.FeeType != models.FeeTypeSurvey && *req.FeeType != models.FeeTypeConsultation {
+			return nil, errors.New("fee type must be design_fee, survey_fee, or consultation_fee")
+		}
+		record.FeeType = *req.FeeType
+	}
+
+	if req.ReceivableAmount != nil {
+		if *req.ReceivableAmount <= 0 {
+			return nil, errors.New("receivable amount must be greater than 0")
+		}
+		record.ReceivableAmount = *req.ReceivableAmount
+		record.Amount = *req.ReceivableAmount // 遗留字段
+	}
+
+	if req.InvoiceNumber != nil {
+		record.InvoiceNumber = *req.InvoiceNumber
+	}
+
+	if req.InvoiceDate != nil {
+		now := time.Now()
+		if req.InvoiceDate.After(now) {
+			return nil, errors.New("invoice date cannot be in the future")
+		}
+		record.InvoiceDate = req.InvoiceDate
+	}
+
+	if req.InvoiceAmount != nil {
+		if *req.InvoiceAmount < 0 {
+			return nil, errors.New("invoice amount must be greater than or equal to 0")
+		}
+		if *req.InvoiceAmount > record.ReceivableAmount {
+			return nil, errors.New("invoice amount cannot exceed receivable amount")
+		}
+		record.InvoiceAmount = *req.InvoiceAmount
+	}
+
+	if req.PaymentDate != nil {
+		if record.InvoiceDate != nil && req.PaymentDate.Before(*record.InvoiceDate) {
+			return nil, errors.New("payment date cannot be earlier than invoice date")
+		}
+		record.PaymentDate = req.PaymentDate
+	}
+
+	if req.PaymentAmount != nil {
+		if *req.PaymentAmount < 0 {
+			return nil, errors.New("payment amount must be greater than or equal to 0")
+		}
+		if *req.PaymentAmount > record.ReceivableAmount {
+			return nil, errors.New("payment amount cannot exceed receivable amount")
+		}
+		record.PaymentAmount = *req.PaymentAmount
+	}
+
+	if req.Description != nil {
+		record.Description = *req.Description
+	}
+
+	// Recalculate unpaid amount
+	record.UnpaidAmount = record.ReceivableAmount - record.PaymentAmount
+
+	if err := s.db.Save(&record).Error; err != nil {
+		return nil, err
+	}
+
+	// Load associations
+	if err := s.db.Preload("Project").Preload("CreatedBy").First(&record, record.ID).Error; err != nil {
+		return nil, err
+	}
+
+	return &record, nil
+}
+
+// DeleteFinancialRecord deletes a financial record and automatically recalculates statistics
+func (s *FinancialService) DeleteFinancialRecord(recordID uint) error {
+	var record models.FinancialRecord
+	if err := s.db.First(&record, recordID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("financial record not found")
+		}
+		return err
+	}
+
+	// Delete the record
+	if err := s.db.Delete(&record).Error; err != nil {
+		return err
+	}
+
+	// Statistics will be automatically recalculated when GetProjectFinancial is called
+	// No need to manually update here as the calculation is done on-the-fly
+
+	return nil
+}

@@ -1,24 +1,41 @@
+import { useEffect } from 'react'
 import { Form, Input, InputNumber, Select, Button, Space, message } from 'antd'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
-import type { CreateBonusRequest } from '@/types'
+import type { CreateBonusRequest, Bonus } from '@/types'
 
 const { Option } = Select
 const { TextArea } = Input
 
 interface BonusFormProps {
   projectId: number
+  bonusId?: number
   onSuccess?: () => void
   onCancel?: () => void
 }
 
 export const BonusForm = ({
   projectId,
+  bonusId,
   onSuccess,
   onCancel,
 }: BonusFormProps) => {
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
+  const isEdit = !!bonusId
+
+  const { data: existingBonus } = useQuery({
+    queryKey: ['bonus', bonusId],
+    queryFn: () => {
+      if (!bonusId) return null
+      return (
+        queryClient
+          .getQueryData<Bonus[]>(['bonuses', projectId])
+          ?.find((b) => b.id === bonusId) || null
+      )
+    },
+    enabled: !!bonusId,
+  })
 
   const createMutation = useMutation({
     mutationFn: (data: CreateBonusRequest) =>
@@ -34,15 +51,44 @@ export const BonusForm = ({
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<CreateBonusRequest>) =>
+      businessService.updateBonus(bonusId!, data),
+    onSuccess: () => {
+      message.success('奖金记录更新成功')
+      queryClient.invalidateQueries({ queryKey: ['bonuses', projectId] })
+      onSuccess?.()
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || '更新失败')
+    },
+  })
+
+  // Load existing bonus data when editing
+  useEffect(() => {
+    if (existingBonus && isEdit) {
+      form.setFieldsValue({
+        user_id: existingBonus.user_id,
+        bonus_type: existingBonus.bonus_type,
+        amount: existingBonus.amount,
+        description: existingBonus.description,
+      })
+    }
+  }, [existingBonus, isEdit, form])
+
   const handleSubmit = async (values: any) => {
-    const data: CreateBonusRequest = {
+    const data: Partial<CreateBonusRequest> = {
       user_id: values.user_id,
       bonus_type: values.bonus_type,
       amount: values.amount,
       description: values.description,
     }
 
-    createMutation.mutate(data)
+    if (isEdit) {
+      updateMutation.mutate(data)
+    } else {
+      createMutation.mutate(data as CreateBonusRequest)
+    }
   }
 
   return (
@@ -101,9 +147,11 @@ export const BonusForm = ({
           <Button
             type="primary"
             htmlType="submit"
-            loading={createMutation.isPending}
+            loading={
+              isEdit ? updateMutation.isPending : createMutation.isPending
+            }
           >
-            提交
+            {isEdit ? '更新' : '提交'}
           </Button>
           <Button onClick={onCancel}>取消</Button>
         </Space>

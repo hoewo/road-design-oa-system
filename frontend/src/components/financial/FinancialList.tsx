@@ -10,12 +10,14 @@ import {
   Statistic,
   Row,
   Col,
+  Popconfirm,
+  message,
 } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
-import { useQuery } from '@tanstack/react-query'
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import { FinancialForm } from './FinancialForm'
-import type { FeeType } from '@/types'
+import type { FeeType, FinancialRecord } from '@/types'
 import dayjs from 'dayjs'
 
 interface FinancialListProps {
@@ -24,7 +26,12 @@ interface FinancialListProps {
 
 export const FinancialList = ({ projectId }: FinancialListProps) => {
   const [modalVisible, setModalVisible] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingRecord, setEditingRecord] = useState<FinancialRecord | null>(
+    null
+  )
   const [feeTypeFilter, setFeeTypeFilter] = useState<FeeType | 'all'>('all')
+  const queryClient = useQueryClient()
 
   const { data: financial, isLoading } = useQuery({
     queryKey: ['projectFinancial', projectId],
@@ -32,16 +39,53 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
     enabled: !!projectId,
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (recordId: number) =>
+      businessService.deleteFinancialRecord(recordId),
+    onSuccess: () => {
+      message.success('财务记录删除成功')
+      queryClient.invalidateQueries({
+        queryKey: ['projectFinancial', projectId],
+      })
+    },
+    onError: (error: any) => {
+      message.error(error.message || '删除失败')
+    },
+  })
+
   const handleCreate = () => {
+    setEditingRecord(null)
     setModalVisible(true)
+  }
+
+  const handleEdit = (record: FinancialRecord) => {
+    setEditingRecord(record)
+    setEditModalVisible(true)
+  }
+
+  const handleDelete = (recordId: number) => {
+    deleteMutation.mutate(recordId)
   }
 
   const handleModalClose = () => {
     setModalVisible(false)
+    setEditingRecord(null)
+  }
+
+  const handleEditModalClose = () => {
+    setEditModalVisible(false)
+    setEditingRecord(null)
   }
 
   const handleSuccess = () => {
     setModalVisible(false)
+    queryClient.invalidateQueries({ queryKey: ['projectFinancial', projectId] })
+  }
+
+  const handleEditSuccess = () => {
+    setEditModalVisible(false)
+    setEditingRecord(null)
+    queryClient.invalidateQueries({ queryKey: ['projectFinancial', projectId] })
   }
 
   const feeTypeMap: Record<FeeType, { text: string; color: string }> = {
@@ -129,6 +173,33 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
       dataIndex: 'created_at',
       key: 'created_at',
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 120,
+      render: (_: any, record: FinancialRecord) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
+          <Popconfirm
+            title="确定要删除这条财务记录吗？"
+            description="删除后统计数据将自动重新计算"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
     },
   ]
 
@@ -219,6 +290,24 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
           onSuccess={handleSuccess}
           onCancel={handleModalClose}
         />
+      </Modal>
+
+      <Modal
+        title="编辑财务记录"
+        open={editModalVisible}
+        onCancel={handleEditModalClose}
+        footer={null}
+        width={800}
+        destroyOnClose
+      >
+        {editingRecord && (
+          <FinancialForm
+            projectId={projectId}
+            recordId={editingRecord.id}
+            onSuccess={handleEditSuccess}
+            onCancel={handleEditModalClose}
+          />
+        )}
       </Modal>
     </>
   )

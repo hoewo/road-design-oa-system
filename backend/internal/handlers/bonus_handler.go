@@ -124,3 +124,93 @@ func (h *BonusHandler) CreateBonus(c *gin.Context) {
 		"data":    bonus,
 	})
 }
+
+// UpdateBonus handles bonus update
+// @Summary Update a bonus record
+// @Description Update a bonus record (allows modification of business fields except system fields like created_at, id)
+// @Tags 奖金管理
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path int true "Bonus ID"
+// @Param request body services.UpdateBonusRequest true "Bonus information to update"
+// @Success 200 {object} models.Bonus
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /bonuses/{id} [put]
+func (h *BonusHandler) UpdateBonus(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid bonus ID", err)
+		return
+	}
+
+	var req services.UpdateBonusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	bonus, err := h.bonusService.UpdateBonus(uint(id), &req)
+	if err != nil {
+		h.logger.Error("Failed to update bonus",
+			zap.Error(err),
+			zap.Uint("bonus_id", uint(id)),
+		)
+		if err.Error() == "bonus not found" || err.Error() == "user not found" {
+			utils.HandleError(c, http.StatusNotFound, "Failed to update bonus", err)
+		} else {
+			utils.HandleError(c, http.StatusBadRequest, "Failed to update bonus", err)
+		}
+		return
+	}
+
+	h.logger.Info("Bonus updated successfully",
+		zap.Uint("bonus_id", bonus.ID),
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    bonus,
+	})
+}
+
+// DeleteBonus handles bonus deletion
+// @Summary Delete a bonus record
+// @Description Delete a bonus record with automatic statistics update
+// @Tags 奖金管理
+// @Security BearerAuth
+// @Produce json
+// @Param id path int true "Bonus ID"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /bonuses/{id} [delete]
+func (h *BonusHandler) DeleteBonus(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid bonus ID", err)
+		return
+	}
+
+	if err := h.bonusService.DeleteBonus(uint(id)); err != nil {
+		h.logger.Error("Failed to delete bonus",
+			zap.Error(err),
+			zap.Uint("bonus_id", uint(id)),
+		)
+		if err.Error() == "bonus not found" {
+			utils.HandleError(c, http.StatusNotFound, "Bonus not found", err)
+		} else {
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to delete bonus", err)
+		}
+		return
+	}
+
+	h.logger.Info("Bonus deleted successfully",
+		zap.Uint("bonus_id", uint(id)),
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "Bonus deleted successfully",
+	})
+}

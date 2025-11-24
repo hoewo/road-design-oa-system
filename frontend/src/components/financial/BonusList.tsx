@@ -1,10 +1,19 @@
 import { useState } from 'react'
-import { Table, Button, Space, Tag, Modal, Select } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
-import { useQuery } from '@tanstack/react-query'
+import {
+  Table,
+  Button,
+  Space,
+  Tag,
+  Modal,
+  Select,
+  Popconfirm,
+  message,
+} from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import { BonusForm } from './BonusForm'
-import type { BonusType } from '@/types'
+import type { BonusType, Bonus } from '@/types'
 import dayjs from 'dayjs'
 
 interface BonusListProps {
@@ -13,7 +22,10 @@ interface BonusListProps {
 
 export const BonusList = ({ projectId }: BonusListProps) => {
   const [modalVisible, setModalVisible] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingBonus, setEditingBonus] = useState<Bonus | null>(null)
   const [typeFilter, setTypeFilter] = useState<BonusType | 'all'>('all')
+  const queryClient = useQueryClient()
 
   const { data: bonuses, isLoading } = useQuery({
     queryKey: ['bonuses', projectId],
@@ -21,16 +33,50 @@ export const BonusList = ({ projectId }: BonusListProps) => {
     enabled: !!projectId,
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (bonusId: number) => businessService.deleteBonus(bonusId),
+    onSuccess: () => {
+      message.success('奖金记录删除成功')
+      queryClient.invalidateQueries({ queryKey: ['bonuses', projectId] })
+    },
+    onError: (error: any) => {
+      message.error(error.message || '删除失败')
+    },
+  })
+
   const handleCreate = () => {
+    setEditingBonus(null)
     setModalVisible(true)
+  }
+
+  const handleEdit = (bonus: Bonus) => {
+    setEditingBonus(bonus)
+    setEditModalVisible(true)
+  }
+
+  const handleDelete = (bonusId: number) => {
+    deleteMutation.mutate(bonusId)
   }
 
   const handleModalClose = () => {
     setModalVisible(false)
+    setEditingBonus(null)
+  }
+
+  const handleEditModalClose = () => {
+    setEditModalVisible(false)
+    setEditingBonus(null)
   }
 
   const handleSuccess = () => {
     setModalVisible(false)
+    queryClient.invalidateQueries({ queryKey: ['bonuses', projectId] })
+  }
+
+  const handleEditSuccess = () => {
+    setEditModalVisible(false)
+    setEditingBonus(null)
+    queryClient.invalidateQueries({ queryKey: ['bonuses', projectId] })
   }
 
   const bonusTypeMap: Record<BonusType, { text: string; color: string }> = {
@@ -78,6 +124,33 @@ export const BonusList = ({ projectId }: BonusListProps) => {
       key: 'created_at',
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
     },
+    {
+      title: '操作',
+      key: 'action',
+      width: 120,
+      render: (_: any, record: Bonus) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
+          <Popconfirm
+            title="确定要删除这条奖金记录吗？"
+            description="删除后统计数据将自动更新"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
   ]
 
   return (
@@ -123,6 +196,24 @@ export const BonusList = ({ projectId }: BonusListProps) => {
           onSuccess={handleSuccess}
           onCancel={handleModalClose}
         />
+      </Modal>
+
+      <Modal
+        title="编辑奖金记录"
+        open={editModalVisible}
+        onCancel={handleEditModalClose}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        {editingBonus && (
+          <BonusForm
+            projectId={projectId}
+            bonusId={editingBonus.id}
+            onSuccess={handleEditSuccess}
+            onCancel={handleEditModalClose}
+          />
+        )}
       </Modal>
     </>
   )

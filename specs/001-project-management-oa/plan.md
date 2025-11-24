@@ -1,6 +1,6 @@
 # Implementation Plan: 项目管理OA系统
 
-**Branch**: `001-project-management-oa` | **Date**: 2025-01-27 | **Last Updated**: 2025-11-19 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-project-management-oa` | **Date**: 2025-01-27 | **Last Updated**: 2025-11-22 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-project-management-oa/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
@@ -8,6 +8,13 @@
 ## Summary
 
 基于Excel文件中的项目管理系统需求，构建一个完整的项目管理OA系统，支持项目基本信息、经营信息、生产信息、公司收入信息管理的全生命周期管理。文件管理功能分散到各业务模块中：合同文件在项目经营信息中管理，生产文件在项目生产信息中管理。采用React前端和Go后端的现代化Web应用架构。
+
+**最新需求优化**（2025-11-22）：
+1. 经营负责人和经营人员的下拉菜单需要支持新建和编辑人员
+2. 新建合同页面，需要删除合同文件路径字段
+3. 专家费新建和编辑中，需要删除专家ID字段
+4. 支付信息的财务记录，需要支持编辑和删除
+5. 奖金管理中的奖金记录，需要支持编辑和删除
 
 ## Technical Context
 
@@ -411,10 +418,51 @@ Based on user story restructuring and separation of concerns:
    - Company-level revenue statistics and reporting
 4. **Rationale**: Clarifies that this module focuses on company-wide financial overview rather than project-level financial details
 
+### Business Information Requirements Optimization (Updated 2025-11-22)
+
+Based on clarification session (2025-11-22):
+
+1. **Business Manager and Personnel Dropdown Enhancement**:
+   - **Requirement**: Support creating and editing users directly from dropdown menu
+   - **Decision**: Dropdown menu provides "Create New User" button at bottom, opens modal for creation; editing triggered via dropdown action items (similar to client dropdown implementation)
+   - **Implementation**: Add user management API endpoints (GET /users, POST /users, PUT /users/{id}) and integrate into ProjectBusinessForm component
+   - **Rationale**: Consistent UX with existing client management pattern, improves workflow efficiency
+
+2. **Contract Form Field Removal**:
+   - **Requirement**: Remove contract file path field from contract creation form
+   - **Decision**: Contract files managed separately through file management functionality
+   - **Implementation**: Remove `file_path` field from ContractForm component and CreateContractRequest
+   - **Rationale**: File paths should be managed through proper file upload mechanism, not manual input
+
+3. **Expert Fee Payment Form Simplification**:
+   - **Requirement**: Remove expert ID field from expert fee payment form
+   - **Decision**: Only record expert name, remove expert_id field
+   - **Implementation**: Remove `expert_id` field from ExpertFeePaymentForm and CreateExpertFeePaymentRequest
+   - **Rationale**: Experts may not be system users, forcing user ID association is not practical
+
+4. **Financial Record Edit and Delete Support**:
+   - **Requirement**: Support editing and deleting financial records
+   - **Decision**: 
+     - All users with access to project business information can edit/delete (same permissions as create)
+     - Delete requires confirmation dialog
+     - Statistics automatically recalculated after delete
+     - Editing allows modification of all business fields except system fields (created_at, id)
+   - **Implementation**: Add PUT /financial-records/{id} and DELETE /financial-records/{id} endpoints
+   - **Rationale**: Financial data may need correction, edit/delete functionality is necessary for data accuracy
+
+5. **Bonus Record Edit and Delete Support**:
+   - **Requirement**: Support editing and deleting bonus records
+   - **Decision**: 
+     - All users with access to project business information can edit/delete (same permissions as create)
+     - Delete requires confirmation dialog
+     - Bonus statistics automatically updated after delete
+     - Editing allows modification of all business fields except system fields (created_at, id)
+   - **Implementation**: Add PUT /bonuses/{id} and DELETE /bonuses/{id} endpoints
+   - **Rationale**: Bonus allocation may need adjustment, edit/delete functionality provides necessary flexibility
+
 ## Complexity Tracking
 
 *Fill ONLY if Constitution Check has violations that must be justified*
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-

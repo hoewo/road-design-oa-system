@@ -26,7 +26,6 @@ type CreateExpertFeePaymentRequest struct {
 	PaymentMethod models.PaymentMethod `json:"payment_method" binding:"required"`
 	Amount        float64              `json:"amount" binding:"required"`
 	ExpertName    string               `json:"expert_name" binding:"required"`
-	ExpertID      *uint                `json:"expert_id"`
 	Description   string               `json:"description"`
 }
 
@@ -35,7 +34,6 @@ type UpdateExpertFeePaymentRequest struct {
 	PaymentMethod *models.PaymentMethod `json:"payment_method"`
 	Amount        *float64              `json:"amount"`
 	ExpertName    *string               `json:"expert_name"`
-	ExpertID      *uint                 `json:"expert_id"`
 	Description   *string               `json:"description"`
 }
 
@@ -65,23 +63,12 @@ func (s *ExpertFeePaymentService) CreateExpertFeePayment(projectID uint, created
 		return nil, errors.New("expert name must be between 2 and 50 characters")
 	}
 
-	// Validate expert ID if provided
-	if req.ExpertID != nil {
-		var expert models.User
-		if err := s.db.First(&expert, *req.ExpertID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, errors.New("expert user not found")
-			}
-			return nil, err
-		}
-	}
-
 	// Create expert fee payment
 	payment := &models.ExpertFeePayment{
 		PaymentMethod: req.PaymentMethod,
 		Amount:        req.Amount,
 		ExpertName:    req.ExpertName,
-		ExpertID:      req.ExpertID,
+		ExpertID:      nil, // Expert ID removed, only record expert name
 		Description:   req.Description,
 		ProjectID:     projectID,
 		CreatedByID:   createdByID,
@@ -154,17 +141,6 @@ func (s *ExpertFeePaymentService) UpdateExpertFeePayment(id uint, req *UpdateExp
 		}
 	}
 
-	// Validate expert ID if updating
-	if req.ExpertID != nil {
-		var expert models.User
-		if err := s.db.First(&expert, *req.ExpertID).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, errors.New("expert user not found")
-			}
-			return nil, err
-		}
-	}
-
 	// Update fields
 	updates := make(map[string]interface{})
 	if req.PaymentMethod != nil {
@@ -175,9 +151,6 @@ func (s *ExpertFeePaymentService) UpdateExpertFeePayment(id uint, req *UpdateExp
 	}
 	if req.ExpertName != nil {
 		updates["expert_name"] = *req.ExpertName
-	}
-	if req.ExpertID != nil {
-		updates["expert_id"] = *req.ExpertID
 	}
 	if req.Description != nil {
 		updates["description"] = *req.Description

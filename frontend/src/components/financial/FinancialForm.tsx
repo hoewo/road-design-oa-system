@@ -10,7 +10,8 @@ import {
   Row,
   Col,
 } from 'antd'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import type {
   CreateFinancialRecordRequest,
@@ -24,17 +25,36 @@ const { TextArea } = Input
 
 interface FinancialFormProps {
   projectId: number
+  recordId?: number
   onSuccess?: () => void
   onCancel?: () => void
 }
 
 export const FinancialForm = ({
   projectId,
+  recordId,
   onSuccess,
   onCancel,
 }: FinancialFormProps) => {
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
+  const isEdit = !!recordId
+
+  const { data: existingRecord } = useQuery({
+    queryKey: ['financialRecord', recordId],
+    queryFn: () => {
+      if (!recordId) return null
+      // Get record from financial data
+      return (
+        queryClient
+          .getQueryData<{
+            financial_records: any[]
+          }>(['projectFinancial', projectId])
+          ?.financial_records?.find((r: any) => r.id === recordId) || null
+      )
+    },
+    enabled: !!recordId,
+  })
 
   const createMutation = useMutation({
     mutationFn: (data: CreateFinancialRecordRequest) =>
@@ -52,8 +72,44 @@ export const FinancialForm = ({
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: (data: Partial<CreateFinancialRecordRequest>) =>
+      businessService.updateFinancialRecord(recordId!, data),
+    onSuccess: () => {
+      message.success('财务记录更新成功')
+      queryClient.invalidateQueries({
+        queryKey: ['projectFinancial', projectId],
+      })
+      onSuccess?.()
+    },
+    onError: (error: any) => {
+      message.error(error.message || '更新失败')
+    },
+  })
+
+  // Load existing record data when editing
+  useEffect(() => {
+    if (existingRecord && isEdit) {
+      form.setFieldsValue({
+        record_type: existingRecord.record_type,
+        fee_type: existingRecord.fee_type,
+        receivable_amount: existingRecord.receivable_amount,
+        invoice_number: existingRecord.invoice_number,
+        invoice_date: existingRecord.invoice_date
+          ? dayjs(existingRecord.invoice_date)
+          : undefined,
+        invoice_amount: existingRecord.invoice_amount,
+        payment_date: existingRecord.payment_date
+          ? dayjs(existingRecord.payment_date)
+          : undefined,
+        payment_amount: existingRecord.payment_amount,
+        description: existingRecord.description,
+      })
+    }
+  }, [existingRecord, isEdit, form])
+
   const handleSubmit = async (values: any) => {
-    const data: CreateFinancialRecordRequest = {
+    const data: Partial<CreateFinancialRecordRequest> = {
       record_type: values.record_type,
       fee_type: values.fee_type,
       receivable_amount: values.receivable_amount,
@@ -69,7 +125,11 @@ export const FinancialForm = ({
       description: values.description,
     }
 
-    createMutation.mutate(data)
+    if (isEdit) {
+      updateMutation.mutate(data)
+    } else {
+      createMutation.mutate(data as CreateFinancialRecordRequest)
+    }
   }
 
   return (
@@ -186,9 +246,11 @@ export const FinancialForm = ({
           <Button
             type="primary"
             htmlType="submit"
-            loading={createMutation.isPending}
+            loading={
+              isEdit ? updateMutation.isPending : createMutation.isPending
+            }
           >
-            提交
+            {isEdit ? '更新' : '提交'}
           </Button>
           <Button onClick={onCancel}>取消</Button>
         </Space>

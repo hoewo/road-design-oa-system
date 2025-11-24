@@ -48,7 +48,6 @@ export const ExpertFeePaymentForm = ({
         payment_method: existingPayment.payment_method,
         amount: existingPayment.amount,
         expert_name: existingPayment.expert_name,
-        expert_id: existingPayment.expert_id || undefined,
         description: existingPayment.description || '',
       })
     }
@@ -93,7 +92,6 @@ export const ExpertFeePaymentForm = ({
       payment_method: values.payment_method,
       amount: values.amount,
       expert_name: values.expert_name,
-      expert_id: values.expert_id,
       description: values.description,
     }
 
@@ -157,15 +155,6 @@ export const ExpertFeePaymentForm = ({
               ]}
             >
               <Input placeholder="请输入专家姓名" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="专家ID（系统内用户）" name="expert_id">
-              <InputNumber
-                min={1}
-                style={{ width: '100%' }}
-                placeholder="可选，如果是系统内用户"
-              />
             </Form.Item>
           </Col>
         </Row>

@@ -144,6 +144,7 @@ export interface ContractAmendment {
 }
 
 export interface CreateContractRequest {
+  // Note: file_path field removed - contract files managed separately through file management functionality
   contract_number: string
   contract_type: string
   sign_date: string
@@ -152,7 +153,6 @@ export interface CreateContractRequest {
   design_fee?: number
   survey_fee?: number
   consultation_fee?: number
-  file_path?: string
 }
 
 export interface CreateContractAmendmentRequest {
@@ -179,10 +179,10 @@ export interface ExpertFeePayment {
 }
 
 export interface CreateExpertFeePaymentRequest {
+  // Note: expert_id field removed - only record expert name
   payment_method: PaymentMethod
   amount: number
   expert_name: string
-  expert_id?: number
   description?: string
 }
 

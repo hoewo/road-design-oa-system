@@ -55,7 +55,6 @@ export const ContractForm = ({
         design_fee: existingContract.design_fee || 0,
         survey_fee: existingContract.survey_fee || 0,
         consultation_fee: existingContract.consultation_fee || 0,
-        file_path: existingContract.file_path || '',
       })
     }
   }, [existingContract, form])
@@ -110,7 +109,6 @@ export const ContractForm = ({
       design_fee: designFee > 0 ? designFee : undefined,
       survey_fee: surveyFee > 0 ? surveyFee : undefined,
       consultation_fee: consultationFee > 0 ? consultationFee : undefined,
-      file_path: values.file_path || undefined,
     }
 
     if (contractId) {
@@ -229,11 +227,6 @@ export const ContractForm = ({
                 style={{ width: '100%' }}
                 disabled
               />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item label="合同文件路径" name="file_path">
-              <Input placeholder="文件路径" />
             </Form.Item>
           </Col>
         </Row>

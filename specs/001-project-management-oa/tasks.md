@@ -217,7 +217,39 @@
 - [X] T092d [US2] Create BonusList component with type filtering in frontend/src/components/financial/BonusList.tsx (depends on T092, T092b)
 - [X] T093 [US2] Integrate financial management and bonus management with project business page in frontend/src/pages/ProjectBusiness.tsx (depends on T090, T091, T092, T092d)
 
-**Checkpoint**: 此时，用户故事1和2都应该独立工作
+### Business Information Requirements Optimization (2025-01-27)
+
+**Purpose**: 实现需求优化点，提升用户体验和工作效率
+
+- [X] T120 [P] [US2] Add GET /users endpoint for user list with search, pagination, and role filtering in backend/internal/handlers/user_handler.go
+- [X] T120a [US2] Implement UserService with list, create, and update methods in backend/internal/services/user_service.go (depends on T024)
+- [X] T120b [US2] Add POST /users endpoint for creating new users in backend/internal/handlers/user_handler.go (depends on T120a)
+- [X] T120c [US2] Add GET /users/{id} endpoint for getting user details in backend/internal/handlers/user_handler.go (depends on T120a)
+- [X] T120d [US2] Add PUT /users/{id} endpoint for updating user information in backend/internal/handlers/user_handler.go (depends on T120a)
+- [X] T121 [US2] Integrate user management into ProjectBusinessForm dropdown (add "Create New User" button at bottom, open modal for creation) in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T120, T120b)
+- [X] T121a [US2] Add user editing functionality via dropdown action items in ProjectBusinessForm in frontend/src/components/project/ProjectBusinessForm.tsx (depends on T120d, T121)
+- [X] T121b [US2] Create UserForm component for creating and editing users in frontend/src/components/user/UserForm.tsx (depends on T121)
+- [X] T121c [US2] Add user API service functions in frontend/src/services/user.ts (depends on T120, T120b, T120c, T120d)
+- [X] T122 [US2] Remove file_path field from ContractForm component in frontend/src/components/contract/ContractForm.tsx
+- [X] T123 [US2] Remove file_path field from CreateContractRequest type and backend handler in backend/internal/handlers/contract_handler.go and backend/internal/services/contract_service.go
+- [X] T124 [US2] Remove expert_id field from ExpertFeePaymentForm component in frontend/src/components/project/ExpertFeePaymentForm.tsx
+- [X] T125 [US2] Remove expert_id field from CreateExpertFeePaymentRequest type and backend handler in backend/internal/handlers/expert_fee_payment_handler.go and backend/internal/services/expert_fee_payment_service.go
+- [X] T126 [US2] Add PUT /financial-records/{id} endpoint for updating financial records in backend/internal/handlers/financial_handler.go (depends on T088)
+- [X] T126a [US2] Add update method to FinancialService allowing modification of business fields (excluding system fields like created_at, id) in backend/internal/services/financial_service.go (depends on T087)
+- [X] T127 [US2] Add DELETE /financial-records/{id} endpoint for deleting financial records with automatic statistics recalculation in backend/internal/handlers/financial_handler.go (depends on T088)
+- [X] T127a [US2] Add delete method to FinancialService with automatic statistics recalculation in backend/internal/services/financial_service.go (depends on T087)
+- [X] T128 [US2] Add edit and delete functionality to FinancialList component with confirmation dialog in frontend/src/components/financial/FinancialList.tsx (depends on T091, T126, T127)
+- [X] T128a [US2] Create FinancialEditModal component for editing financial records in frontend/src/components/financial/FinancialEditModal.tsx (depends on T090, T126)
+- [X] T128b [US2] Add confirmation dialog for financial record deletion in frontend/src/components/financial/FinancialList.tsx (depends on T127)
+- [X] T129 [US2] Add PUT /bonuses/{id} endpoint for updating bonus records in backend/internal/handlers/bonus_handler.go (depends on T092a)
+- [X] T129a [US2] Add update method to BonusService allowing modification of business fields (excluding system fields like created_at, id) in backend/internal/services/bonus_service.go (depends on T092a)
+- [X] T130 [US2] Add DELETE /bonuses/{id} endpoint for deleting bonus records with automatic statistics update in backend/internal/handlers/bonus_handler.go (depends on T092a)
+- [X] T130a [US2] Add delete method to BonusService with automatic statistics update in backend/internal/services/bonus_service.go (depends on T092a)
+- [X] T131 [US2] Add edit and delete functionality to BonusList component with confirmation dialog in frontend/src/components/financial/BonusList.tsx (depends on T092d, T129, T130)
+- [X] T131a [US2] Create BonusEditModal component for editing bonus records in frontend/src/components/financial/BonusEditModal.tsx (depends on T092, T129)
+- [X] T131b [US2] Add confirmation dialog for bonus record deletion in frontend/src/components/financial/BonusList.tsx (depends on T130)
+
+**Checkpoint**: 此时，用户故事1和2都应该独立工作，包括所有需求优化功能
 
 ---
 
@@ -400,10 +432,10 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 207个任务 (任务归属已调整，总数不变)
+- **总任务数**: 240个任务 (新增33个需求优化任务)
 - **Foundational阶段任务数**: 18个任务 (T007-T016 + T008a-T008b) - 新增文件管理基础能力层
 - **用户故事1任务数**: 42个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038b, T029a-T029c, T032a, T041a) - 已移除项目创建表单中的甲方相关任务
-- **用户故事2任务数**: 80个任务 (T045-T067, T080-T084, T085-T093 + T053a-T053d, T054a-T054c, T055a-T055b, T057a-T057b, T059a-T059h, T060, T062a-T062e, T063a-T063b, T064a, T066a-T066b, T067a-T067f, T085a, T087a-T087b, T088a-T088b, T090a, T091, T092a-T092d) - 新增专家费支付、合同补充协议、经营负责人/人员、一人多角色支持、合同文件管理（使用file_service）、甲方支付信息、经营奖金
+- **用户故事2任务数**: 113个任务 (T045-T067, T080-T084, T085-T093, T120-T131b + T053a-T053d, T054a-T054c, T055a-T055b, T057a-T057b, T059a-T059h, T060, T062a-T062e, T063a-T063b, T064a, T066a-T066b, T067a-T067f, T085a, T087a-T087b, T088a-T088b, T090a, T091, T092a-T092d) - 新增专家费支付、合同补充协议、经营负责人/人员、一人多角色支持、合同文件管理（使用file_service）、甲方支付信息、经营奖金、需求优化功能（用户管理集成、表单简化、编辑删除功能）
 - **用户故事3任务数**: 18个任务 (T068-T079 + T079a-T079f) - 新增生产文件管理（使用file_service）
 - **用户故事4任务数**: 7个任务 (T080-T084, T091, T094, T094a) - 更新为公司收入信息管理，仅包含公司级别统计功能
 - **Polish阶段任务数**: 12个任务 (T108-T119) - 保持不变
@@ -413,6 +445,25 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 - **格式验证**: 所有任务都遵循检查清单格式 (checkbox, ID, labels, file paths)
 
 ## New Requirements Added (2025-01-28, 2025-11-19, 2025-01-27)
+
+### Business Information Requirements Optimization (2025-01-27):
+- **用户管理集成**: 在经营负责人和经营人员下拉菜单中支持新建和编辑人员 (T120-T121c)
+  - 添加用户管理API端点（GET /users, POST /users, PUT /users/{id}）
+  - 在ProjectBusinessForm中集成用户管理功能（下拉菜单底部提供"新建人员"按钮，编辑通过下拉菜单中的操作项触发）
+- **合同表单简化**: 从新建合同页面删除合同文件路径字段 (T122-T123)
+  - 从ContractForm中移除file_path字段
+  - 从CreateContractRequest中移除file_path字段
+- **专家费表单简化**: 从专家费新建和编辑中删除专家ID字段 (T124-T125)
+  - 从ExpertFeePaymentForm中移除expert_id字段
+  - 从CreateExpertFeePaymentRequest中移除expert_id字段
+- **财务记录编辑和删除**: 支持财务记录的编辑和删除功能 (T126-T128b)
+  - 添加PUT /financial-records/{id}和DELETE /financial-records/{id}端点
+  - 在FinancialList中添加编辑和删除功能（带确认对话框）
+  - 删除后自动重新计算相关统计数据
+- **奖金记录编辑和删除**: 支持奖金记录的编辑和删除功能 (T129-T131b)
+  - 添加PUT /bonuses/{id}和DELETE /bonuses/{id}端点
+  - 在BonusList中添加编辑和删除功能（带确认对话框）
+  - 删除后自动更新奖金统计
 
 ### Task Reorganization (2025-01-27):
 - **任务归属调整**: 根据一致性分析结果，将项目级别的支付信息和经营奖金相关任务从User Story 4移动到User Story 2

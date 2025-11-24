@@ -93,6 +93,7 @@ func main() {
 	expertFeePaymentHandler := handlers.NewExpertFeePaymentHandler(logger)
 	financialHandler := handlers.NewFinancialHandler(logger)
 	bonusHandler := handlers.NewBonusHandler(logger)
+	userHandler := handlers.NewUserHandler(logger)
 
 	// API routes
 	api := router.Group("/api/v1")
@@ -181,6 +182,20 @@ func main() {
 				expertFeePayments.DELETE("/:id", expertFeePaymentHandler.DeleteExpertFeePayment)
 			}
 
+			// Financial record routes (standalone)
+			financialRecords := protected.Group("/financial-records")
+			{
+				financialRecords.PUT("/:id", financialHandler.UpdateFinancialRecord)
+				financialRecords.DELETE("/:id", financialHandler.DeleteFinancialRecord)
+			}
+
+			// Bonus routes (standalone)
+			bonuses := protected.Group("/bonuses")
+			{
+				bonuses.PUT("/:id", bonusHandler.UpdateBonus)
+				bonuses.DELETE("/:id", bonusHandler.DeleteBonus)
+			}
+
 			// Client routes
 			clients := protected.Group("/clients")
 			{
@@ -189,6 +204,15 @@ func main() {
 				clients.POST("", clientHandler.CreateClient)
 				clients.PUT("/:id", clientHandler.UpdateClient)
 				clients.DELETE("/:id", clientHandler.DeleteClient)
+			}
+
+			// User routes
+			users := protected.Group("/users")
+			{
+				users.GET("", userHandler.ListUsers)
+				users.GET("/:id", userHandler.GetUser)
+				users.POST("", userHandler.CreateUser)
+				users.PUT("/:id", userHandler.UpdateUser)
 			}
 		}
 	}

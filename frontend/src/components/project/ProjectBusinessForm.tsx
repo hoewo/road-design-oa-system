@@ -15,11 +15,14 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import { projectService } from '@/services/project'
+import { userService } from '@/services/user'
 import ClientForm from '@/components/client/ClientForm'
+import UserForm from '@/components/user/UserForm'
 import type {
   ProjectBusiness,
   UpdateProjectBusinessRequest,
   Client,
+  User,
 } from '@/types'
 
 const { Option } = Select
@@ -41,6 +44,18 @@ export const ProjectBusinessForm = ({
   const [createClientModalVisible, setCreateClientModalVisible] =
     useState(false)
   const [retryCount, setRetryCount] = useState(0)
+
+  // User management state
+  const [users, setUsers] = useState<User[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [managerSearchValue, setManagerSearchValue] = useState('')
+  const [personnelSearchValue, setPersonnelSearchValue] = useState('')
+  const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
+  const [editUserModalVisible, setEditUserModalVisible] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [userDropdownType, setUserDropdownType] = useState<
+    'manager' | 'personnel' | null
+  >(null)
 
   // Load project business data
   const { data: businessData, isLoading } = useQuery({
@@ -94,6 +109,32 @@ export const ProjectBusinessForm = ({
     loadClients()
   }, [retryCount])
 
+  // Load users
+  useEffect(() => {
+    const loadUsers = async () => {
+      setLoadingUsers(true)
+      try {
+        const response = await userService.listUsers({
+          page: 1,
+          size: 100,
+          is_active: true,
+        })
+        // Sort by created_at DESC
+        const sortedUsers = (response.data || []).sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        setUsers(sortedUsers)
+      } catch (error) {
+        console.error('Failed to load users:', error)
+        message.error('加载用户列表失败')
+      } finally {
+        setLoadingUsers(false)
+      }
+    }
+    loadUsers()
+  }, [])
+
   // Set form values when business data is loaded
   useEffect(() => {
     if (businessData) {
@@ -145,6 +186,60 @@ export const ProjectBusinessForm = ({
     form.setFieldsValue({ client_id: newClient.id })
     setCreateClientModalVisible(false)
     message.success('甲方创建成功，已自动选择')
+  }
+
+  const handleCreateUser = (type: 'manager' | 'personnel') => {
+    setUserDropdownType(type)
+    setEditingUser(null)
+    setCreateUserModalVisible(true)
+  }
+
+  const handleEditUser = (user: User) => {
+    setEditingUser(user)
+    setCreateUserModalVisible(false)
+    setEditUserModalVisible(true)
+  }
+
+  const handleUserCreated = (newUser?: User) => {
+    if (newUser) {
+      // Add new user to the list
+      setUsers((prev) => [newUser, ...prev])
+      // Select the new user in the appropriate dropdown
+      if (userDropdownType === 'manager') {
+        const currentManagerIds =
+          form.getFieldValue('business_manager_ids') || []
+        form.setFieldsValue({
+          business_manager_ids: [...currentManagerIds, newUser.id],
+        })
+      } else if (userDropdownType === 'personnel') {
+        const currentPersonnelIds =
+          form.getFieldValue('business_personnel_ids') || []
+        form.setFieldsValue({
+          business_personnel_ids: [...currentPersonnelIds, newUser.id],
+        })
+      }
+      message.success('用户创建成功，已自动选择')
+    }
+    setCreateUserModalVisible(false)
+    setUserDropdownType(null)
+  }
+
+  const handleUserUpdated = () => {
+    // Reload users after update
+    userService
+      .listUsers({ page: 1, size: 100, is_active: true })
+      .then((response) => {
+        const sortedUsers = (response.data || []).sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+        setUsers(sortedUsers)
+      })
+      .catch(() => {
+        message.error('刷新用户列表失败')
+      })
+    setEditUserModalVisible(false)
+    setEditingUser(null)
   }
 
   if (isLoading) {
@@ -241,8 +336,80 @@ export const ProjectBusinessForm = ({
               name="business_manager_ids"
               tooltip="可以选择多个经营负责人"
             >
-              <Select mode="multiple" placeholder="选择经营负责人" allowClear>
-                {/* TODO: Load users and populate options */}
+              <Select
+                mode="multiple"
+                placeholder="选择经营负责人"
+                allowClear
+                showSearch
+                loading={loadingUsers}
+                onSearch={setManagerSearchValue}
+                filterOption={(input, option) =>
+                  (option?.children as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                notFoundContent={
+                  loadingUsers ? (
+                    <div style={{ padding: '8px', textAlign: 'center' }}>
+                      加载中...
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div style={{ padding: '8px', textAlign: 'center' }}>
+                      暂无用户数据
+                    </div>
+                  ) : null
+                }
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                    <Divider style={{ margin: '8px 0' }} />
+                    <Button
+                      type="link"
+                      block
+                      onClick={() => handleCreateUser('manager')}
+                    >
+                      + 新建人员
+                    </Button>
+                  </>
+                )}
+              >
+                {users
+                  .filter((user) =>
+                    managerSearchValue
+                      ? user.real_name
+                          .toLowerCase()
+                          .includes(managerSearchValue.toLowerCase()) ||
+                        user.username
+                          .toLowerCase()
+                          .includes(managerSearchValue.toLowerCase())
+                      : true
+                  )
+                  .map((user) => (
+                    <Option key={user.id} value={user.id}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span>
+                          {user.real_name} ({user.username})
+                        </span>
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditUser(user)
+                          }}
+                          style={{ padding: 0, marginLeft: 8 }}
+                        >
+                          编辑
+                        </Button>
+                      </div>
+                    </Option>
+                  ))}
               </Select>
             </Form.Item>
           </Col>
@@ -252,8 +419,80 @@ export const ProjectBusinessForm = ({
               name="business_personnel_ids"
               tooltip="可以选择多个经营人员"
             >
-              <Select mode="multiple" placeholder="选择经营人员" allowClear>
-                {/* TODO: Load users and populate options */}
+              <Select
+                mode="multiple"
+                placeholder="选择经营人员"
+                allowClear
+                showSearch
+                loading={loadingUsers}
+                onSearch={setPersonnelSearchValue}
+                filterOption={(input, option) =>
+                  (option?.children as string)
+                    ?.toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                notFoundContent={
+                  loadingUsers ? (
+                    <div style={{ padding: '8px', textAlign: 'center' }}>
+                      加载中...
+                    </div>
+                  ) : users.length === 0 ? (
+                    <div style={{ padding: '8px', textAlign: 'center' }}>
+                      暂无用户数据
+                    </div>
+                  ) : null
+                }
+                dropdownRender={(menu) => (
+                  <>
+                    {menu}
+                    <Divider style={{ margin: '8px 0' }} />
+                    <Button
+                      type="link"
+                      block
+                      onClick={() => handleCreateUser('personnel')}
+                    >
+                      + 新建人员
+                    </Button>
+                  </>
+                )}
+              >
+                {users
+                  .filter((user) =>
+                    personnelSearchValue
+                      ? user.real_name
+                          .toLowerCase()
+                          .includes(personnelSearchValue.toLowerCase()) ||
+                        user.username
+                          .toLowerCase()
+                          .includes(personnelSearchValue.toLowerCase())
+                      : true
+                  )
+                  .map((user) => (
+                    <Option key={user.id} value={user.id}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span>
+                          {user.real_name} ({user.username})
+                        </span>
+                        <Button
+                          type="link"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditUser(user)
+                          }}
+                          style={{ padding: 0, marginLeft: 8 }}
+                        >
+                          编辑
+                        </Button>
+                      </div>
+                    </Option>
+                  ))}
               </Select>
             </Form.Item>
           </Col>
@@ -279,7 +518,7 @@ export const ProjectBusinessForm = ({
         onCancel={() => setCreateClientModalVisible(false)}
         footer={null}
         width={600}
-        destroyOnHidden
+        destroyOnClose
       >
         <ClientForm
           onSuccess={() => {
@@ -304,6 +543,49 @@ export const ProjectBusinessForm = ({
           }}
           onCancel={() => setCreateClientModalVisible(false)}
         />
+      </Modal>
+
+      <Modal
+        title="新建人员"
+        open={createUserModalVisible}
+        onCancel={() => {
+          setCreateUserModalVisible(false)
+          setUserDropdownType(null)
+        }}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        <UserForm
+          onSuccess={handleUserCreated}
+          onCancel={() => {
+            setCreateUserModalVisible(false)
+            setUserDropdownType(null)
+          }}
+        />
+      </Modal>
+
+      <Modal
+        title="编辑人员"
+        open={editUserModalVisible}
+        onCancel={() => {
+          setEditUserModalVisible(false)
+          setEditingUser(null)
+        }}
+        footer={null}
+        width={600}
+        destroyOnClose
+      >
+        {editingUser && (
+          <UserForm
+            userId={editingUser.id}
+            onSuccess={handleUserUpdated}
+            onCancel={() => {
+              setEditUserModalVisible(false)
+              setEditingUser(null)
+            }}
+          />
+        )}
       </Modal>
     </Card>
   )

@@ -32,7 +32,6 @@ type CreateContractRequest struct {
 	DesignFee       *float64  `json:"design_fee"`
 	SurveyFee       *float64  `json:"survey_fee"`
 	ConsultationFee *float64  `json:"consultation_fee"`
-	FilePath        string    `json:"file_path"`
 }
 
 // UpdateContractRequest represents the request to update a contract
@@ -45,7 +44,6 @@ type UpdateContractRequest struct {
 	DesignFee       *float64   `json:"design_fee"`
 	SurveyFee       *float64   `json:"survey_fee"`
 	ConsultationFee *float64   `json:"consultation_fee"`
-	FilePath        *string    `json:"file_path"`
 }
 
 // CreateContract creates a new contract
@@ -107,7 +105,6 @@ func (s *ContractService) CreateContract(projectID uint, req *CreateContractRequ
 		DesignFee:       designFee,
 		SurveyFee:       surveyFee,
 		ConsultationFee: consultationFee,
-		FilePath:        req.FilePath,
 		ProjectID:       projectID,
 	}
 
@@ -228,9 +225,6 @@ func (s *ContractService) UpdateContract(id uint, req *UpdateContractRequest) (*
 	}
 	if req.ConsultationFee != nil {
 		updates["consultation_fee"] = consultationFee
-	}
-	if req.FilePath != nil {
-		updates["file_path"] = *req.FilePath
 	}
 
 	if err := s.db.Model(&contract).Updates(updates).Error; err != nil {
