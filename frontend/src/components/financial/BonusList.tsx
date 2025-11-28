@@ -18,13 +18,16 @@ import dayjs from 'dayjs'
 
 interface BonusListProps {
   projectId: number
+  bonusType?: BonusType
 }
 
-export const BonusList = ({ projectId }: BonusListProps) => {
+export const BonusList = ({ projectId, bonusType }: BonusListProps) => {
   const [modalVisible, setModalVisible] = useState(false)
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingBonus, setEditingBonus] = useState<Bonus | null>(null)
-  const [typeFilter, setTypeFilter] = useState<BonusType | 'all'>('all')
+  const [typeFilter, setTypeFilter] = useState<BonusType | 'all'>(
+    bonusType || 'all'
+  )
   const queryClient = useQueryClient()
 
   const { data: bonuses, isLoading } = useQuery({

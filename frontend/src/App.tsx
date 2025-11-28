@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
 import ProjectBusiness from './pages/ProjectBusiness'
+import ProjectProduction from './pages/ProjectProduction'
 import ContractDetail from './components/contract/ContractDetail'
 import './App.css'
 
@@ -70,6 +71,10 @@ function App() {
                   <Route
                     path="/projects/:id/business"
                     element={<ProjectBusiness />}
+                  />
+                  <Route
+                    path="/projects/:id/production"
+                    element={<ProjectProduction />}
                   />
                   <Route path="/contracts/:id" element={<ContractDetail />} />
                 </Routes>

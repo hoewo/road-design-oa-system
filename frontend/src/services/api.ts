@@ -1,8 +1,36 @@
 import axios from 'axios'
-import type { ApiResponse, PaginatedResponse } from '@/types'
+import type { PaginatedResponse } from '@/types'
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+const resolveApiBaseUrl = () => {
+  const globalWindow = typeof window !== 'undefined' ? window : undefined
+  if (globalWindow && (globalWindow as any).__APP_API_BASE_URL__) {
+    return (globalWindow as any).__APP_API_BASE_URL__
+  }
+
+  const viteValue = (() => {
+    try {
+      // Use Function to avoid syntax issues in non-Vite environments (e.g., Jest)
+      return Function(
+        'return (typeof import !== "undefined" && import.meta && import.meta.env && import.meta.env.VITE_API_BASE_URL) || undefined'
+      )()
+    } catch {
+      return undefined
+    }
+  })()
+
+  if (viteValue) {
+    return viteValue
+  }
+
+  const nodeProcess = (globalThis as any).process
+  if (nodeProcess?.env?.VITE_API_BASE_URL) {
+    return nodeProcess.env.VITE_API_BASE_URL
+  }
+
+  return 'http://localhost:8080/api/v1'
+}
+
+const API_BASE_URL = resolveApiBaseUrl()
 
 const api = axios.create({
   baseURL: API_BASE_URL,

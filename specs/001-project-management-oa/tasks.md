@@ -261,27 +261,53 @@
 
 ### Tests for User Story 3
 
-- [ ] T068 [P] [US3] Contract test for project member endpoints in backend/tests/contract/test_project_members.go
-- [ ] T069 [P] [US3] Integration test for project member management flow in backend/tests/integration/test_member_management.go
-- [ ] T070 [P] [US3] Frontend component test for ProjectMemberForm in frontend/tests/components/ProjectMemberForm.test.tsx
-- [ ] T071 [P] [US3] E2E test for project member management flow in frontend/tests/e2e/member-management.spec.ts
+- [X] T068 [P] [US3] Contract test for project member endpoints in backend/tests/contract/test_project_members.go
+- [X] T069 [P] [US3] Integration test for project member management flow in backend/tests/integration/test_member_management.go
+- [X] T070 [P] [US3] Frontend component test for ProjectMemberForm in frontend/tests/components/ProjectMemberForm.test.tsx
+- [X] T071 [P] [US3] E2E test for project member management flow in frontend/tests/e2e/member-management.spec.ts
+- [ ] T071a [P] [US3] Contract test for production discipline assignment endpoints in backend/tests/contract/test_production_discipline.go
+- [ ] T071b [P] [US3] Contract test for production approval/audit endpoints in backend/tests/contract/test_production_approvals.go
+- [ ] T071c [P] [US3] Integration test covering approval workflow + audit amount overrides in backend/tests/integration/test_production_approvals.go
+- [ ] T071d [P] [US3] Contract test for external commission endpoints in backend/tests/contract/test_external_commissions.go
+- [ ] T071e [P] [US3] Frontend component test for ProductionFileUpload (校审单+评分) in frontend/tests/components/ProductionFileUpload.test.tsx
+- [ ] T071f [P] [US3] Frontend component test for ExternalCommissionForm in frontend/tests/components/ExternalCommissionForm.test.tsx
+- [ ] T071g [P] [US3] E2E test for production workflow含批复、外委、文件评分 in frontend/tests/e2e/production-workflow.spec.ts
 
 ### Implementation for User Story 3
 
-- [ ] T072 [P] [US3] Create ProjectMember model in backend/internal/models/project_member.go (Note: business_manager and business_personnel roles added in US2)
-- [ ] T073 [US3] Implement ProjectMemberService with multi-role support in backend/internal/services/project_member_service.go (depends on T072)
-- [ ] T074 [US3] Implement ProjectMemberHandler in backend/internal/handlers/project_member_handler.go (depends on T073)
-- [ ] T075 [US3] Add member role validation and business rules (support multiple roles per user per project) in backend/internal/services/project_member_service.go (depends on T073)
-- [ ] T076 [P] [US3] Create ProjectMemberForm component in frontend/src/components/project/ProjectMemberForm.tsx (Note: multi-role support added in US2)
-- [ ] T077 [US3] Create ProjectMemberList component in frontend/src/components/project/ProjectMemberList.tsx (depends on T076)
-- [ ] T078 [US3] Integrate member management with project detail page in frontend/src/pages/ProjectDetail.tsx
-- [ ] T079 [US3] Add member notification system for role assignments in backend/internal/services/project_member_service.go (depends on T073)
-- [ ] T079a [P] [US3] Add production file upload endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
-- [ ] T079b [P] [US3] Add production file download endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
-- [ ] T079c [P] [US3] Add production file search endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
-- [ ] T079d [US3] Create ProductionFileUpload component using file_service in frontend/src/components/production/ProductionFileUpload.tsx (depends on T079a)
-- [ ] T079e [US3] Create ProductionFileList component with search, filter, and permission verification in frontend/src/components/production/ProductionFileList.tsx (depends on T079c)
-- [ ] T079f [US3] Integrate production file management with production management page in frontend/src/pages/ProjectProduction.tsx (depends on T079d, T079e)
+- [X] T072 [P] [US3] Create ProjectMember model in backend/internal/models/project_member.go (Note: business_manager and business_personnel roles added in US2)
+- [X] T073 [US3] Implement ProjectMemberService with multi-role support in backend/internal/services/project_member_service.go (depends on T072)
+- [X] T074 [US3] Implement ProjectMemberHandler in backend/internal/handlers/project_member_handler.go (depends on T073)
+- [X] T075 [US3] Add member role validation and business rules (support multiple roles per user per project) in backend/internal/services/project_member_service.go (depends on T073)
+- [X] T076 [P] [US3] Create ProjectMemberForm component in frontend/src/components/project/ProjectMemberForm.tsx (Note: multi-role support added in US2)
+- [X] T077 [US3] Create ProjectMemberList component in frontend/src/components/project/ProjectMemberList.tsx (depends on T076)
+- [X] T078 [US3] Integrate member management with project detail page in frontend/src/pages/ProjectDetail.tsx
+- [X] T078a [US3] Add production information management navigation button in ProjectDetail page in frontend/src/pages/ProjectDetail.tsx (depends on T079f)
+- [X] T079 [US3] Add member notification system for role assignments in backend/internal/services/project_member_service.go (depends on T073)
+- [X] T079a [P] [US3] Add production file upload endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
+- [X] T079b [P] [US3] Add production file download endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
+- [X] T079c [P] [US3] Add production file search endpoint using file_service in backend/internal/handlers/production_handler.go (depends on T008b)
+- [X] T079d [US3] Create ProductionFileUpload component using file_service in frontend/src/components/production/ProductionFileUpload.tsx (depends on T079a)
+- [X] T079e [US3] Create ProductionFileList component with search, filter, and permission verification in frontend/src/components/production/ProductionFileList.tsx (depends on T079c)
+- [X] T079f [US3] Integrate production file management with production management page in frontend/src/pages/ProjectProduction.tsx (depends on T079d, T079e)
+- [X] T079g [US3] Create ProjectDisciplineAssignment model in backend/internal/models/project_discipline_assignment.go
+- [X] T079h [US3] Implement ProjectDisciplineAssignmentService with per-discipline role validation in backend/internal/services/project_discipline_service.go (depends on T079g)
+- [X] T079i [US3] Implement ProjectDisciplineAssignmentHandler with CRUD endpoints in backend/internal/handlers/project_discipline_handler.go (depends on T079h)
+- [X] T079j [US3] Create DisciplineAssignmentForm component supporting per-discipline designer/participant/reviewer fields in frontend/src/components/production/DisciplineAssignmentForm.tsx (depends on T079i)
+- [X] T079k [US3] Integrate discipline assignment management into ProjectProduction page in frontend/src/pages/ProjectProduction.tsx (depends on T079j)
+- [X] T079l [US3] Update ProductionFile model to include review_sheet_file_id, score, default_amount_reference fields in backend/internal/models/production_file.go
+- [X] T079m [US3] Update production file services/handlers to require校审单 +评分 for mandatory file types and support默认引用合同金额 in backend/internal/services/production_file_service.go / handlers
+- [X] T079n [US3] Enhance ProductionFileUpload component to capture校审单、评分、引用合同金额 in frontend/src/components/production/ProductionFileUpload.tsx (depends on T079d, T079m)
+- [X] T079o [US3] Create ProductionApprovalRecord and AuditResolution models in backend/internal/models/production_approval.go
+- [X] T079p [US3] Implement services/handlers for审核/审定流程与批复审计记录 (including amount override) in backend/internal/services/production_approval_service.go and backend/internal/handlers/production_approval_handler.go (depends on T079o)
+- [X] T079q [US3] Create frontend components for production approval timeline and audit forms in frontend/src/components/production/ProductionApprovalTimeline.tsx & ProductionAuditForm.tsx (depends on T079p)
+- [X] T079r [US3] Create ExternalCommission model in backend/internal/models/external_commission.go
+- [X] T079s [US3] Implement ExternalCommissionService + handlers (CRUD + attachments) in backend/internal/services/external_commission_service.go and backend/internal/handlers/external_commission_handler.go (depends on T079r)
+- [X] T079t [US3] Create ExternalCommissionForm and ExternalCommissionList components in frontend/src/components/production/ExternalCommissionForm.tsx / ExternalCommissionList.tsx (depends on T079s)
+- [X] T079u [US3] Update ProductionCost model/service to allow linking外委记录并纳入成本统计 in backend/internal/models/production_cost.go and backend/internal/services/production_cost_service.go
+- [X] T079v [US3] Add production cost management UI (with cost types + commission link) in frontend/src/components/production/ProductionCostForm.tsx & ProductionCostList.tsx
+- [X] T079w [US3] Add production bonus quick-create entry (bonus_type=production) in frontend/src/pages/ProjectProduction.tsx linking existing Bonus APIs
+- [X] T079x [US3] Add backend validation/tests ensuring production bonus entries correctly tagged and exposed via production endpoints in backend/internal/handlers/bonus_handler.go
 
 **Checkpoint**: 所有用户故事现在都应该独立功能化
 

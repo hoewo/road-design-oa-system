@@ -51,6 +51,12 @@ func Migrate() error {
 		&models.File{},
 		&models.FinancialRecord{},
 		&models.Bonus{},
+		&models.ProjectDisciplineAssignment{},
+		&models.ProductionFile{},
+		&models.ProductionApprovalRecord{},
+		&models.AuditResolution{},
+		&models.ExternalCommission{},
+		&models.ProductionCost{},
 	)
 
 	if err != nil {

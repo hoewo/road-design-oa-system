@@ -88,6 +88,12 @@ func main() {
 	projectHandler := handlers.NewProjectHandler(logger)
 	clientHandler := handlers.NewClientHandler(logger)
 	projectBusinessHandler := handlers.NewProjectBusinessHandler(logger)
+	projectDisciplineHandler := handlers.NewProjectDisciplineHandler(logger)
+	projectMemberHandler := handlers.NewProjectMemberHandler(logger)
+	productionFileHandler := handlers.NewProductionFileHandler(cfg, logger)
+	productionApprovalHandler := handlers.NewProductionApprovalHandler(logger)
+	externalCommissionHandler := handlers.NewExternalCommissionHandler(logger)
+	productionCostHandler := handlers.NewProductionCostHandler(logger)
 	contractHandler := handlers.NewContractHandler(cfg, logger)
 	contractAmendmentHandler := handlers.NewContractAmendmentHandler(logger)
 	expertFeePaymentHandler := handlers.NewExpertFeePaymentHandler(logger)
@@ -129,6 +135,31 @@ func main() {
 				// Project business information routes
 				projects.GET("/:id/business", projectBusinessHandler.GetProjectBusiness)
 				projects.PUT("/:id/business", projectBusinessHandler.UpdateProjectBusiness)
+
+				// Project member routes
+				projects.GET("/:id/members", projectMemberHandler.ListMembers)
+				projects.POST("/:id/members", projectMemberHandler.CreateMember)
+
+				// Production discipline assignments
+				projects.GET("/:id/production/discipline-assignments", projectDisciplineHandler.ListAssignments)
+				projects.PUT("/:id/production/discipline-assignments", projectDisciplineHandler.ReplaceAssignments)
+
+				// Production file management
+				projects.POST("/:id/production/files", productionFileHandler.UploadProductionFile)
+				projects.GET("/:id/production/files", productionFileHandler.ListProductionFiles)
+				projects.GET("/:id/production/files/:fileId/download", productionFileHandler.DownloadProductionFile)
+
+				// Production approvals
+				projects.GET("/:id/production/approvals", productionApprovalHandler.ListApprovals)
+				projects.POST("/:id/production/approvals", productionApprovalHandler.CreateApproval)
+
+				// External commissions
+				projects.GET("/:id/production/external-commissions", externalCommissionHandler.ListCommissions)
+				projects.POST("/:id/production/external-commissions", externalCommissionHandler.CreateCommission)
+
+				// Production costs
+				projects.GET("/:id/production/costs", productionCostHandler.ListCosts)
+				projects.POST("/:id/production/costs", productionCostHandler.CreateCost)
 
 				// Contract file search route (project-level) - must be before /:id/contracts to avoid route conflict
 				projects.GET("/:id/contracts/files", contractHandler.SearchContractFiles)
@@ -214,6 +245,14 @@ func main() {
 				users.POST("", userHandler.CreateUser)
 				users.PUT("/:id", userHandler.UpdateUser)
 			}
+
+			projectMembers := protected.Group("/project-members")
+			{
+				projectMembers.PUT("/:id", projectMemberHandler.UpdateMember)
+				projectMembers.DELETE("/:id", projectMemberHandler.DeleteMember)
+			}
+
+			protected.GET("/production/files/:fileId/download", productionFileHandler.DownloadProductionFile)
 		}
 	}
 

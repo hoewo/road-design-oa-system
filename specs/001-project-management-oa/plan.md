@@ -407,6 +407,42 @@ Based on user story restructuring and separation of concerns:
    - **Consistency**: All file operations follow same patterns and validation rules
    - **Scalability**: Easy to add new business modules that need file management
 
+### Production Information Design (Updated 2025-11-27)
+针对用户故事3新增的明确需求，生产信息模块需要补充以下设计：
+
+1. **专业-角色-人员映射**：
+
+ - **Decision**: 在 `ProjectDisciplineAssignment`（新表）中维护 `project_id + discipline + role_type (designer/participant/reviewer)` → `user_id` 的映射；允许同一专业分别指定三类角色，同一用户可在不同专业担任不同角色
+ - **Backend Impact**: 新增模型（backend/internal/models/project_discipline_assignment.go）、服务（project_discipline_service.go）以及 `/projects/{id}/production/discipline-assignments` CRUD 接口
+ - **Frontend Impact**: ProjectProduction 页面中的 `DisciplineAssignmentForm` 组件支持多专业行编辑（全局专业字典 + 项目内新增），并校验每个专业都配置三类角色
+ - **Rationale**: 满足“每个专业都有设计/参与/复核人员”的约束
+
+2. **审核/审定流程与批复/审计记录**：
+
+ - **Decision**: 引入 `ProductionApprovalRecord` 表，字段包含 `approval_type (review/approval)`, `approver_id`, `status`, `signed_at`, `attachment_file_id`, `remarks`
+ - **Decision**: 引入 `AuditResolution` 表（批复/审计记录），字段包含 `report_type (approval/audit)`, `report_file_id`, `amount_design`, `amount_survey`, `amount_consulting`, `source_contract_id`, `override_reason`
+ - **Data Flow**: 审核/审定流程记录在 `ProductionApprovalRecord`，批复/审计金额默认拉取 `Contract` + `ContractAmendment` 汇总值，用户可覆盖并填写说明
+ - **Frontend Impact**: 生产模块新增审批流时间线 UI 与批复/审计表单（上传报告、金额拆分、引用合同金额按钮）
+
+3. **生产文件校审与评分**：
+
+ - **Decision**: `ProductionFile` 模型新增 `review_sheet_file_id`, `score`, `default_amount_reference` 字段
+ - **Business Rule**: 方案PPT、初设、施工图必须上传校审单并填写评分；系统展示“引用合同金额”按钮以快速带出默认值
+ - **Frontend**: `ProductionFileUpload` 组件新增校审单上传区、评分输入、金额默认提示
+
+4. **对外委托与支付信息**：
+
+ - **Decision**: 新建 `ExternalCommission` 实体，字段包含 `project_id`, `vendor_name`, `vendor_type (company/person)`, `score`, `contract_file_id`, `invoice_file_id`, `payment_amount`, `payment_date`, `notes`
+ - **Integration**: 可与成本统计、奖金分配联动（如根据评分决定奖金比例）
+ - **Frontend**: `ExternalCommissionForm` + `ExternalCommissionList` 组件，支持附件上传与支付信息展示
+
+5. **生产成本与奖金联动**：
+
+ - **Decision**: 生产成本沿用 `ProductionCost` 实体（用车、住宿、交通等），新增字段 `commission_id` 以便与外委记录关联
+ - **Decision**: 生产奖金仍复用 Bonus 实体（bonus_type=production），但在生产页面提供快捷录入入口
+
+上述新增实体需更新 data-model.md，并在 tasks.md 中拆解对应的后端/前端任务。
+
 ### Company Revenue Information Management (Updated 2025-11-19)
 
 1. **User Story 4 Renamed**: From "财务信息管理与统计" to "公司收入信息管理" (Company Revenue Information Management)

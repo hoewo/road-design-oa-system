@@ -32,7 +32,7 @@ interface ProjectFormProps {
 const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
-  const [managers, setManagers] = useState<any[]>([])
+  // const [managers, setManagers] = useState<any[]>([])
 
   // Load project data if editing
   const { data: project, isLoading: loadingProject } = useQuery({

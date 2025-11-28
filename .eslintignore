@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+coverage/
+.nyc_output/
+*.min.js
+*.test.js
+*.test.ts
+*.test.tsx
+*.spec.js
+*.spec.ts
+*.spec.tsx
+*.stories.tsx
+storybook-static/
+public/
+tmp/
+scripts/

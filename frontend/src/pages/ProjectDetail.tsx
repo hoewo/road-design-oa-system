@@ -5,11 +5,14 @@ import {
   EditOutlined,
   ArrowLeftOutlined,
   ShopOutlined,
+  ToolOutlined,
 } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
 import ProjectForm from '@/components/project/ProjectForm'
 import { ProjectBusinessForm } from '@/components/project/ProjectBusinessForm'
+import { ProjectMemberForm } from '@/components/project/ProjectMemberForm'
+import { ProjectMemberList } from '@/components/project/ProjectMemberList'
 import type { ProjectStatus } from '@/types'
 
 const ProjectDetail = () => {
@@ -85,6 +88,12 @@ const ProjectDetail = () => {
         >
           经营信息管理
         </Button>
+        <Button
+          icon={<ToolOutlined />}
+          onClick={() => navigate(`/projects/${project.id}/production`)}
+        >
+          生产信息管理
+        </Button>
       </Space>
 
       <Card title="项目详情" loading={isLoading}>
@@ -122,6 +131,15 @@ const ProjectDetail = () => {
 
       <Card title="项目经营信息" style={{ marginTop: 16 }}>
         <ProjectBusinessForm projectId={project.id} />
+      </Card>
+
+      <Card
+        title="项目成员与生产配置"
+        style={{ marginTop: 16 }}
+        extra="维护生产负责人、设计人等角色"
+      >
+        <ProjectMemberForm projectId={project.id} />
+        <ProjectMemberList projectId={project.id} />
       </Card>
 
       <Modal

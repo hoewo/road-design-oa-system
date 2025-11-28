@@ -215,6 +215,13 @@ export type MemberRole =
   | 'business_manager'
   | 'business_personnel'
 
+export interface ProjectMemberUserSummary {
+  id: number
+  username: string
+  real_name: string
+  role: string
+}
+
 export interface ProjectMember {
   id: number
   project_id: number
@@ -225,6 +232,22 @@ export interface ProjectMember {
   is_active: boolean
   created_at: string
   updated_at: string
+  user?: ProjectMemberUserSummary
+}
+
+export interface CreateProjectMemberRequest {
+  user_id: number
+  role: MemberRole
+  join_date: string
+  leave_date?: string
+  is_active?: boolean
+}
+
+export interface UpdateProjectMemberRequest {
+  role?: MemberRole
+  join_date?: string
+  leave_date?: string
+  is_active?: boolean
 }
 
 // File types
@@ -346,4 +369,187 @@ export interface CreateBonusRequest {
   bonus_type: BonusType
   amount: number
   description?: string
+}
+
+// Production types
+export type ProductionFileType =
+  | 'scheme_ppt'
+  | 'preliminary_design'
+  | 'construction_drawing'
+  | 'variation_order'
+  | 'completion_report'
+  | 'audit_report'
+  | 'other'
+
+export interface ProductionFile {
+  id: number
+  project_id: number
+  file_id: number
+  file?: File
+  file_type: ProductionFileType
+  description?: string
+  review_sheet_file_id?: number
+  review_sheet_file?: File
+  score?: number
+  default_amount_reference?: string
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateProductionFileRequest {
+  file: File
+  file_type: ProductionFileType
+  description?: string
+  review_sheet_file?: File
+  score?: number
+  default_amount_reference?: string
+}
+
+export type DisciplineRole = 'designer' | 'participant' | 'reviewer'
+
+export interface DisciplineAssignmentResponse {
+  discipline: string
+  designer?: User
+  participant?: User
+  reviewer?: User
+}
+
+export interface ProjectDisciplineAssignment {
+  id: number
+  project_id: number
+  discipline: string
+  role: DisciplineRole
+  user_id: number
+  user?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface ReplaceDisciplineAssignmentsRequest {
+  assignments: {
+    discipline: string
+    designer_id?: number
+    participant_id?: number
+    reviewer_id?: number
+  }[]
+}
+
+export type ProductionApprovalType = 'review' | 'approval'
+export type AuditReportType = 'approval' | 'audit'
+
+export interface ProductionApprovalRecord {
+  id: number
+  project_id: number
+  record_type: ProductionApprovalType
+  approver_id: number
+  approver?: User
+  status: string
+  signed_at?: string
+  attachment_file_id?: number
+  attachment_file?: File
+  remarks?: string
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+  audit_resolution?: AuditResolution
+}
+
+export interface AuditResolution {
+  id: number
+  project_id: number
+  approval_record_id: number
+  report_type: AuditReportType
+  report_file_id?: number
+  report_file?: File
+  amount_design: number
+  amount_survey: number
+  amount_consultation: number
+  source_contract_id?: number
+  default_amount_reference?: string
+  override_reason?: string
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateProductionApprovalRequest {
+  record_type: ProductionApprovalType
+  approver_id: number
+  status: string
+  signed_at?: string
+  attachment_file_id?: number
+  remarks?: string
+  report_type: AuditReportType
+  report_file_id?: number
+  amount_design?: number
+  amount_survey?: number
+  amount_consultation?: number
+  source_contract_id?: number
+  default_amount_reference?: string
+  override_reason?: string
+}
+
+export type ExternalVendorType = 'company' | 'person'
+
+export interface ExternalCommission {
+  id: number
+  project_id: number
+  vendor_name: string
+  vendor_type: ExternalVendorType
+  score?: number
+  contract_file_id?: number
+  contract_file?: File
+  invoice_file_id?: number
+  invoice_file?: File
+  payment_amount: number
+  payment_date?: string
+  notes?: string
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateExternalCommissionRequest {
+  vendor_name: string
+  vendor_type: ExternalVendorType
+  score?: number
+  contract_file_id?: number
+  invoice_file_id?: number
+  payment_amount: number
+  payment_date?: string
+  notes?: string
+}
+
+export type ProductionCostType =
+  | 'vehicle'
+  | 'accommodation'
+  | 'transport'
+  | 'other'
+
+export interface ProductionCost {
+  id: number
+  project_id: number
+  cost_type: ProductionCostType
+  amount: number
+  description?: string
+  incurred_at?: string
+  commission_id?: number
+  commission?: ExternalCommission
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateProductionCostRequest {
+  cost_type: ProductionCostType
+  amount: number
+  description?: string
+  incurred_at?: string
+  commission_id?: number
 }

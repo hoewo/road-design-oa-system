@@ -18,9 +18,9 @@ const (
 
 type ProjectMember struct {
 	ID        uint       `json:"id" gorm:"primaryKey"`
-	ProjectID uint       `json:"project_id" gorm:"not null"`
-	UserID    uint       `json:"user_id" gorm:"not null"`
-	Role      MemberRole `json:"role" gorm:"not null"`
+	ProjectID uint       `json:"project_id" gorm:"not null;index:idx_project_role,priority:1;index:idx_project_user_role,priority:1"`
+	UserID    uint       `json:"user_id" gorm:"not null;index:idx_project_user_role,priority:2"`
+	Role      MemberRole `json:"role" gorm:"not null;size:64;index:idx_project_role,priority:2"`
 	JoinDate  time.Time  `json:"join_date" gorm:"not null"`
 	LeaveDate *time.Time `json:"leave_date"`
 	IsActive  bool       `json:"is_active" gorm:"default:true"`
@@ -36,4 +36,15 @@ type ProjectMember struct {
 // TableName returns the table name for the ProjectMember model
 func (ProjectMember) TableName() string {
 	return "project_members"
+}
+
+// AllowedMemberRoles lists the supported project member roles.
+var AllowedMemberRoles = map[MemberRole]struct{}{
+	MemberRoleManager:           {},
+	MemberRoleDesigner:          {},
+	MemberRoleParticipant:       {},
+	MemberRoleReviewer:          {},
+	MemberRoleAuditor:           {},
+	MemberRoleBusinessManager:   {},
+	MemberRoleBusinessPersonnel: {},
 }

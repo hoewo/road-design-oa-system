@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Form, Input, InputNumber, Select, Button, Space, message } from 'antd'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
-import type { CreateBonusRequest, Bonus } from '@/types'
+import type { CreateBonusRequest, Bonus, BonusType } from '@/types'
 
 const { Option } = Select
 const { TextArea } = Input
@@ -10,6 +10,7 @@ const { TextArea } = Input
 interface BonusFormProps {
   projectId: number
   bonusId?: number
+  defaultBonusType?: BonusType
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -17,12 +18,19 @@ interface BonusFormProps {
 export const BonusForm = ({
   projectId,
   bonusId,
+  defaultBonusType,
   onSuccess,
   onCancel,
 }: BonusFormProps) => {
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
   const isEdit = !!bonusId
+
+  useEffect(() => {
+    if (defaultBonusType && !isEdit) {
+      form.setFieldsValue({ bonus_type: defaultBonusType })
+    }
+  }, [defaultBonusType, isEdit, form])
 
   const { data: existingBonus } = useQuery({
     queryKey: ['bonus', bonusId],
