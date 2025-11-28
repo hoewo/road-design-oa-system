@@ -37,11 +37,12 @@ type CreateProjectRequest struct {
 
 // UpdateProjectRequest represents the request to update a project
 type UpdateProjectRequest struct {
-	ProjectName     *string               `json:"project_name"`
-	StartDate       *types.Date           `json:"start_date"`
-	ProjectOverview *string               `json:"project_overview"`
-	DrawingUnit     *string               `json:"drawing_unit"`
-	Status          *models.ProjectStatus `json:"status"`
+	ProjectName        *string               `json:"project_name"`
+	StartDate          *types.Date           `json:"start_date"`
+	ProjectOverview    *string               `json:"project_overview"`
+	DrawingUnit        *string               `json:"drawing_unit"`
+	Status             *models.ProjectStatus `json:"status"`
+	ManagementFeeRatio *float64              `json:"management_fee_ratio"` // 管理费比例（可选，nil表示使用公司默认值）
 }
 
 // ListProjectsParams represents parameters for listing projects
@@ -83,17 +84,32 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 		startDate = &t
 	}
 
+	// Get company default management fee ratio at creation time
+	// This value will be fixed for the project and won't change even if company default changes later
+	var managementFeeRatio *float64
+	companyConfigService := NewCompanyConfigService()
+	defaultRatio, err := companyConfigService.GetDefaultManagementFeeRatio()
+	if err == nil {
+		// Set to company default value at creation time (even if 0, it's fixed for this project)
+		// This ensures the project's management fee ratio is fixed at creation and won't change
+		// even if the company default changes later
+		managementFeeRatio = &defaultRatio
+	}
+	// If error occurs (e.g., config not found), managementFeeRatio remains nil
+	// In this case, the project will use the current company default (dynamic behavior)
+
 	// Create project
 	// Note: ClientID is not set during creation - it will be managed in project business information module
 	project := &models.Project{
-		ProjectName:     req.ProjectName,
-		ProjectNumber:   req.ProjectNumber,
-		ProjectOverview: req.ProjectOverview,
-		DrawingUnit:     req.DrawingUnit,
-		Status:          models.StatusPlanning,
-		StartDate:       startDate,
-		ClientID:        nil, // Client information managed in business information module
-		ManagerID:       req.ManagerID,
+		ProjectName:        req.ProjectName,
+		ProjectNumber:      req.ProjectNumber,
+		ProjectOverview:    req.ProjectOverview,
+		DrawingUnit:        req.DrawingUnit,
+		Status:             models.StatusPlanning,
+		StartDate:          startDate,
+		ClientID:           nil, // Client information managed in business information module
+		ManagerID:          req.ManagerID,
+		ManagementFeeRatio: managementFeeRatio, // Set to company default at creation time
 	}
 
 	if err := s.db.Create(project).Error; err != nil {
@@ -185,6 +201,20 @@ func (s *ProjectService) UpdateProject(id uint, req *UpdateProjectRequest) (*mod
 	}
 	if req.Status != nil {
 		updates["status"] = *req.Status
+	}
+
+	// Handle management fee ratio: nil means use company default (set to NULL in DB)
+	if req.ManagementFeeRatio != nil {
+		// Validate ratio range (0-1)
+		if *req.ManagementFeeRatio < 0 || *req.ManagementFeeRatio > 1 {
+			return nil, errors.New("management fee ratio must be between 0 and 1")
+		}
+		updates["management_fee_ratio"] = *req.ManagementFeeRatio
+	} else {
+		// Check if the field is explicitly set to nil (to use company default)
+		// This is handled by the JSON unmarshaling - if field is present and null, it will be nil
+		// We need to explicitly set it to NULL in the database
+		updates["management_fee_ratio"] = nil
 	}
 
 	if err := s.db.Model(&project).Updates(updates).Error; err != nil {

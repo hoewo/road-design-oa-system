@@ -31,6 +31,7 @@ export interface Project {
   status: ProjectStatus
   client_id: number
   manager_id: number
+  management_fee_ratio?: number | null // 管理费比例（可选，null表示使用公司默认值）
   created_at: string
   updated_at: string
 }
@@ -90,6 +91,7 @@ export interface UpdateProjectRequest {
   project_overview?: string
   drawing_unit?: string
   status?: ProjectStatus
+  management_fee_ratio?: number | null // 管理费比例（可选，null表示使用公司默认值）
 }
 
 export interface CreateClientRequest {
@@ -343,6 +345,8 @@ export interface ProjectFinancial {
   total_invoiced: number
   total_paid: number
   total_outstanding: number
+  management_fee_ratio: number
+  management_fee_amount: number
   financial_records: FinancialRecord[]
   fee_type_breakdown: Record<string, FeeTypeFinancial>
 }
@@ -369,6 +373,52 @@ export interface CreateBonusRequest {
   bonus_type: BonusType
   amount: number
   description?: string
+}
+
+// Company Config types
+export interface CompanyConfig {
+  id: number
+  config_key: string
+  config_value: string
+  description?: string
+  created_by_id: number
+  created_by?: User
+  created_at: string
+  updated_at: string
+}
+
+export interface UpdateConfigRequest {
+  value: string
+  description?: string
+}
+
+export interface UpdateManagementFeeRatioRequest {
+  ratio: number // Between 0 and 1 (e.g., 0.15 for 15%)
+  description?: string
+}
+
+// Company Revenue Statistics types
+export interface ProjectRevenueSummary {
+  project_id: number
+  project_name: string
+  project_number: string
+  total_receivable: number
+  total_invoiced: number
+  total_paid: number
+  total_outstanding: number
+  management_fee_ratio: number
+  management_fee_amount: number
+}
+
+export interface CompanyRevenueStatistics {
+  total_projects: number
+  total_receivable: number
+  total_invoiced: number
+  total_paid: number
+  total_outstanding: number
+  total_management_fee: number
+  fee_type_breakdown: Record<string, FeeTypeFinancial>
+  project_breakdown: ProjectRevenueSummary[]
 }
 
 // Production types

@@ -6,6 +6,7 @@ import {
   ArrowLeftOutlined,
   ShopOutlined,
   ToolOutlined,
+  DollarOutlined,
 } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
@@ -93,6 +94,12 @@ const ProjectDetail = () => {
           onClick={() => navigate(`/projects/${project.id}/production`)}
         >
           生产信息管理
+        </Button>
+        <Button
+          icon={<DollarOutlined />}
+          onClick={() => navigate(`/projects/${project.id}/revenue`)}
+        >
+          项目收入信息
         </Button>
       </Space>
 

@@ -6,6 +6,7 @@ import { ContractList } from '@/components/contract/ContractList'
 import { ExpertFeePaymentList } from '@/components/project/ExpertFeePaymentList'
 import { ContractStatistics } from '@/components/contract/ContractStatistics'
 import { FinancialList } from '@/components/financial/FinancialList'
+import { FinancialStatistics } from '@/components/financial/FinancialStatistics'
 import { BonusList } from '@/components/financial/BonusList'
 
 const ProjectBusiness = () => {
@@ -37,6 +38,11 @@ const ProjectBusiness = () => {
       key: 'financial',
       label: '支付信息',
       children: <FinancialList projectId={projectId} />,
+    },
+    {
+      key: 'revenue-statistics',
+      label: '收入统计',
+      children: <FinancialStatistics projectId={projectId} />,
     },
     {
       key: 'bonuses',

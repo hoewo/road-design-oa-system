@@ -16,6 +16,8 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  DollarOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -212,9 +214,27 @@ const ProjectList = () => {
       <Card
         title="项目管理"
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-            新建项目
-          </Button>
+          <Space>
+            <Button
+              icon={<DollarOutlined />}
+              onClick={() => navigate('/company-revenue')}
+            >
+              公司收入统计
+            </Button>
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => navigate('/company-config')}
+            >
+              公司配置
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+            >
+              新建项目
+            </Button>
+          </Space>
         }
       >
         <Space style={{ marginBottom: 16 }}>

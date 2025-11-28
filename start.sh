@@ -370,14 +370,15 @@ start_backend() {
     # 等待编译和启动（Go 程序需要编译和启动时间）
     echo -e "${BLUE}  等待后端服务启动（编译中...）...${NC}"
 
-    local max_wait=20  # 最多等待20秒
+    local max_wait=15  # 最多等待15秒（减少到15秒）
     local wait_count=0
     local backend_pid=""
     local compile_error=false
+    local check_interval=1  # 检查间隔（秒）
 
-    # 循环等待，直到找到进程或超时
+    # 循环等待，直到找到进程并通过健康检查或超时
     while [ ${wait_count} -lt ${max_wait} ]; do
-        sleep 1
+        sleep ${check_interval}
         wait_count=$((wait_count + 1))
 
         # 检查 go run 进程是否还在运行（如果编译失败或运行时错误，go run 进程会退出）
@@ -413,44 +414,58 @@ start_backend() {
         backend_pid=$(find_pid_by_port 8080)
         if [ -n "${backend_pid}" ] && ps -p ${backend_pid} > /dev/null 2>&1; then
             # 验证是否是实际的后端程序（不是 go run 进程）
-            # 通过检查进程的命令行参数来判断
             local process_args=$(ps -p ${backend_pid} -o args= 2>/dev/null)
             # 如果是 go run 或 go-build 进程，跳过
             if echo "${process_args}" | grep -qvE "go run|go-build"; then
                 # 确认是后端程序进程
                 if echo "${process_args}" | grep -qE "cmd/server/main|project-oa-backend|/tmp/go-build"; then
-                    break
+                    # 找到进程后，立即尝试健康检查
+                    if check_port 8080; then
+                        # 使用健康检查端点确认服务真正可用
+                        if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
+                           curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                            # 健康检查通过，服务已就绪
+                            break
+                        fi
+                    fi
                 fi
             fi
         fi
 
         # 如果通过端口找不到，尝试通过进程名查找实际运行的程序
         if [ -z "${backend_pid}" ]; then
-            # 查找所有可能的进程
             local all_pids=$(pgrep -f "cmd/server/main|project-oa-backend" 2>/dev/null)
             for pid in ${all_pids}; do
-                # 排除 go run 进程本身
                 if [ "${pid}" != "${go_run_pid}" ] && ps -p ${pid} > /dev/null 2>&1; then
                     local process_args=$(ps -p ${pid} -o args= 2>/dev/null)
-                    # 确认不是 go run 进程
                     if echo "${process_args}" | grep -qvE "^go run"; then
                         backend_pid=${pid}
-                        break
+                        # 找到进程后立即尝试健康检查
+                        if check_port 8080; then
+                            if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
+                               curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                                break
+                            fi
+                        fi
                     fi
                 fi
             done
-            if [ -n "${backend_pid}" ]; then
-                break
+            if [ -n "${backend_pid}" ] && check_port 8080; then
+                # 再次确认健康检查
+                if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
+                   curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                    break
+                fi
             fi
         fi
 
-        # 每3秒显示一次等待提示
-        if [ $((wait_count % 3)) -eq 0 ]; then
+        # 每2秒显示一次等待提示（更频繁的反馈）
+        if [ $((wait_count % 2)) -eq 0 ] && [ ${wait_count} -gt 0 ]; then
             echo -e "${BLUE}    等待中... (${wait_count}/${max_wait}秒)${NC}"
         fi
     done
 
-    # 如果超时仍未找到进程，检查日志
+    # 如果超时仍未找到进程或健康检查未通过，检查日志
     if [ -z "${backend_pid}" ] || ! ps -p ${backend_pid} > /dev/null 2>&1; then
         echo -e "${RED}  ✗ 后端服务启动失败：无法找到进程（等待超时）${NC}"
         echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
@@ -467,29 +482,38 @@ start_backend() {
         return 1
     fi
 
+    # 最终健康检查确认
+    if ! curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 && \
+       ! curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+        echo -e "${YELLOW}  警告: 后端进程已启动，但健康检查未通过，继续等待...${NC}"
+        # 再等待最多3秒进行健康检查
+        local health_wait=0
+        while [ ${health_wait} -lt 3 ]; do
+            sleep 0.5
+            health_wait=$((health_wait + 1))
+            if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
+               curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                break
+            fi
+        done
+    fi
+
     # 保存 PID 到文件
     echo ${backend_pid} > "${PID_DIR}/backend.pid"
 
-    # 再次验证启动成功（确保端口已监听且进程在运行）
-    local verify_count=0
-    local max_verify=5
-    while [ ${verify_count} -lt ${max_verify} ]; do
-        if check_port 8080 && ps -p ${backend_pid} > /dev/null 2>&1; then
-            echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${backend_pid})${NC}"
-            echo -e "${GREEN}  ✓ 后端地址: http://localhost:8080${NC}"
-            echo -e "    日志文件: ${PROJECT_ROOT}/backend.log"
-            return 0
-        fi
-        sleep 1
-        verify_count=$((verify_count + 1))
-    done
-
-    # 验证失败
-    echo -e "${RED}  ✗ 后端服务启动失败：进程或端口验证失败${NC}"
-    echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
-    show_log_tail "${PROJECT_ROOT}/backend.log" 10
-    rm -f "${PID_DIR}/backend.pid"
-    return 1
+    # 最终验证
+    if check_port 8080 && ps -p ${backend_pid} > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${backend_pid})${NC}"
+        echo -e "${GREEN}  ✓ 后端地址: http://localhost:8080${NC}"
+        echo -e "    日志文件: ${PROJECT_ROOT}/backend.log"
+        return 0
+    else
+        echo -e "${RED}  ✗ 后端服务启动失败：进程或端口验证失败${NC}"
+        echo -e "${RED}    请查看日志: ${PROJECT_ROOT}/backend.log${NC}"
+        show_log_tail "${PROJECT_ROOT}/backend.log" 10
+        rm -f "${PID_DIR}/backend.pid"
+        return 1
+    fi
 }
 
 # 启动前端服务

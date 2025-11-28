@@ -42,6 +42,8 @@ type ProjectFinancial struct {
 	TotalInvoiced       float64                     `json:"total_invoiced"`
 	TotalPaid           float64                     `json:"total_paid"`
 	TotalOutstanding    float64                     `json:"total_outstanding"`
+	ManagementFeeRatio  float64                     `json:"management_fee_ratio"`  // 有效管理费比例（项目级或公司默认）
+	ManagementFeeAmount float64                     `json:"management_fee_amount"` // 计算得出的管理费金额
 	FinancialRecords    []models.FinancialRecord    `json:"financial_records"`
 	FeeTypeBreakdown    map[string]FeeTypeFinancial `json:"fee_type_breakdown"`
 }
@@ -189,12 +191,22 @@ func (s *FinancialService) GetProjectFinancial(projectID uint) (*ProjectFinancia
 		Select("COALESCE(SUM(contract_amount), 0)").
 		Scan(&totalContractAmount)
 
+	// Calculate management fee
+	managementFee, managementFeeRatio, err := s.CalculateManagementFee(projectID)
+	if err != nil {
+		// If calculation fails, set to 0 but don't fail the entire request
+		managementFee = 0.0
+		managementFeeRatio = 0.0
+	}
+
 	return &ProjectFinancial{
 		TotalContractAmount: totalContractAmount,
 		TotalReceivable:     totalReceivable,
 		TotalInvoiced:       totalInvoiced,
 		TotalPaid:           totalPaid,
 		TotalOutstanding:    totalOutstanding,
+		ManagementFeeRatio:  managementFeeRatio,
+		ManagementFeeAmount: managementFee,
 		FinancialRecords:    records,
 		FeeTypeBreakdown:    feeTypeBreakdown,
 	}, nil
@@ -343,4 +355,135 @@ func (s *FinancialService) DeleteFinancialRecord(recordID uint) error {
 	// No need to manually update here as the calculation is done on-the-fly
 
 	return nil
+}
+
+// GetEffectiveManagementFeeRatio retrieves the effective management fee ratio for a project
+// Returns project-specific ratio if set, otherwise returns company default
+func (s *FinancialService) GetEffectiveManagementFeeRatio(projectID uint) (float64, error) {
+	// Get project
+	var project models.Project
+	if err := s.db.First(&project, projectID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0.0, errors.New("project not found")
+		}
+		return 0.0, err
+	}
+
+	// If project has a specific ratio set, use it
+	if project.ManagementFeeRatio != nil {
+		return *project.ManagementFeeRatio, nil
+	}
+
+	// Otherwise, get company default
+	configService := NewCompanyConfigService()
+	return configService.GetDefaultManagementFeeRatio()
+}
+
+// CalculateManagementFee calculates the management fee for a project
+// Formula: ManagementFee = TotalReceivableAmount × ManagementFeeRatio
+func (s *FinancialService) CalculateManagementFee(projectID uint) (float64, float64, error) {
+	// Get total receivable amount for the project (sum of all fee types)
+	var totalReceivable float64
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ?", projectID).
+		Select("COALESCE(SUM(receivable_amount), 0)").
+		Scan(&totalReceivable).Error; err != nil {
+		return 0.0, 0.0, err
+	}
+
+	// Get effective management fee ratio
+	ratio, err := s.GetEffectiveManagementFeeRatio(projectID)
+	if err != nil {
+		return 0.0, 0.0, err
+	}
+
+	// Calculate management fee
+	managementFee := totalReceivable * ratio
+
+	return managementFee, ratio, nil
+}
+
+// CompanyRevenueStatistics represents company-level revenue statistics
+type CompanyRevenueStatistics struct {
+	TotalProjects      int                         `json:"total_projects"`
+	TotalReceivable    float64                     `json:"total_receivable"`
+	TotalInvoiced      float64                     `json:"total_invoiced"`
+	TotalPaid          float64                     `json:"total_paid"`
+	TotalOutstanding   float64                     `json:"total_outstanding"`
+	TotalManagementFee float64                     `json:"total_management_fee"`
+	FeeTypeBreakdown   map[string]FeeTypeFinancial `json:"fee_type_breakdown"`
+	ProjectBreakdown   []ProjectRevenueSummary     `json:"project_breakdown"`
+}
+
+// ProjectRevenueSummary represents revenue summary for a single project
+type ProjectRevenueSummary struct {
+	ProjectID           uint    `json:"project_id"`
+	ProjectName         string  `json:"project_name"`
+	ProjectNumber       string  `json:"project_number"`
+	TotalReceivable     float64 `json:"total_receivable"`
+	TotalInvoiced       float64 `json:"total_invoiced"`
+	TotalPaid           float64 `json:"total_paid"`
+	TotalOutstanding    float64 `json:"total_outstanding"`
+	ManagementFeeRatio  float64 `json:"management_fee_ratio"`
+	ManagementFeeAmount float64 `json:"management_fee_amount"`
+}
+
+// GetCompanyRevenueStatistics retrieves company-level revenue statistics
+// Aggregates financial data from all projects with management fee calculation
+func (s *FinancialService) GetCompanyRevenueStatistics() (*CompanyRevenueStatistics, error) {
+	// Get all projects
+	var projects []models.Project
+	if err := s.db.Find(&projects).Error; err != nil {
+		return nil, err
+	}
+
+	stats := &CompanyRevenueStatistics{
+		TotalProjects:    len(projects),
+		FeeTypeBreakdown: make(map[string]FeeTypeFinancial),
+		ProjectBreakdown: make([]ProjectRevenueSummary, 0),
+	}
+
+	// Aggregate data from all projects
+	for _, project := range projects {
+		projectFinancial, err := s.GetProjectFinancial(project.ID)
+		if err != nil {
+			// Skip projects with errors, but log them
+			continue
+		}
+
+		// Add to totals
+		stats.TotalReceivable += projectFinancial.TotalReceivable
+		stats.TotalInvoiced += projectFinancial.TotalInvoiced
+		stats.TotalPaid += projectFinancial.TotalPaid
+		stats.TotalOutstanding += projectFinancial.TotalOutstanding
+		stats.TotalManagementFee += projectFinancial.ManagementFeeAmount
+
+		// Aggregate by fee type
+		for feeType, breakdown := range projectFinancial.FeeTypeBreakdown {
+			if existing, exists := stats.FeeTypeBreakdown[feeType]; exists {
+				existing.Receivable += breakdown.Receivable
+				existing.Invoiced += breakdown.Invoiced
+				existing.Paid += breakdown.Paid
+				existing.Outstanding += breakdown.Outstanding
+				stats.FeeTypeBreakdown[feeType] = existing
+			} else {
+				stats.FeeTypeBreakdown[feeType] = breakdown
+			}
+		}
+
+		// Add project summary
+		stats.ProjectBreakdown = append(stats.ProjectBreakdown, ProjectRevenueSummary{
+			ProjectID:           project.ID,
+			ProjectName:         project.ProjectName,
+			ProjectNumber:       project.ProjectNumber,
+			TotalReceivable:     projectFinancial.TotalReceivable,
+			TotalInvoiced:       projectFinancial.TotalInvoiced,
+			TotalPaid:           projectFinancial.TotalPaid,
+			TotalOutstanding:    projectFinancial.TotalOutstanding,
+			ManagementFeeRatio:  projectFinancial.ManagementFeeRatio,
+			ManagementFeeAmount: projectFinancial.ManagementFeeAmount,
+		})
+	}
+
+	return stats, nil
 }

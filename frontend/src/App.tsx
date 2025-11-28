@@ -8,6 +8,9 @@ import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
 import ProjectBusiness from './pages/ProjectBusiness'
 import ProjectProduction from './pages/ProjectProduction'
+import ProjectRevenue from './pages/ProjectRevenue'
+import CompanyConfig from './pages/CompanyConfig'
+import CompanyRevenue from './pages/CompanyRevenue'
 import ContractDetail from './components/contract/ContractDetail'
 import './App.css'
 
@@ -76,6 +79,12 @@ function App() {
                     path="/projects/:id/production"
                     element={<ProjectProduction />}
                   />
+                  <Route
+                    path="/projects/:id/revenue"
+                    element={<ProjectRevenue />}
+                  />
+                  <Route path="/company-config" element={<CompanyConfig />} />
+                  <Route path="/company-revenue" element={<CompanyRevenue />} />
                   <Route path="/contracts/:id" element={<ContractDetail />} />
                 </Routes>
               </Content>

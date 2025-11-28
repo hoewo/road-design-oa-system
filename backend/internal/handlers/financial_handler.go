@@ -336,3 +336,22 @@ func (h *FinancialHandler) DeleteFinancialRecord(c *gin.Context) {
 		"message": "Financial record deleted successfully",
 	})
 }
+
+// GetCompanyRevenueStatistics handles retrieving company-level revenue statistics
+// @Summary Get company revenue statistics
+// @Description Get aggregated company-level revenue statistics with management fee calculation
+// @Tags 财务管理
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} services.CompanyRevenueStatistics
+// @Router /company-revenue-statistics [get]
+func (h *FinancialHandler) GetCompanyRevenueStatistics(c *gin.Context) {
+	stats, err := h.financialService.GetCompanyRevenueStatistics()
+	if err != nil {
+		h.logger.Error("Failed to get company revenue statistics", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get company revenue statistics", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
+}

@@ -57,6 +57,7 @@ func Migrate() error {
 		&models.AuditResolution{},
 		&models.ExternalCommission{},
 		&models.ProductionCost{},
+		&models.CompanyConfig{},
 	)
 
 	if err != nil {

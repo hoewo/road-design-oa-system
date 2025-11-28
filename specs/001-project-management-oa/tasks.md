@@ -329,9 +329,44 @@
 
 ### Implementation for User Story 4
 
-- [ ] T091 [US4] Create FinancialDashboard component with company-level fee type breakdown in frontend/src/components/financial/FinancialDashboard.tsx (depends on T090 from US2)
-- [ ] T094 [US4] Add financial reporting and statistics features with company-level revenue aggregation in frontend/src/components/financial/FinancialStatistics.tsx
-- [ ] T094a [US4] Add company-level revenue statistics dashboard in frontend/src/components/financial/CompanyRevenueDashboard.tsx (depends on T094)
+#### Backend: Management Fee Ratio Models and Services
+
+- [X] T132 [P] [US4] Create CompanyConfig model in backend/internal/models/company_config.go with fields: id, config_key (unique), config_value, description, created_by_id, created_at, updated_at
+- [X] T133 [US4] Add ManagementFeeRatio *float64 field to Project model in backend/internal/models/project.go (nullable, NULL means use company default)
+- [X] T134 [P] [US4] Create CompanyConfigService with methods to get/set company default management fee ratio in backend/internal/services/company_config_service.go
+- [X] T135 [US4] Add GetEffectiveManagementFeeRatio method to FinancialService that returns project ratio if set, otherwise company default in backend/internal/services/financial_service.go (depends on T134)
+- [X] T136 [US4] Add CalculateManagementFee method to FinancialService that calculates: ManagementFee = TotalReceivableAmount × ManagementFeeRatio in backend/internal/services/financial_service.go (depends on T135)
+
+#### Backend: Company Configuration API
+
+- [X] T137 [US4] Create CompanyConfigHandler with GET and PUT endpoints for company configuration in backend/internal/handlers/company_config_handler.go (depends on T134)
+- [X] T138 [US4] Add GET /api/v1/company-config endpoint to retrieve company configuration in backend/internal/handlers/company_config_handler.go (depends on T137)
+- [X] T139 [US4] Add PUT /api/v1/company-config/{key} endpoint to update company configuration (finance/admin only) in backend/internal/handlers/company_config_handler.go (depends on T137)
+- [X] T140 [US4] Update FinancialService.GetProjectFinancial to include management fee calculation in backend/internal/services/financial_service.go (depends on T136)
+- [X] T141 [US4] Add company-level revenue statistics endpoint that aggregates all projects with management fee calculation in backend/internal/handlers/financial_handler.go (depends on T136, T140)
+
+#### Frontend: Company Configuration Management
+
+- [X] T142 [P] [US4] Create CompanyConfigService API client functions in frontend/src/services/company_config.ts
+- [X] T143 [P] [US4] Create CompanyConfigForm component for setting default management fee ratio in frontend/src/components/financial/CompanyConfigForm.tsx
+- [X] T144 [US4] Create CompanyConfigPage for company configuration management (finance/admin only) in frontend/src/pages/CompanyConfig.tsx (depends on T143)
+- [X] T145 [US4] Add management fee ratio field to project financial form with "Use company default" option in frontend/src/components/financial/FinancialList.tsx (depends on T090 from US2)
+
+#### Frontend: Financial Statistics with Management Fee
+
+- [X] T146 [US4] Update FinancialList component to display management fee ratio and calculated management fee in frontend/src/components/financial/FinancialList.tsx (depends on T091, T140)
+- [X] T147 [US4] Create FinancialStatistics component to include management fee in company-level revenue aggregation in frontend/src/components/financial/FinancialStatistics.tsx (depends on T141)
+- [X] T148 [US4] Create CompanyRevenueDashboard to show management fee breakdown by project and fee type in frontend/src/components/financial/CompanyRevenueDashboard.tsx (depends on T147)
+- [X] T149 [US4] Fee type filtering and grouping already exists in FinancialList component and is properly integrated in frontend/src/components/financial/FinancialList.tsx
+- [X] T150 [US4] Create CompanyRevenue page component that uses CompanyRevenueDashboard in frontend/src/pages/CompanyRevenue.tsx (depends on T148)
+- [X] T151 [US4] Add route for company revenue page in frontend/src/App.tsx (depends on T150)
+- [X] T152 [US4] Add navigation entry/link to company revenue page in ProjectList or header navigation (depends on T151)
+- [X] T153 [US4] Update CreateProject to automatically set management_fee_ratio to company default value at creation time in backend/internal/services/project_service.go (depends on T134)
+- [X] T154 [US4] Add project-level revenue statistics tab in ProjectBusiness page using FinancialStatistics component in frontend/src/pages/ProjectBusiness.tsx (depends on T147)
+- [X] T155 [US4] Add company revenue statistics navigation button in ProjectDetail page in frontend/src/pages/ProjectDetail.tsx (depends on T151)
+- [X] T156 [US4] Create ProjectRevenue page component that shows project-level revenue statistics and management fee ratio configuration in frontend/src/pages/ProjectRevenue.tsx (depends on T147, T145)
+- [X] T157 [US4] Add route for project revenue page in frontend/src/App.tsx (depends on T156)
+- [X] T158 [US4] Update ProjectDetail page to link to project revenue page instead of company revenue page in frontend/src/pages/ProjectDetail.tsx (depends on T157)
 
 ---
 
@@ -458,12 +493,12 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 
 ## Task Summary
 
-- **总任务数**: 240个任务 (新增33个需求优化任务)
+- **总任务数**: 258个任务 (新增18个管理费比例管理任务)
 - **Foundational阶段任务数**: 18个任务 (T007-T016 + T008a-T008b) - 新增文件管理基础能力层
 - **用户故事1任务数**: 42个任务 (T017-T044 + T042a-T042e, T043a, T044a-T044b, T033a, T038a-T038b, T029a-T029c, T032a, T041a) - 已移除项目创建表单中的甲方相关任务
 - **用户故事2任务数**: 113个任务 (T045-T067, T080-T084, T085-T093, T120-T131b + T053a-T053d, T054a-T054c, T055a-T055b, T057a-T057b, T059a-T059h, T060, T062a-T062e, T063a-T063b, T064a, T066a-T066b, T067a-T067f, T085a, T087a-T087b, T088a-T088b, T090a, T091, T092a-T092d) - 新增专家费支付、合同补充协议、经营负责人/人员、一人多角色支持、合同文件管理（使用file_service）、甲方支付信息、经营奖金、需求优化功能（用户管理集成、表单简化、编辑删除功能）
 - **用户故事3任务数**: 18个任务 (T068-T079 + T079a-T079f) - 新增生产文件管理（使用file_service）
-- **用户故事4任务数**: 7个任务 (T080-T084, T091, T094, T094a) - 更新为公司收入信息管理，仅包含公司级别统计功能
+- **用户故事4任务数**: 25个任务 (T080-T084, T091, T094, T094a, T132-T149) - 更新为公司收入信息管理，包含管理费比例管理、公司级别统计功能
 - **Polish阶段任务数**: 12个任务 (T108-T119) - 保持不变
 - **并行机会**: 所有标记[P]的任务可以并行执行
 - **独立测试标准**: 每个用户故事都有明确的独立测试标准
@@ -471,6 +506,14 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 - **格式验证**: 所有任务都遵循检查清单格式 (checkbox, ID, labels, file paths)
 
 ## New Requirements Added (2025-01-28, 2025-11-19, 2025-01-27)
+
+### Management Fee Ratio Management (2025-01-28):
+- **CompanyConfig模型**: 新增CompanyConfig实体用于存储公司级别默认配置，包括默认管理费比例 (T132)
+- **Project模型增强**: 添加management_fee_ratio字段，支持项目级别覆盖公司默认值 (T133)
+- **管理费计算服务**: 实现管理费计算逻辑（项目总应收金额 × 管理费比例）(T135, T136)
+- **公司配置管理**: 新增公司配置管理API和前端页面，支持财务/管理员设置默认管理费比例 (T137-T139, T142-T144)
+- **项目财务集成**: 在项目财务表单中添加管理费比例设置，支持使用公司默认或项目自定义 (T145)
+- **财务统计增强**: 在财务统计和报表中包含管理费计算和显示 (T140, T141, T146-T148)
 
 ### Business Information Requirements Optimization (2025-01-27):
 - **用户管理集成**: 在经营负责人和经营人员下拉菜单中支持新建和编辑人员 (T120-T121c)
@@ -510,9 +553,17 @@ Task: "Create API service functions in frontend/src/services/auth.ts"
 - **甲方支付信息**: 按费用类型分别记录应收金额、开票时间、开票金额、支付时间、支付金额、未收金额 (T085, T085a, T087, T087a-T087b, T088, T088a-T088b, T089, T090, T090a, T091, T093)
 - **经营奖金**: Bonus实体支持business类型，经营奖金管理 (T086, T092, T092a-T092d, T093)
 
-### User Story 4 Enhancements (2025-11-19):
+### User Story 4 Enhancements (2025-11-19, 2025-01-28):
 - **重命名为公司收入信息管理**: 从"财务信息管理与统计"改为"公司收入信息管理"，强调公司级别统计 (Phase 6标题更新)
 - **公司级别收入统计**: 新增公司级别收入统计和报表功能 (T091, T094, T094a)
+- **管理费比例管理** (2025-01-28): 
+  - 新增CompanyConfig模型和CompanyConfigService (T132, T134)
+  - Project模型添加management_fee_ratio字段 (T133)
+  - 管理费计算逻辑：管理费 = 项目总应收金额 × 管理费比例 (T135, T136)
+  - 公司配置管理API端点 (T137-T139)
+  - 公司配置管理前端页面 (T142-T144)
+  - 项目财务表单中的管理费比例设置 (T145)
+  - 财务统计中包含管理费显示 (T146-T148)
 - **注意**: 项目级别的支付信息和经营奖金已移至User Story 2
 
 ### Architecture Changes (2025-11-19):

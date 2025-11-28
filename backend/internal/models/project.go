@@ -18,13 +18,14 @@ const (
 )
 
 type Project struct {
-	ID              uint          `json:"id" gorm:"primaryKey"`
-	ProjectName     string        `json:"project_name" gorm:"not null"`
-	ProjectNumber   string        `json:"project_number" gorm:"uniqueIndex;not null"`
-	StartDate       *time.Time    `json:"start_date"`
-	ProjectOverview string        `json:"project_overview" gorm:"type:text"`
-	DrawingUnit     string        `json:"drawing_unit"`
-	Status          ProjectStatus `json:"status" gorm:"default:'planning'"`
+	ID                 uint          `json:"id" gorm:"primaryKey"`
+	ProjectName        string        `json:"project_name" gorm:"not null"`
+	ProjectNumber      string        `json:"project_number" gorm:"uniqueIndex;not null"`
+	StartDate          *time.Time    `json:"start_date"`
+	ProjectOverview    string        `json:"project_overview" gorm:"type:text"`
+	DrawingUnit        string        `json:"drawing_unit"`
+	Status             ProjectStatus `json:"status" gorm:"default:'planning'"`
+	ManagementFeeRatio *float64      `json:"management_fee_ratio"` // 管理费比例（可选，NULL表示使用公司默认值）
 
 	// 关联关系
 	ClientID *uint   `json:"client_id"`

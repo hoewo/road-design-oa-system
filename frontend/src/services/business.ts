@@ -18,6 +18,7 @@ import type {
   ProjectFinancial,
   Bonus,
   CreateBonusRequest,
+  CompanyRevenueStatistics,
 } from '@/types'
 
 export const businessService = {
@@ -309,5 +310,13 @@ export const businessService = {
 
   deleteBonus: async (bonusId: number): Promise<void> => {
     await del(`/bonuses/${bonusId}`)
+  },
+
+  // Company revenue statistics
+  getCompanyRevenueStatistics: async (): Promise<CompanyRevenueStatistics> => {
+    const response = await get<CompanyRevenueStatistics>(
+      '/company-revenue-statistics'
+    )
+    return response
   },
 }

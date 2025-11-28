@@ -100,6 +100,7 @@ func main() {
 	financialHandler := handlers.NewFinancialHandler(logger)
 	bonusHandler := handlers.NewBonusHandler(logger)
 	userHandler := handlers.NewUserHandler(logger)
+	companyConfigHandler := handlers.NewCompanyConfigHandler(logger)
 
 	// API routes
 	api := router.Group("/api/v1")
@@ -245,6 +246,19 @@ func main() {
 				users.POST("", userHandler.CreateUser)
 				users.PUT("/:id", userHandler.UpdateUser)
 			}
+
+			// Company configuration routes
+			companyConfig := protected.Group("/company-config")
+			{
+				companyConfig.GET("", companyConfigHandler.GetAllConfigs)
+				companyConfig.GET("/:key", companyConfigHandler.GetConfig)
+				companyConfig.PUT("/:key", companyConfigHandler.UpdateConfig)
+				companyConfig.GET("/default-management-fee-ratio", companyConfigHandler.GetDefaultManagementFeeRatio)
+				companyConfig.PUT("/default-management-fee-ratio", companyConfigHandler.UpdateDefaultManagementFeeRatio)
+			}
+
+			// Company revenue statistics route
+			protected.GET("/company-revenue-statistics", financialHandler.GetCompanyRevenueStatistics)
 
 			projectMembers := protected.Group("/project-members")
 			{

@@ -12,13 +12,26 @@ import {
   Col,
   Popconfirm,
   message,
+  Form,
+  InputNumber,
+  Switch,
+  Typography,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  SettingOutlined,
+} from '@ant-design/icons'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
+import { projectService } from '@/services/project'
+import { companyConfigService } from '@/services/company_config'
 import { FinancialForm } from './FinancialForm'
 import type { FeeType, FinancialRecord } from '@/types'
 import dayjs from 'dayjs'
+
+const { Text } = Typography
 
 interface FinancialListProps {
   projectId: number
@@ -31,7 +44,23 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
     null
   )
   const [feeTypeFilter, setFeeTypeFilter] = useState<FeeType | 'all'>('all')
+  const [managementFeeModalVisible, setManagementFeeModalVisible] =
+    useState(false)
+  const [managementFeeForm] = Form.useForm()
   const queryClient = useQueryClient()
+
+  // Get project data to check current management fee ratio
+  const { data: project } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => projectService.getProject(projectId),
+    enabled: !!projectId,
+  })
+
+  // Get company default management fee ratio
+  const { data: companyDefaultRatio } = useQuery({
+    queryKey: ['defaultManagementFeeRatio'],
+    queryFn: () => companyConfigService.getDefaultManagementFeeRatio(),
+  })
 
   const { data: financial, isLoading } = useQuery({
     queryKey: ['projectFinancial', projectId],
@@ -86,6 +115,44 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
     setEditModalVisible(false)
     setEditingRecord(null)
     queryClient.invalidateQueries({ queryKey: ['projectFinancial', projectId] })
+  }
+
+  // Management fee ratio update mutation
+  const updateManagementFeeRatioMutation = useMutation({
+    mutationFn: (data: { management_fee_ratio: number | null }) =>
+      projectService.updateProject(projectId, data),
+    onSuccess: () => {
+      message.success('管理费比例更新成功')
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+      queryClient.invalidateQueries({
+        queryKey: ['projectFinancial', projectId],
+      })
+      setManagementFeeModalVisible(false)
+      managementFeeForm.resetFields()
+    },
+    onError: (error: any) => {
+      message.error(error.message || '更新失败')
+    },
+  })
+
+  const handleManagementFeeSetting = () => {
+    const currentRatio = project?.management_fee_ratio
+    const useCompanyDefault =
+      currentRatio === null || currentRatio === undefined
+    managementFeeForm.setFieldsValue({
+      useCompanyDefault,
+      ratio: useCompanyDefault ? companyDefaultRatio || 0 : currentRatio || 0,
+    })
+    setManagementFeeModalVisible(true)
+  }
+
+  const handleManagementFeeSubmit = (values: {
+    useCompanyDefault: boolean
+    ratio?: number
+  }) => {
+    updateManagementFeeRatioMutation.mutate({
+      management_fee_ratio: values.useCompanyDefault ? null : values.ratio || 0,
+    })
   }
 
   const feeTypeMap: Record<FeeType, { text: string; color: string }> = {
@@ -207,7 +274,7 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
     <>
       <Card style={{ marginBottom: 16 }}>
         <Row gutter={16}>
-          <Col span={6}>
+          <Col span={5}>
             <Statistic
               title="总应收金额"
               value={financial?.total_receivable || 0}
@@ -215,7 +282,7 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
               precision={2}
             />
           </Col>
-          <Col span={6}>
+          <Col span={5}>
             <Statistic
               title="总开票金额"
               value={financial?.total_invoiced || 0}
@@ -223,7 +290,7 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
               precision={2}
             />
           </Col>
-          <Col span={6}>
+          <Col span={5}>
             <Statistic
               title="总支付金额"
               value={financial?.total_paid || 0}
@@ -231,7 +298,7 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
               precision={2}
             />
           </Col>
-          <Col span={6}>
+          <Col span={5}>
             <Statistic
               title="总未收金额"
               value={financial?.total_outstanding || 0}
@@ -244,6 +311,26 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
                     : '#52c41a',
               }}
             />
+          </Col>
+          <Col span={4}>
+            <Statistic
+              title="管理费"
+              value={financial?.management_fee_amount || 0}
+              prefix="¥"
+              precision={2}
+              suffix={
+                <Button
+                  type="link"
+                  size="small"
+                  icon={<SettingOutlined />}
+                  onClick={handleManagementFeeSetting}
+                  style={{ padding: 0, marginLeft: 4 }}
+                />
+              }
+            />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              比例: {(financial?.management_fee_ratio || 0) * 100}%
+            </Text>
           </Col>
         </Row>
       </Card>
@@ -308,6 +395,94 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
             onCancel={handleEditModalClose}
           />
         )}
+      </Modal>
+
+      <Modal
+        title="设置管理费比例"
+        open={managementFeeModalVisible}
+        onCancel={() => {
+          setManagementFeeModalVisible(false)
+          managementFeeForm.resetFields()
+        }}
+        onOk={() => managementFeeForm.submit()}
+        confirmLoading={updateManagementFeeRatioMutation.isPending}
+        width={500}
+      >
+        <Form
+          form={managementFeeForm}
+          layout="vertical"
+          onFinish={handleManagementFeeSubmit}
+        >
+          <Form.Item
+            name="useCompanyDefault"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Switch
+              checkedChildren="使用公司默认"
+              unCheckedChildren="项目自定义"
+            />
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues.useCompanyDefault !== currentValues.useCompanyDefault
+            }
+          >
+            {({ getFieldValue }) => {
+              const useCompanyDefault = getFieldValue('useCompanyDefault')
+              if (useCompanyDefault) {
+                return (
+                  <div style={{ marginTop: 16 }}>
+                    <Text type="secondary">
+                      当前使用公司默认值：
+                      {companyDefaultRatio !== undefined
+                        ? `${(companyDefaultRatio * 100).toFixed(2)}%`
+                        : '未设置'}
+                    </Text>
+                  </div>
+                )
+              }
+              return (
+                <Form.Item
+                  label="项目管理费比例"
+                  name="ratio"
+                  rules={[
+                    { required: true, message: '请输入管理费比例' },
+                    {
+                      type: 'number',
+                      min: 0,
+                      max: 1,
+                      message: '管理费比例必须在 0 到 1 之间',
+                    },
+                  ]}
+                  tooltip="输入 0-1 之间的数值，例如 0.15 表示 15%"
+                >
+                  <InputNumber
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    precision={4}
+                    style={{ width: '100%' }}
+                    placeholder="例如：0.15 (15%)"
+                    formatter={(value) => {
+                      if (!value) return ''
+                      const num = parseFloat(value.toString())
+                      return `${(num * 100).toFixed(2)}%`
+                    }}
+                    parser={(value) => {
+                      if (!value) return 0
+                      const num = parseFloat(value.replace('%', ''))
+                      const result = num / 100
+                      return (isNaN(result) ? 0 : result) as any
+                    }}
+                  />
+                </Form.Item>
+              )
+            }}
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   )

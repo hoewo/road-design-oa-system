@@ -13,11 +13,7 @@ import {
 import { useEffect } from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
-import type {
-  CreateFinancialRecordRequest,
-  FinancialType,
-  FeeType,
-} from '@/types'
+import type { CreateFinancialRecordRequest } from '@/types'
 import dayjs from 'dayjs'
 
 const { Option } = Select

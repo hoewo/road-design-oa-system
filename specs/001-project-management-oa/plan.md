@@ -1,6 +1,6 @@
 # Implementation Plan: 项目管理OA系统
 
-**Branch**: `001-project-management-oa` | **Date**: 2025-01-27 | **Last Updated**: 2025-11-22 | **Spec**: [spec.md](./spec.md)
+**Branch**: `001-project-management-oa` | **Date**: 2025-01-27 | **Last Updated**: 2025-01-28 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/001-project-management-oa/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
@@ -443,7 +443,7 @@ Based on user story restructuring and separation of concerns:
 
 上述新增实体需更新 data-model.md，并在 tasks.md 中拆解对应的后端/前端任务。
 
-### Company Revenue Information Management (Updated 2025-11-19)
+### Company Revenue Information Management (Updated 2025-11-19, 2025-01-28)
 
 1. **User Story 4 Renamed**: From "财务信息管理与统计" to "公司收入信息管理" (Company Revenue Information Management)
 2. **Focus Shift**: Emphasis on company-level revenue statistics and financial tracking
@@ -453,6 +453,69 @@ Based on user story restructuring and separation of concerns:
    - Bonus allocation (business and production bonuses)
    - Company-level revenue statistics and reporting
 4. **Rationale**: Clarifies that this module focuses on company-wide financial overview rather than project-level financial details
+
+### Management Fee Ratio Design (Updated 2025-01-28)
+
+Based on clarification session (2025-01-28):
+
+1. **Management Fee Ratio Storage Structure**:
+   - **Decision**: Two-level storage - CompanyConfig table for company default, Project table for project-level override
+   - **CompanyConfig Table** (NEW):
+     - Fields: `id`, `config_key` (e.g., "default_management_fee_ratio"), `config_value` (float64), `description`, `created_at`, `updated_at`
+     - Purpose: Store company-wide default management fee ratio
+     - Access: Only finance/admin users can modify
+   - **Project Table Enhancement**:
+     - Add field: `management_fee_ratio *float64` (nullable, allows NULL to use company default)
+     - Logic: If NULL, use company default; if set, use project-specific value
+     - Rationale: Provides flexibility for projects that need different fee ratios while maintaining company-wide defaults
+   - **Implementation**: 
+     - Create `CompanyConfig` model in `backend/internal/models/company_config.go`
+     - Add `ManagementFeeRatio *float64` field to `Project` model
+     - Create migration to add field and create table
+     - Add service methods to get effective management fee ratio (project value or company default)
+
+2. **Management Fee Calculation Logic**:
+   - **Base**: Management fee = Project Total Receivable Amount (sum of all fee types) × Management Fee Ratio
+   - **Calculation Method**: 
+     - Step 1: Sum all `ReceivableAmount` from FinancialRecords for the project (across all fee types: design_fee, survey_fee, consultation_fee)
+     - Step 2: Get effective management fee ratio (project value if set, otherwise company default)
+     - Step 3: Calculate: `ManagementFee = TotalReceivableAmount × ManagementFeeRatio`
+   - **Unified Ratio**: Single ratio applied to total project receivable, NOT calculated per fee type or per record
+   - **Rationale**: Simplifies management and aligns with business practice of applying management fee to total project revenue
+   - **Implementation**: Add calculation method in `FinancialService` that:
+     - Aggregates total receivable amount per project
+     - Retrieves effective management fee ratio
+     - Calculates and returns management fee amount
+
+3. **Receivable Amount Display by Fee Type**:
+   - **Requirement**: Display receivable amounts separately by fee type (design_fee, survey_fee, consultation_fee)
+   - **Decision**: 
+     - Financial record list shows fee type column with clear labels
+     - Statistics and reports support filtering and grouping by fee type
+     - Company-level statistics show breakdown by fee type
+   - **Implementation**:
+     - Frontend: Add fee type filter and grouping in FinancialList component
+     - Backend: Enhance `GetProjectFinancial` to return `FeeTypeBreakdown` (already exists)
+     - Reports: Include fee type breakdown in company revenue statistics
+   - **Rationale**: Enables detailed financial tracking and analysis by fee type
+
+4. **Management Fee Ratio Configuration**:
+   - **Company Level**: 
+     - Finance/admin users can set default management fee ratio in company configuration
+     - Stored in CompanyConfig table
+     - Applies to all projects that don't have project-specific ratio
+   - **Project Level**:
+     - Projects default to company ratio (NULL in Project.management_fee_ratio means use company default)
+     - Finance users can override at project level
+     - When project ratio is set, it overrides company default for that project only
+   - **UI Flow**:
+     - Company configuration page: Set default management fee ratio
+     - Project financial page: Show current effective ratio, allow override
+     - Display: Show "Using company default (X%)" or "Project-specific (X%)"
+   - **Implementation**:
+     - Add company configuration management endpoints
+     - Add project-level management fee ratio field in project financial form
+     - Update financial statistics to use effective ratio in calculations
 
 ### Business Information Requirements Optimization (Updated 2025-11-22)
 

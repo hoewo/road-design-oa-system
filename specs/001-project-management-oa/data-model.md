@@ -18,6 +18,7 @@
 8. **File** - 文件实体
 9. **FinancialRecord** - 财务记录实体
 10. **Bonus** - 奖金实体
+11. **CompanyConfig** - 公司配置实体（新增，2025-01-28）
 
 ## Detailed Entity Models
 
@@ -67,6 +68,7 @@ type Project struct {
     ProjectOverview string    `json:"project_overview" gorm:"type:text"`
     DrawingUnit     string    `json:"drawing_unit"`
     Status          ProjectStatus `json:"status" gorm:"default:'planning'"`
+    ManagementFeeRatio *float64 `json:"management_fee_ratio"` // 管理费比例（可选，NULL表示使用公司默认值）
     
     // 关联关系
     ClientID        uint      `json:"client_id"`
@@ -419,6 +421,32 @@ const (
 **Validation Rules**:
 - Amount: 大于等于0的数值
 - 同一用户同一项目同一类型奖金只能有一条记录
+
+### 10. CompanyConfig (公司配置) (新增 2025-01-28)
+
+```go
+type CompanyConfig struct {
+    ID          uint      `json:"id" gorm:"primaryKey"`
+    ConfigKey   string    `json:"config_key" gorm:"uniqueIndex;not null"` // 配置键（如：default_management_fee_ratio）
+    ConfigValue string    `json:"config_value" gorm:"not null"` // 配置值（JSON字符串或简单值）
+    Description string    `json:"description" gorm:"type:text"` // 配置说明
+    CreatedByID uint      `json:"created_by_id" gorm:"not null"`
+    CreatedBy   User      `json:"created_by" gorm:"foreignKey:CreatedByID"`
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+}
+```
+
+**Validation Rules**:
+- ConfigKey: 唯一，不能为空
+- ConfigValue: 不能为空
+- 常用配置键：
+  - `default_management_fee_ratio`: 默认管理费比例（float64，范围0-1，如0.15表示15%）
+
+**Usage**:
+- 存储公司级别的默认配置信息
+- 管理费比例：如果Project.management_fee_ratio为NULL，则使用CompanyConfig中default_management_fee_ratio的值
+- 只有财务人员和管理员可以修改公司配置
 
 ## Database Schema
 
