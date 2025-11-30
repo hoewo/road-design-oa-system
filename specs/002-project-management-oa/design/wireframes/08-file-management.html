@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理页面 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .navbar { border: 2px dashed #999; padding: 15px; margin-bottom: 20px; background: #f0f0f0; }
+        .navbar-item { display: inline-block; margin-right: 20px; padding: 8px 16px; border: 1px solid #333; cursor: pointer; }
+        .navbar-item.active { background: #333; color: white; }
+        .toolbar { border: 2px dashed #999; padding: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .filter-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .search-box { padding: 8px 12px; border: 2px solid #ccc; width: 300px; }
+        .select { padding: 8px 12px; border: 2px solid #ccc; }
+        .button { padding: 8px 16px; border: 2px solid #333; background: #fff; cursor: pointer; }
+        .button-primary { background: #333; color: white; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .table th, .table td { border: 1px solid #ccc; padding: 12px; text-align: left; }
+        .table th { background: #f0f0f0; font-weight: bold; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .file-icon { display: inline-block; width: 20px; height: 20px; background: #ccc; margin-right: 8px; vertical-align: middle; }
+        .pagination { margin-top: 20px; text-align: center; }
+        .pagination button { padding: 8px 12px; margin: 0 5px; border: 1px solid #ccc; background: white; cursor: pointer; }
+        .pagination button.active { background: #333; color: white; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>文件管理页面 - 线框图</h1>
+        </div>
+
+        <!-- 正常状态 -->
+        <div class="container">
+            <h2>正常状态 - 有文件数据</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div class="filter-group">
+                    <input type="text" class="search-box" placeholder="搜索文件名..." />
+                    <select class="select">
+                        <option>全部项目</option>
+                        <option>XX道路改造工程</option>
+                        <option>YY桥梁设计项目</option>
+                    </select>
+                    <select class="select">
+                        <option>全部类型</option>
+                        <option>合同文件</option>
+                        <option>生产文件</option>
+                        <option>发票文件</option>
+                        <option>其他</option>
+                    </select>
+                    <input type="date" class="select" placeholder="开始日期" />
+                    <input type="date" class="select" placeholder="结束日期" />
+                    <button class="button button-primary">搜索</button>
+                    <button class="button">重置</button>
+                </div>
+                <div>
+                    <button class="button button-primary">+ 上传文件</button>
+                </div>
+            </div>
+
+            <!-- 文件列表 -->
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>项目名称</th>
+                        <th>文件类型</th>
+                        <th>文件大小</th>
+                        <th>上传时间</th>
+                        <th>上传人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">合同文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>合同文件</td>
+                        <td>2.5MB</td>
+                        <td>2024-01-25 10:30</td>
+                        <td>张三</td>
+                        <td>
+                            <span class="link">下载</span> | 
+                            <span class="link">删除</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">方案文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>生产文件</td>
+                        <td>5.5MB</td>
+                        <td>2024-02-20 14:20</td>
+                        <td>李四</td>
+                        <td>
+                            <span class="link">下载</span> | 
+                            <span class="link">删除</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">发票1.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>发票文件</td>
+                        <td>1.2MB</td>
+                        <td>2024-02-18 09:15</td>
+                        <td>张三</td>
+                        <td>
+                            <span class="link">下载</span> | 
+                            <span class="link">删除</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">投标文件.pdf</span>
+                        </td>
+                        <td>YY桥梁设计项目</td>
+                        <td>其他</td>
+                        <td>5.2MB</td>
+                        <td>2024-01-15 16:45</td>
+                        <td>王五</td>
+                        <td>
+                            <span class="link">下载</span> | 
+                            <span class="link">删除</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 分页 -->
+            <div class="pagination">
+                <button>上一页</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>下一页</button>
+                <span style="margin-left: 20px;">共 35 条，每页 10 条</span>
+            </div>
+        </div>
+
+        <!-- 上传文件弹窗/区域 -->
+        <div class="container">
+            <h2>上传文件</h2>
+            
+            <div class="upload-area">
+                <div style="font-size: 48px; margin-bottom: 20px;">📁</div>
+                <div style="margin-bottom: 15px;">
+                    <button class="button button-primary">选择文件</button>
+                    <span style="margin-left: 10px; color: #666;">或拖拽文件到此处</span>
+                </div>
+                <div style="color: #999; font-size: 12px;">
+                    支持 PDF、Word、Excel、图片等格式，单个文件最大 100MB
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label class="label">关联项目</label>
+                    <select class="select" style="width: 300px;">
+                        <option>请选择项目</option>
+                        <option>XX道路改造工程</option>
+                        <option>YY桥梁设计项目</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label class="label">文件类型</label>
+                    <select class="select" style="width: 300px;">
+                        <option>请选择文件类型</option>
+                        <option>合同文件</option>
+                        <option>生产文件</option>
+                        <option>发票文件</option>
+                        <option>其他</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="button">取消</button>
+                    <button class="button button-primary">上传</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="container">
+            <h2>空状态 - 无文件数据</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <input type="text" class="search-box" placeholder="搜索文件名..." />
+                    <button class="button button-primary">搜索</button>
+                    <button class="button">重置</button>
+                </div>
+                <div>
+                    <button class="button button-primary">+ 上传文件</button>
+                </div>
+            </div>
+
+            <div class="empty-state">
+                <div style="font-size: 48px; margin-bottom: 20px;">📁</div>
+                <h3>未找到匹配的文件</h3>
+                <p style="margin-top: 10px;">请修改搜索条件或上传新文件</p>
+            </div>
+        </div>
+
+        <!-- 错误状态 - 文件过大 -->
+        <div class="container">
+            <h2>错误状态 - 文件大小超过限制</h2>
+            
+            <div class="upload-area" style="border-color: red; background: #ffe0e0;">
+                <div style="color: red; font-weight: bold; margin-bottom: 10px;">⚠️ 上传失败</div>
+                <div style="color: red;">文件大小超过限制（最大100MB），请压缩文件或选择较小的文件</div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 支持按项目、文件类型、上传时间进行搜索和筛选<br>
+            - 文件列表显示文件名、项目、类型、大小、上传时间、上传人等信息<br>
+            - 支持文件下载和删除操作<br>
+            - 上传文件时需选择关联项目和文件类型<br>
+            - 单个文件最大100MB，支持常见文档格式<br>
+            - 文件上传失败时显示错误提示<br>
+            - 搜索无结果时显示空状态提示<br>
+            - 支持分页显示，每页10条记录
+        </div>
+    </div>
+</body>
+</html>
+

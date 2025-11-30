@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录页面 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 40px; margin: 20px 0; }
+        .form-group { margin: 20px 0; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 4px; }
+        .required { color: red; }
+        .button { padding: 12px 24px; border: 2px solid #333; background: #fff; cursor: pointer; margin: 10px 5px; }
+        .button-primary { background: #333; color: white; }
+        .error { color: red; margin-top: 10px; padding: 10px; border: 2px dashed red; background: #ffe0e0; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>登录页面 - 线框图</h1>
+        </div>
+
+        <!-- 正常状态 -->
+        <div class="container">
+            <h2>正常状态</h2>
+            <div style="max-width: 400px; margin: 0 auto;">
+                <h3 style="text-align: center; margin-bottom: 30px;">道路设计公司项目管理系统</h3>
+                
+                <div class="form-group">
+                    <label class="label">用户名 <span class="required">*</span></label>
+                    <input type="text" class="input" placeholder="请输入用户名" />
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">密码 <span class="required">*</span></label>
+                    <input type="password" class="input" placeholder="请输入密码" />
+                </div>
+                
+                <div class="form-group">
+                    <button class="button button-primary" style="width: 100%;">登录</button>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="link">注册新账号</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 -->
+        <div class="container">
+            <h2>错误状态 - 登录失败</h2>
+            <div style="max-width: 400px; margin: 0 auto;">
+                <h3 style="text-align: center; margin-bottom: 30px;">道路设计公司项目管理系统</h3>
+                
+                <div class="error">
+                    用户名或密码错误，请重新输入
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">用户名 <span class="required">*</span></label>
+                    <input type="text" class="input" placeholder="请输入用户名" value="错误的用户名" />
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">密码 <span class="required">*</span></label>
+                    <input type="password" class="input" placeholder="请输入密码" />
+                </div>
+                
+                <div class="form-group">
+                    <button class="button button-primary" style="width: 100%;">登录</button>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px;">
+                    <span class="link">注册新账号</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div class="container">
+            <h2>加载状态 - 登录中</h2>
+            <div style="max-width: 400px; margin: 0 auto;">
+                <h3 style="text-align: center; margin-bottom: 30px;">道路设计公司项目管理系统</h3>
+                
+                <div class="form-group">
+                    <label class="label">用户名 <span class="required">*</span></label>
+                    <input type="text" class="input" placeholder="请输入用户名" disabled />
+                </div>
+                
+                <div class="form-group">
+                    <label class="label">密码 <span class="required">*</span></label>
+                    <input type="password" class="input" placeholder="请输入密码" disabled />
+                </div>
+                
+                <div class="form-group">
+                    <button class="button button-primary" style="width: 100%;" disabled>登录中...</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 登录表单居中显示，最大宽度400px<br>
+            - 用户名和密码为必填项，标注红色星号<br>
+            - 支持注册新账号链接<br>
+            - 登录失败时显示错误提示信息<br>
+            - 登录过程中禁用表单和按钮，显示"登录中..."状态
+        </div>
+    </div>
+</body>
+</html>
+

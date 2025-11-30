@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目详情 - 基本信息 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .navbar { border: 2px dashed #999; padding: 15px; margin-bottom: 20px; background: #f0f0f0; }
+        .navbar-item { display: inline-block; margin-right: 20px; padding: 8px 16px; border: 1px solid #333; cursor: pointer; }
+        .navbar-item.active { background: #333; color: white; }
+        .breadcrumb { margin-bottom: 20px; color: #666; }
+        .breadcrumb a { color: blue; text-decoration: underline; cursor: pointer; }
+        .tabs { border-bottom: 2px solid #333; margin-bottom: 20px; }
+        .tab { display: inline-block; padding: 12px 24px; border: 1px solid #ccc; border-bottom: none; margin-right: 5px; cursor: pointer; background: #f0f0f0; }
+        .tab.active { background: white; border-bottom: 2px solid white; margin-bottom: -2px; }
+        .form-section { margin: 30px 0; }
+        .form-section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .form-row { display: flex; margin-bottom: 20px; gap: 20px; }
+        .form-group { flex: 1; }
+        .form-group-full { width: 100%; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input, .textarea, .select { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 4px; }
+        .textarea { min-height: 100px; resize: vertical; }
+        .required { color: red; }
+        .button { padding: 10px 20px; border: 2px solid #333; background: #fff; cursor: pointer; margin-right: 10px; }
+        .button-primary { background: #333; color: white; }
+        .button-group { margin-top: 30px; text-align: right; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>项目详情页面 - 基本信息 - 线框图</h1>
+        </div>
+
+        <!-- 正常状态 - 编辑模式 -->
+        <div class="container">
+            <h2>正常状态 - 编辑模式</h2>
+            
+            <!-- 导航栏 -->
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <!-- 面包屑导航 -->
+            <div class="breadcrumb">
+                <a>项目列表</a> > <span>XX道路改造工程</span>
+            </div>
+
+            <!-- 标签页 -->
+            <div class="tabs">
+                <div class="tab active">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab">生产信息</div>
+            </div>
+
+            <!-- 表单内容 -->
+            <form>
+                <!-- 基本信息 -->
+                <div class="form-section">
+                    <div class="form-section-title">基本信息</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">项目名称 <span class="required">*</span></label>
+                            <input type="text" class="input" value="XX道路改造工程" />
+                        </div>
+                        <div class="form-group">
+                            <label class="label">项目编号 <span class="required">*</span></label>
+                            <input type="text" class="input" value="PRJ-2024-001" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">承接日期</label>
+                            <input type="date" class="input" value="2024-01-15" />
+                        </div>
+                        <div class="form-group">
+                            <label class="label">出图单位</label>
+                            <input type="text" class="input" value="XX设计院" />
+                        </div>
+                    </div>
+
+                    <div class="form-group form-group-full">
+                        <label class="label">项目概况</label>
+                        <textarea class="textarea" placeholder="请输入项目概况...">该项目为XX道路改造工程，全长5公里...</textarea>
+                    </div>
+                </div>
+
+                <!-- 负责人配置 -->
+                <div class="form-section">
+                    <div class="form-section-title">负责人配置</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">经营负责人</label>
+                            <select class="select">
+                                <option>请选择</option>
+                                <option selected>张三</option>
+                                <option>李四</option>
+                                <option>王五</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="label">生产负责人</label>
+                            <select class="select">
+                                <option>请选择</option>
+                                <option>张三</option>
+                                <option selected>李四</option>
+                                <option>王五</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 操作按钮 -->
+                <div class="button-group">
+                    <button type="button" class="button">取消</button>
+                    <button type="submit" class="button button-primary">保存</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 查看模式 -->
+        <div class="container">
+            <h2>查看模式 - 只读</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="breadcrumb">
+                <a>项目列表</a> > <span>XX道路改造工程</span>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab">生产信息</div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-title">基本信息</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="label">项目名称</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">XX道路改造工程</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">项目编号</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">PRJ-2024-001</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="label">承接日期</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">2024-01-15</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">出图单位</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">XX设计院</div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-full">
+                    <label class="label">项目概况</label>
+                    <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9; min-height: 100px;">该项目为XX道路改造工程，全长5公里...</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-section-title">负责人配置</div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="label">经营负责人</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">张三</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">生产负责人</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">李四</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="button button-primary">编辑</button>
+            </div>
+        </div>
+
+        <!-- 错误状态 - 必填字段验证 -->
+        <div class="container">
+            <h2>错误状态 - 必填字段验证失败</h2>
+            
+            <div class="tabs">
+                <div class="tab active">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab">生产信息</div>
+            </div>
+
+            <form>
+                <div class="form-section">
+                    <div class="form-section-title">基本信息</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">项目名称 <span class="required">*</span></label>
+                            <input type="text" class="input" style="border-color: red;" />
+                            <div style="color: red; font-size: 12px; margin-top: 5px;">项目名称不能为空</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="label">项目编号 <span class="required">*</span></label>
+                            <input type="text" class="input" style="border-color: red;" />
+                            <div style="color: red; font-size: 12px; margin-top: 5px;">项目编号不能为空</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="button">取消</button>
+                    <button type="submit" class="button button-primary">保存</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 使用标签页切换基本信息、经营信息、生产信息<br>
+            - 项目名称和项目编号为必填项，标注红色星号<br>
+            - 负责人配置使用下拉选择框，仅项目管理员可编辑<br>
+            - 支持编辑模式和查看模式切换<br>
+            - 表单验证失败时显示红色边框和错误提示<br>
+            - 保存成功后可以跳转到其他标签页或返回列表
+        </div>
+    </div>
+</body>
+</html>
+

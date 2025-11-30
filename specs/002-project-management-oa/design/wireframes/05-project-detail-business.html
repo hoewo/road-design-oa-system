@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目详情 - 经营信息 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .tabs { border-bottom: 2px solid #333; margin-bottom: 20px; }
+        .tab { display: inline-block; padding: 12px 24px; border: 1px solid #ccc; border-bottom: none; margin-right: 5px; cursor: pointer; background: #f0f0f0; }
+        .tab.active { background: white; border-bottom: 2px solid white; margin-bottom: -2px; }
+        .section { margin: 30px 0; border: 1px solid #ccc; padding: 20px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .form-row { display: flex; margin-bottom: 15px; gap: 20px; }
+        .form-group { flex: 1; }
+        .form-group-full { width: 100%; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input, .textarea, .select { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 4px; }
+        .button { padding: 8px 16px; border: 2px solid #333; background: #fff; cursor: pointer; margin-right: 10px; }
+        .button-primary { background: #333; color: white; }
+        .button-small { padding: 6px 12px; font-size: 12px; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        .table th { background: #f0f0f0; font-weight: bold; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .stats { display: flex; gap: 20px; margin: 20px 0; }
+        .stat-card { flex: 1; border: 2px solid #ccc; padding: 20px; text-align: center; }
+        .stat-value { font-size: 24px; font-weight: bold; margin: 10px 0; }
+        .stat-label { color: #666; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>项目详情页面 - 经营信息 - 线框图</h1>
+        </div>
+
+        <!-- 正常状态 -->
+        <div class="container">
+            <h2>正常状态</h2>
+            
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab active">经营信息</div>
+                <div class="tab">生产信息</div>
+            </div>
+
+            <!-- 经营统计 -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">总应收金额</div>
+                    <div class="stat-value">¥1,500,000</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">已收金额</div>
+                    <div class="stat-value">¥800,000</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">未收金额</div>
+                    <div class="stat-value">¥700,000</div>
+                </div>
+            </div>
+
+            <!-- 甲方信息 -->
+            <div class="section">
+                <div class="section-title">
+                    甲方信息
+                    <button class="button button-small" style="float: right;">选择/创建甲方</button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="label">甲方名称</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">XX市交通局</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">联系人</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">王主任</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="label">联系电话</label>
+                        <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">13800138000</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 经营参与人 -->
+            <div class="section">
+                <div class="section-title">
+                    经营参与人
+                    <button class="button button-small" style="float: right;">+ 添加参与人</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>角色</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>张三</td>
+                            <td>经营负责人</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>李四</td>
+                            <td>经营参与人</td>
+                            <td><span class="link">编辑</span> | <span class="link">删除</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 招投标信息 -->
+            <div class="section">
+                <div class="section-title">
+                    招投标信息
+                    <button class="button button-small" style="float: right;">+ 上传文件</button>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label class="label">招标文件</label>
+                    <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                        <span class="link">招标文件.pdf</span> (2.5MB) - 2024-01-10
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label class="label">投标文件</label>
+                    <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                        <span class="link">投标文件.pdf</span> (5.2MB) - 2024-01-15
+                    </div>
+                </div>
+                <div>
+                    <label class="label">中标通知书</label>
+                    <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                        <span class="link">中标通知书.pdf</span> (1.8MB) - 2024-01-20
+                    </div>
+                </div>
+            </div>
+
+            <!-- 合同信息 -->
+            <div class="section">
+                <div class="section-title">
+                    合同信息
+                    <button class="button button-small" style="float: right;">+ 添加合同</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>合同类型</th>
+                            <th>签订时间</th>
+                            <th>合同金额</th>
+                            <th>合同费率</th>
+                            <th>合同文件</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>主合同</td>
+                            <td>2024-01-25</td>
+                            <td>设计费: ¥1,200,000<br>勘察费: ¥200,000<br>咨询费: ¥100,000</td>
+                            <td>5%</td>
+                            <td><span class="link">合同文件.pdf</span></td>
+                            <td><span class="link">编辑</span> | <span class="link">添加补充协议</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 补充协议 -->
+            <div class="section">
+                <div class="section-title">补充协议</div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>签订时间</th>
+                            <th>补充协议金额</th>
+                            <th>合同费率</th>
+                            <th>协议文件</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2024-03-10</td>
+                            <td>设计费: ¥50,000</td>
+                            <td>5%</td>
+                            <td><span class="link">补充协议1.pdf</span></td>
+                            <td><span class="link">编辑</span> | <span class="link">删除</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 甲方支付记录 -->
+            <div class="section">
+                <div class="section-title">
+                    甲方支付记录
+                    <button class="button button-small" style="float: right;">+ 添加支付记录</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>支付时间</th>
+                            <th>支付金额</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2024-02-15</td>
+                            <td>¥500,000</td>
+                            <td><span class="link">编辑</span> | <span class="link">删除</span></td>
+                        </tr>
+                        <tr>
+                            <td>2024-03-20</td>
+                            <td>¥300,000</td>
+                            <td><span class="link">编辑</span> | <span class="link">删除</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 我方开票记录 -->
+            <div class="section">
+                <div class="section-title">
+                    我方开票记录
+                    <button class="button button-small" style="float: right;">+ 添加开票记录</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>开票时间</th>
+                            <th>开票金额</th>
+                            <th>发票文件</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2024-02-18</td>
+                            <td>¥500,000</td>
+                            <td><span class="link">发票1.pdf</span></td>
+                            <td><span class="link">编辑</span> | <span class="link">删除</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 经营奖金分配 -->
+            <div class="section">
+                <div class="section-title">
+                    经营奖金分配
+                    <button class="button button-small" style="float: right;">+ 分配奖金</button>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>发放人员</th>
+                            <th>发放金额</th>
+                            <th>发放时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>张三</td>
+                            <td>¥10,000</td>
+                            <td>2024-04-01</td>
+                            <td><span class="link">编辑</span> | <span class="link">删除</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 顶部显示经营统计信息（总应收、已收、未收金额）<br>
+            - 各个业务模块使用独立的section展示<br>
+            - 支持添加、编辑、删除各类经营信息<br>
+            - 合同金额按设计费、勘察费、咨询费分别显示<br>
+            - 文件上传后显示文件名、大小、上传时间，支持下载<br>
+            - 仅经营负责人和项目管理员可以编辑经营信息
+        </div>
+    </div>
+</body>
+</html>
+

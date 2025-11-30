@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目列表页面 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .navbar { border: 2px dashed #999; padding: 15px; margin-bottom: 20px; background: #f0f0f0; }
+        .navbar-item { display: inline-block; margin-right: 20px; padding: 8px 16px; border: 1px solid #333; cursor: pointer; }
+        .navbar-item.active { background: #333; color: white; }
+        .toolbar { border: 2px dashed #999; padding: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .search-box { padding: 8px 12px; border: 2px solid #ccc; width: 300px; }
+        .button { padding: 8px 16px; border: 2px solid #333; background: #fff; cursor: pointer; }
+        .button-primary { background: #333; color: white; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .table th, .table td { border: 1px solid #ccc; padding: 12px; text-align: left; }
+        .table th { background: #f0f0f0; font-weight: bold; }
+        .table tr:hover { background: #f9f9f9; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .badge-active { background: #4caf50; color: white; }
+        .badge-completed { background: #2196f3; color: white; }
+        .pagination { margin-top: 20px; text-align: center; }
+        .pagination button { padding: 8px 12px; margin: 0 5px; border: 1px solid #ccc; background: white; cursor: pointer; }
+        .pagination button.active { background: #333; color: white; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>项目列表页面 - 线框图</h1>
+        </div>
+
+        <!-- 正常状态 -->
+        <div class="container">
+            <h2>正常状态 - 有项目数据</h2>
+            
+            <!-- 导航栏 -->
+            <div class="navbar">
+                <div class="navbar-item active">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <div>
+                    <input type="text" class="search-box" placeholder="搜索项目名称、项目编号..." />
+                    <button class="button">搜索</button>
+                </div>
+                <div>
+                    <button class="button button-primary">+ 创建新项目</button>
+                </div>
+            </div>
+
+            <!-- 项目列表表格 -->
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>项目编号</th>
+                        <th>项目名称</th>
+                        <th>承接日期</th>
+                        <th>经营负责人</th>
+                        <th>生产负责人</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>PRJ-2024-001</td>
+                        <td><span class="link">XX道路改造工程</span></td>
+                        <td>2024-01-15</td>
+                        <td>张三</td>
+                        <td>李四</td>
+                        <td><span class="badge badge-active">进行中</span></td>
+                        <td>
+                            <span class="link">查看</span> | 
+                            <span class="link">编辑</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>PRJ-2024-002</td>
+                        <td><span class="link">YY桥梁设计项目</span></td>
+                        <td>2024-02-20</td>
+                        <td>王五</td>
+                        <td>赵六</td>
+                        <td><span class="badge badge-active">进行中</span></td>
+                        <td>
+                            <span class="link">查看</span> | 
+                            <span class="link">编辑</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>PRJ-2023-050</td>
+                        <td><span class="link">ZZ道路设计项目</span></td>
+                        <td>2023-12-10</td>
+                        <td>孙七</td>
+                        <td>周八</td>
+                        <td><span class="badge badge-completed">已完成</span></td>
+                        <td>
+                            <span class="link">查看</span> | 
+                            <span class="link">编辑</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 分页 -->
+            <div class="pagination">
+                <button>上一页</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>下一页</button>
+                <span style="margin-left: 20px;">共 25 条，每页 10 条</span>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div class="container">
+            <h2>空状态 - 无项目数据</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item active">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="toolbar">
+                <div>
+                    <input type="text" class="search-box" placeholder="搜索项目名称、项目编号..." />
+                    <button class="button">搜索</button>
+                </div>
+                <div>
+                    <button class="button button-primary">+ 创建新项目</button>
+                </div>
+            </div>
+
+            <div class="empty-state">
+                <div style="font-size: 48px; margin-bottom: 20px;">📁</div>
+                <h3>暂无项目</h3>
+                <p style="margin-top: 10px;">您还没有创建任何项目，点击"创建新项目"开始使用</p>
+            </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div class="container">
+            <h2>加载状态</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item active">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="toolbar">
+                <div>
+                    <input type="text" class="search-box" placeholder="搜索项目名称、项目编号..." disabled />
+                    <button class="button" disabled>搜索</button>
+                </div>
+                <div>
+                    <button class="button button-primary" disabled>+ 创建新项目</button>
+                </div>
+            </div>
+
+            <div style="text-align: center; padding: 60px;">
+                <div>加载中...</div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 顶部导航栏包含主要功能入口和用户信息<br>
+            - 工具栏提供搜索和创建项目功能<br>
+            - 项目列表以表格形式展示，支持点击项目名称查看详情<br>
+            - 显示项目状态标签（进行中、已完成等）<br>
+            - 支持分页显示，每页10条记录<br>
+            - 空状态时显示友好提示，引导用户创建项目<br>
+            - 加载状态时禁用交互元素，显示加载提示
+        </div>
+    </div>
+</body>
+</html>
+
