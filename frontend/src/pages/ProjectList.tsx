@@ -126,7 +126,7 @@ const ProjectList = () => {
     {
       title: '操作',
       key: 'action',
-      width: 180,
+      width: 240,
       fixed: 'right' as const,
       render: (_: any, record: Project) => (
         <Space size="small">
@@ -275,7 +275,7 @@ const ProjectList = () => {
               `第 ${range[0]}-${range[1]} 条/共 ${total} 条`,
           }}
           onChange={handleTableChange}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
