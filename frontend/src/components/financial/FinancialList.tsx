@@ -370,7 +370,7 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
         onCancel={handleModalClose}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         <FinancialForm
           projectId={projectId}
@@ -385,7 +385,7 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
         onCancel={handleEditModalClose}
         footer={null}
         width={800}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingRecord && (
           <FinancialForm

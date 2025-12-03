@@ -1,0 +1,392 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Table, Button, Space, message, Modal, Popconfirm } from 'antd'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+} from '@ant-design/icons'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { businessService } from '@/services/business'
+import { ContractForm } from '@/components/contract/ContractForm'
+import { ContractAmendmentForm } from '@/components/contract/ContractAmendmentForm'
+import type { Contract, ContractAmendment } from '@/types'
+import dayjs from 'dayjs'
+
+interface ContractAndAmendmentsProps {
+  projectId: number
+}
+
+export const ContractAndAmendments = ({
+  projectId,
+}: ContractAndAmendmentsProps) => {
+  const navigate = useNavigate()
+  const [contractModalVisible, setContractModalVisible] = useState(false)
+  const [amendmentModalVisible, setAmendmentModalVisible] = useState(false)
+  const [editingContract, setEditingContract] = useState<Contract | null>(null)
+  const [editingAmendment, setEditingAmendment] =
+    useState<ContractAmendment | null>(null)
+  const [contractId, setContractId] = useState<number | undefined>()
+  const queryClient = useQueryClient()
+
+  // 获取项目所有合同
+  const { data: contracts, isLoading: contractsLoading } = useQuery({
+    queryKey: ['contracts', projectId],
+    queryFn: () => businessService.getContracts(projectId),
+    enabled: !!projectId,
+  })
+
+  // 获取所有补充协议
+  const { data: allAmendments, isLoading: amendmentsLoading } = useQuery({
+    queryKey: ['projectAmendments', projectId],
+    queryFn: async () => {
+      if (!contracts || contracts.length === 0) return []
+      const amendments: (ContractAmendment & { contract_id: number })[] = []
+      for (const contract of contracts) {
+        try {
+          const contractAmendments =
+            await businessService.getContractAmendments(contract.id)
+          amendments.push(
+            ...contractAmendments.map((a) => ({
+              ...a,
+              contract_id: contract.id,
+            }))
+          )
+        } catch (error) {
+          console.error(
+            `Failed to load amendments for contract ${contract.id}:`,
+            error
+          )
+        }
+      }
+      return amendments
+    },
+    enabled: !!projectId && !!contracts && contracts.length > 0,
+  })
+
+  // 删除合同
+  const deleteContractMutation = useMutation({
+    mutationFn: (contractId: number) =>
+      businessService.deleteContract(contractId),
+    onSuccess: () => {
+      message.success('合同删除成功')
+      queryClient.invalidateQueries({ queryKey: ['contracts', projectId] })
+      queryClient.invalidateQueries({
+        queryKey: ['projectAmendments', projectId],
+      })
+    },
+    onError: (error: any) => {
+      message.error(error.message || '删除失败')
+    },
+  })
+
+  // 删除补充协议
+  const deleteAmendmentMutation = useMutation({
+    mutationFn: (amendmentId: number) =>
+      businessService.deleteContractAmendment(amendmentId),
+    onSuccess: () => {
+      message.success('补充协议删除成功')
+      queryClient.invalidateQueries({
+        queryKey: ['projectAmendments', projectId],
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['contractAmendments'],
+      })
+    },
+    onError: (error: any) => {
+      message.error(error.message || '删除失败')
+    },
+  })
+
+  const handleCreateContract = () => {
+    setEditingContract(null)
+    setContractModalVisible(true)
+  }
+
+  const handleViewContract = (contract: Contract) => {
+    navigate(`/contracts/${contract.id}`)
+  }
+
+  const handleEditContract = (contract: Contract) => {
+    setEditingContract(contract)
+    setContractModalVisible(true)
+  }
+
+  const handleDeleteContract = (contract: Contract) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除合同 ${contract.contract_number} 吗？`,
+      onOk: () => {
+        deleteContractMutation.mutate(contract.id)
+      },
+    })
+  }
+
+  const handleAddAmendment = (contract: Contract) => {
+    setEditingAmendment(null)
+    setContractId(contract.id)
+    setAmendmentModalVisible(true)
+  }
+
+  const handleEditAmendment = (
+    amendment: ContractAmendment & { contract_id: number }
+  ) => {
+    setEditingAmendment(amendment)
+    setContractId(amendment.contract_id)
+    setAmendmentModalVisible(true)
+  }
+
+  const handleDeleteAmendment = (amendment: ContractAmendment) => {
+    deleteAmendmentMutation.mutate(amendment.id)
+  }
+
+  const handleContractModalClose = () => {
+    setContractModalVisible(false)
+    setEditingContract(null)
+  }
+
+  const handleAmendmentModalClose = () => {
+    setAmendmentModalVisible(false)
+    setEditingAmendment(null)
+    setContractId(undefined)
+  }
+
+  const handleContractSuccess = () => {
+    setContractModalVisible(false)
+    setEditingContract(null)
+  }
+
+  const handleAmendmentSuccess = () => {
+    setAmendmentModalVisible(false)
+    setEditingAmendment(null)
+    setContractId(undefined)
+  }
+
+  // 合同表格列
+  const contractColumns = [
+    {
+      title: '合同类型',
+      dataIndex: 'contract_type',
+      key: 'contract_type',
+    },
+    {
+      title: '签订时间',
+      dataIndex: 'sign_date',
+      key: 'sign_date',
+      render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
+    },
+    {
+      title: '合同金额',
+      key: 'contract_amount',
+      render: (_: any, record: Contract) => (
+        <Space direction="vertical" size="small">
+          {record.design_fee && (
+            <span>设计费: ¥{record.design_fee.toLocaleString()}</span>
+          )}
+          {record.survey_fee && (
+            <span>勘察费: ¥{record.survey_fee.toLocaleString()}</span>
+          )}
+          {record.consultation_fee && (
+            <span>咨询费: ¥{record.consultation_fee.toLocaleString()}</span>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: '合同费率',
+      dataIndex: 'contract_rate',
+      key: 'contract_rate',
+      render: (rate: number) => (rate ? `${(rate * 100).toFixed(0)}%` : '-'),
+    },
+    {
+      title: '合同文件',
+      key: 'contract_file',
+      render: (_: any, record: Contract) => {
+        // 这里可以显示合同文件链接
+        return record.file_path ? (
+          <a href={record.file_path} target="_blank" rel="noopener noreferrer">
+            查看文件
+          </a>
+        ) : (
+          '-'
+        )
+      },
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: Contract) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditContract(record)}
+          >
+            编辑
+          </Button>
+          <Button type="link" onClick={() => handleAddAmendment(record)}>
+            添加补充协议
+          </Button>
+        </Space>
+      ),
+    },
+  ]
+
+  // 补充协议表格列
+  const amendmentColumns = [
+    {
+      title: '签订时间',
+      dataIndex: 'sign_date',
+      key: 'sign_date',
+      render: (date: string) => dayjs(date).format('YYYY-MM-DD'),
+    },
+    {
+      title: '补充协议金额',
+      key: 'amount',
+      render: (_: any, record: ContractAmendment) => {
+        // 补充协议金额需要从合同信息中获取，这里先显示占位符
+        return '-'
+      },
+    },
+    {
+      title: '合同费率',
+      key: 'rate',
+      render: (_: any, record: ContractAmendment & { contract_id: number }) => {
+        const contract = contracts?.find((c) => c.id === record.contract_id)
+        return contract?.contract_rate
+          ? `${(contract.contract_rate * 100).toFixed(0)}%`
+          : '-'
+      },
+    },
+    {
+      title: '协议文件',
+      dataIndex: 'file_path',
+      key: 'file_path',
+      render: (path: string) => (
+        <a href={path} target="_blank" rel="noopener noreferrer">
+          {path.split('/').pop() || path}
+        </a>
+      ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: ContractAmendment & { contract_id: number }) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditAmendment(record)}
+          >
+            编辑
+          </Button>
+          <Popconfirm
+            title="确定要删除该补充协议吗？"
+            onConfirm={() => handleDeleteAmendment(record)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+
+  return (
+    <>
+      <Card
+        title="合同信息"
+        extra={
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={handleCreateContract}
+          >
+            添加合同
+          </Button>
+        }
+        style={{ marginBottom: 24 }}
+      >
+        <div style={{ marginBottom: 32 }}>
+          <Table
+            columns={contractColumns}
+            dataSource={contracts || []}
+            loading={contractsLoading}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
+        </div>
+
+        <div style={{ marginTop: 32 }}>
+          <div
+            style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              marginBottom: 16,
+              paddingBottom: 8,
+              borderBottom: '1px solid #e8e8e8',
+            }}
+          >
+            补充协议
+          </div>
+          <Table
+            columns={amendmentColumns}
+            dataSource={allAmendments || []}
+            loading={amendmentsLoading}
+            rowKey="id"
+            pagination={{
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
+        </div>
+      </Card>
+
+      {/* 合同编辑/创建模态框 */}
+      <Modal
+        title={editingContract ? '编辑合同' : '新建合同'}
+        open={contractModalVisible}
+        onCancel={handleContractModalClose}
+        footer={null}
+        width={800}
+        destroyOnHidden
+      >
+        <ContractForm
+          projectId={projectId}
+          contractId={editingContract?.id}
+          onSuccess={handleContractSuccess}
+          onCancel={handleContractModalClose}
+        />
+      </Modal>
+
+      {/* 补充协议编辑/创建模态框 */}
+      <Modal
+        title={editingAmendment ? '编辑补充协议' : '新建补充协议'}
+        open={amendmentModalVisible}
+        onCancel={handleAmendmentModalClose}
+        footer={null}
+        width={600}
+        destroyOnHidden
+      >
+        {contractId && (
+          <ContractAmendmentForm
+            contractId={contractId}
+            amendmentId={editingAmendment?.id}
+            onSuccess={handleAmendmentSuccess}
+            onCancel={handleAmendmentModalClose}
+          />
+        )}
+      </Modal>
+    </>
+  )
+}

@@ -22,6 +22,7 @@ const { TextArea } = Input
 interface FinancialFormProps {
   projectId: number
   recordId?: number
+  defaultRecordType?: 'receivable' | 'invoice' | 'payment' | 'expense'
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -29,6 +30,7 @@ interface FinancialFormProps {
 export const FinancialForm = ({
   projectId,
   recordId,
+  defaultRecordType,
   onSuccess,
   onCancel,
 }: FinancialFormProps) => {
@@ -134,7 +136,7 @@ export const FinancialForm = ({
       layout="vertical"
       onFinish={handleSubmit}
       initialValues={{
-        record_type: 'receivable',
+        record_type: defaultRecordType || 'receivable',
         invoice_amount: 0,
         payment_amount: 0,
       }}

@@ -21,7 +21,7 @@ const ContractDetail = () => {
 
   const handleBack = () => {
     if (contract?.project_id) {
-      navigate(`/projects/${contract.project_id}/business`)
+      navigate(`/projects/${contract.project_id}?tab=business`)
     } else {
       navigate('/projects')
     }

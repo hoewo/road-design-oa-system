@@ -359,7 +359,7 @@ export const ProjectBusinessForm = ({
                     </div>
                   ) : null
                 }
-                dropdownRender={(menu) => (
+                popupRender={(menu) => (
                   <>
                     {menu}
                     <Divider style={{ margin: '8px 0' }} />
@@ -442,7 +442,7 @@ export const ProjectBusinessForm = ({
                     </div>
                   ) : null
                 }
-                dropdownRender={(menu) => (
+                popupRender={(menu) => (
                   <>
                     {menu}
                     <Divider style={{ margin: '8px 0' }} />
@@ -518,7 +518,7 @@ export const ProjectBusinessForm = ({
         onCancel={() => setCreateClientModalVisible(false)}
         footer={null}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <ClientForm
           onSuccess={() => {
@@ -554,7 +554,7 @@ export const ProjectBusinessForm = ({
         }}
         footer={null}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <UserForm
           onSuccess={handleUserCreated}
@@ -574,7 +574,7 @@ export const ProjectBusinessForm = ({
         }}
         footer={null}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingUser && (
           <UserForm

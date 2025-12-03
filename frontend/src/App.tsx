@@ -1,13 +1,12 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { Layout, Button } from 'antd'
 import { LogoutOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { authService } from '@/services/auth'
 import Login from './pages/Login'
 import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
-import ProjectBusiness from './pages/ProjectBusiness'
-import ProjectProduction from './pages/ProjectProduction'
 import ProjectRevenue from './pages/ProjectRevenue'
 import CompanyConfig from './pages/CompanyConfig'
 import CompanyRevenue from './pages/CompanyRevenue'
@@ -22,6 +21,25 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" replace />
   }
   return <>{children}</>
+}
+
+// Redirect components for backward compatibility
+const ProjectBusinessRedirect = () => {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  useEffect(() => {
+    navigate(`/projects/${id}?tab=business`, { replace: true })
+  }, [id, navigate])
+  return null
+}
+
+const ProjectProductionRedirect = () => {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  useEffect(() => {
+    navigate(`/projects/${id}?tab=production`, { replace: true })
+  }, [id, navigate])
+  return null
 }
 
 function App() {
@@ -73,11 +91,11 @@ function App() {
                   <Route path="/projects/:id" element={<ProjectDetail />} />
                   <Route
                     path="/projects/:id/business"
-                    element={<ProjectBusiness />}
+                    element={<ProjectBusinessRedirect />}
                   />
                   <Route
                     path="/projects/:id/production"
-                    element={<ProjectProduction />}
+                    element={<ProjectProductionRedirect />}
                   />
                   <Route
                     path="/projects/:id/revenue"

@@ -1,25 +1,33 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Card, Descriptions, Button, Space, message, Modal, Tag } from 'antd'
-import {
-  EditOutlined,
-  ArrowLeftOutlined,
-  ShopOutlined,
-  ToolOutlined,
-  DollarOutlined,
-} from '@ant-design/icons'
-import { useQuery } from '@tanstack/react-query'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { Card, Tabs, Breadcrumb, message } from 'antd'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
-import ProjectForm from '@/components/project/ProjectForm'
-import { ProjectBusinessForm } from '@/components/project/ProjectBusinessForm'
-import { ProjectMemberForm } from '@/components/project/ProjectMemberForm'
-import { ProjectMemberList } from '@/components/project/ProjectMemberList'
-import type { ProjectStatus } from '@/types'
+import { businessService } from '@/services/business'
+import { userService } from '@/services/user'
+import { projectMemberService } from '@/services/projectMember'
+import { BasicInfoTab } from '@/components/project/BasicInfoTab'
+import { BusinessInfoTab } from '@/components/project/BusinessInfoTab'
+import { ProductionInfo } from '@/components/production/ProductionInfo'
 
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [modalVisible, setModalVisible] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<string>(
+    searchParams.get('tab') || 'basic'
+  )
+
+  // Sync activeTab with URL params on mount and when searchParams change
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'basic'
+    if (tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl)
+    }
+  }, [searchParams])
+
+  const projectId = Number(id)
 
   const {
     data: project,
@@ -27,9 +35,43 @@ const ProjectDetail = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['project', id],
-    queryFn: () => projectService.getProject(Number(id)),
-    enabled: !!id,
+    queryKey: ['project', projectId],
+    queryFn: () => projectService.getProject(projectId),
+    enabled: !!projectId,
+  })
+
+  // Load users for manager selection
+  const { data: usersData } = useQuery({
+    queryKey: ['activeUsers'],
+    queryFn: async () => {
+      const response = await userService.listUsers({
+        page: 1,
+        size: 100,
+        is_active: true,
+      })
+      return response.data || []
+    },
+  })
+
+  // Load project members for manager display
+  const { data: projectMembers } = useQuery({
+    queryKey: ['projectMembers', projectId],
+    queryFn: () => projectMemberService.list(projectId),
+    enabled: !!projectId,
+  })
+
+  // Load financial data for statistics
+  const { data: financialData } = useQuery({
+    queryKey: ['projectFinancial', projectId],
+    queryFn: () => businessService.getProjectFinancial(projectId),
+    enabled: !!projectId && activeTab === 'business',
+  })
+
+  // Load project business data for display
+  const { data: businessData } = useQuery({
+    queryKey: ['projectBusiness', projectId],
+    queryFn: () => businessService.getProjectBusiness(projectId),
+    enabled: !!projectId && activeTab === 'business',
   })
 
   useEffect(() => {
@@ -38,21 +80,45 @@ const ProjectDetail = () => {
     }
   }, [error])
 
-  const handleEdit = () => {
-    setModalVisible(true)
+  // Update URL when tab changes
+  const handleTabChange = (key: string) => {
+    setActiveTab(key)
+    setSearchParams({ tab: key })
   }
 
   const handleBack = () => {
     navigate('/projects')
   }
 
-  const handleModalClose = () => {
-    setModalVisible(false)
-  }
-
-  const handleFormSuccess = () => {
-    setModalVisible(false)
-    refetch()
+  const handleGetContractAmount = async () => {
+    try {
+      const contracts = await businessService.getContracts(projectId)
+      if (contracts.length === 0) {
+        message.warning('该项目暂无合同信息')
+        return {
+          design_fee: 0,
+          survey_fee: 0,
+          consultation_fee: 0,
+        }
+      }
+      const total = contracts.reduce(
+        (acc: any, contract: any) => ({
+          design_fee: acc.design_fee + (contract.design_fee || 0),
+          survey_fee: acc.survey_fee + (contract.survey_fee || 0),
+          consultation_fee:
+            acc.consultation_fee + (contract.consultation_fee || 0),
+        }),
+        { design_fee: 0, survey_fee: 0, consultation_fee: 0 }
+      )
+      return total
+    } catch (error: any) {
+      message.error(error.message || '获取合同金额失败')
+      return {
+        design_fee: 0,
+        survey_fee: 0,
+        consultation_fee: 0,
+      }
+    }
   }
 
   if (isLoading) {
@@ -63,106 +129,71 @@ const ProjectDetail = () => {
     return <div>项目不存在</div>
   }
 
-  const statusMap: Record<ProjectStatus, { text: string; color: string }> = {
-    planning: { text: '规划中', color: 'blue' },
-    bidding: { text: '招投标', color: 'orange' },
-    contract: { text: '合同签订', color: 'green' },
-    production: { text: '生产中', color: 'purple' },
-    completed: { text: '已完成', color: 'default' },
-    cancelled: { text: '已取消', color: 'red' },
-  }
+  const users = usersData || []
 
-  const statusInfo = statusMap[project.status]
+  const tabItems = [
+    {
+      key: 'basic',
+      label: '基本信息',
+      children: (
+        <BasicInfoTab
+          projectId={projectId}
+          project={project}
+          projectMembers={projectMembers}
+          users={users}
+          queryClient={queryClient}
+          onRefetch={refetch}
+        />
+      ),
+    },
+    {
+      key: 'business',
+      label: '经营信息',
+      children: (
+        <BusinessInfoTab
+          projectId={projectId}
+          financialData={financialData}
+          businessData={businessData}
+        />
+      ),
+    },
+    {
+      key: 'production',
+      label: '生产信息',
+      children: (
+        <ProductionInfo
+          projectId={projectId}
+          onGetContractAmount={handleGetContractAmount}
+        />
+      ),
+    },
+  ]
 
   return (
     <>
-      <Space style={{ marginBottom: 16 }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={handleBack}>
-          返回列表
-        </Button>
-        <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
-          编辑项目
-        </Button>
-        <Button
-          icon={<ShopOutlined />}
-          onClick={() => navigate(`/projects/${project.id}/business`)}
-        >
-          经营信息管理
-        </Button>
-        <Button
-          icon={<ToolOutlined />}
-          onClick={() => navigate(`/projects/${project.id}/production`)}
-        >
-          生产信息管理
-        </Button>
-        <Button
-          icon={<DollarOutlined />}
-          onClick={() => navigate(`/projects/${project.id}/revenue`)}
-        >
-          项目收入信息
-        </Button>
-      </Space>
+      <Breadcrumb
+        style={{ marginBottom: 16 }}
+        items={[
+          {
+            title: (
+              <a onClick={handleBack} style={{ cursor: 'pointer' }}>
+                项目列表
+              </a>
+            ),
+          },
+          {
+            title: project.project_name,
+          },
+        ]}
+      />
 
-      <Card title="项目详情" loading={isLoading}>
-        <Descriptions column={2} bordered>
-          <Descriptions.Item label="项目编号">
-            {project.project_number}
-          </Descriptions.Item>
-          <Descriptions.Item label="项目名称">
-            {project.project_name}
-          </Descriptions.Item>
-          <Descriptions.Item label="承接日期">
-            {new Date(project.start_date).toLocaleDateString('zh-CN')}
-          </Descriptions.Item>
-          <Descriptions.Item label="项目状态">
-            <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="出图单位">
-            {project.drawing_unit || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item label="创建时间">
-            {new Date(project.created_at).toLocaleString('zh-CN')}
-          </Descriptions.Item>
-          <Descriptions.Item label="更新时间">
-            {new Date(project.updated_at).toLocaleString('zh-CN')}
-          </Descriptions.Item>
-        </Descriptions>
-        {project.project_overview && (
-          <Descriptions column={1} bordered style={{ marginTop: 16 }}>
-            <Descriptions.Item label="项目概况">
-              {project.project_overview}
-            </Descriptions.Item>
-          </Descriptions>
-        )}
-      </Card>
-
-      <Card title="项目经营信息" style={{ marginTop: 16 }}>
-        <ProjectBusinessForm projectId={project.id} />
-      </Card>
-
-      <Card
-        title="项目成员与生产配置"
-        style={{ marginTop: 16 }}
-        extra="维护生产负责人、设计人等角色"
-      >
-        <ProjectMemberForm projectId={project.id} />
-        <ProjectMemberList projectId={project.id} />
-      </Card>
-
-      <Modal
-        title="编辑项目"
-        open={modalVisible}
-        onCancel={handleModalClose}
-        footer={null}
-        width={800}
-        destroyOnHidden
-      >
-        <ProjectForm
-          projectId={project.id}
-          onSuccess={handleFormSuccess}
-          onCancel={handleModalClose}
+      <Card>
+        <Tabs
+          activeKey={activeTab}
+          items={tabItems}
+          onChange={handleTabChange}
         />
-      </Modal>
+      </Card>
     </>
   )
 }

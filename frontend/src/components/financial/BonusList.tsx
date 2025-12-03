@@ -192,7 +192,7 @@ export const BonusList = ({ projectId, bonusType }: BonusListProps) => {
         onCancel={handleModalClose}
         footer={null}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         <BonusForm
           projectId={projectId}
@@ -207,7 +207,7 @@ export const BonusList = ({ projectId, bonusType }: BonusListProps) => {
         onCancel={handleEditModalClose}
         footer={null}
         width={600}
-        destroyOnClose
+        destroyOnHidden
       >
         {editingBonus && (
           <BonusForm

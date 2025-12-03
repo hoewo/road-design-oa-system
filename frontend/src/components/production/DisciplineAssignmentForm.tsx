@@ -152,7 +152,7 @@ export const DisciplineAssignmentForm = ({
           showSearch
           allowClear
           style={{ width: '100%' }}
-          dropdownRender={(menu) => (
+          popupRender={(menu) => (
             <>
               {menu}
               <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>

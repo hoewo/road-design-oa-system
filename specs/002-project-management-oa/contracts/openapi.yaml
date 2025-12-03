@@ -1,0 +1,3101 @@
+openapi: 3.0.3
+info:
+  title: 道路设计公司项目管理系统 API
+  description: 基于统一路由格式的项目管理OA系统API文档，遵循 `/{service}/{version}/{auth_level}/{path}` 格式
+  version: 1.0.0
+  contact:
+    name: 开发团队
+    email: dev@company.com
+
+servers:
+  - url: http://localhost:8080/timejourney/v1
+    description: 本地开发环境
+  - url: https://api.project-oa.com/timejourney/v1
+    description: 生产环境
+
+# 安全定义
+# 注意：认证由网关处理，后端从Header中读取用户信息
+# 网关验证JWT Token后注入以下Header：
+# - X-User-ID: 用户ID（UUID格式）
+# - X-User-Username: 用户名
+# - X-User-AppID: 应用ID
+# - X-User-SessionID: 会话ID（UUID格式）
+security:
+  - HeaderAuth: []
+
+paths:
+  # ==================== Public Routes (无需认证) ====================
+  /public/health:
+    get:
+      tags:
+        - 系统
+      summary: 健康检查
+      description: 系统健康检查接口，无需认证
+      security: []
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # ==================== User Routes (需要认证) ====================
+  
+  # 项目管理
+  /user/projects:
+    get:
+      tags:
+        - 项目管理
+      summary: 获取项目列表
+      description: 获取项目列表，支持分页、搜索、筛选
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [planning, bidding, contract, production, completed, cancelled]
+        - name: keyword
+          in: query
+          schema:
+            type: string
+            description: 搜索关键词（项目名称、项目编号）
+      responses:
+        '200':
+          description: 项目列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Project'
+                  total:
+                    type: integer
+                  page:
+                    type: integer
+                  size:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      tags:
+        - 项目管理
+      summary: 创建项目
+      description: 创建新项目，项目名称和项目编号为必填字段
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: 项目创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 项目编号已存在
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /user/projects/{id}:
+    get:
+      tags:
+        - 项目管理
+      summary: 获取项目详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 项目详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProjectDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 项目管理
+      summary: 更新项目
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: 项目更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 项目管理
+      summary: 删除项目（软删除）
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 项目删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 项目经营信息
+  /user/projects/{id}/business:
+    get:
+      tags:
+        - 项目经营
+      summary: 获取项目经营信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 项目经营信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProjectBusiness'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 项目经营
+      summary: 更新项目经营信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectBusinessRequest'
+      responses:
+        '200':
+          description: 经营信息更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 合同管理
+  /user/projects/{id}/contracts:
+    get:
+      tags:
+        - 合同管理
+      summary: 获取项目合同列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 合同列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Contract'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 合同管理
+      summary: 创建合同
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractRequest'
+      responses:
+        '201':
+          description: 合同创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Contract'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/contracts/{contractId}:
+    get:
+      tags:
+        - 合同管理
+      summary: 获取合同详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 合同详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ContractDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 合同管理
+      summary: 更新合同
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContractRequest'
+      responses:
+        '200':
+          description: 合同更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 财务记录
+  /user/projects/{id}/financial-records:
+    get:
+      tags:
+        - 财务管理
+      summary: 获取项目财务记录列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: financial_type
+          in: query
+          schema:
+            type: string
+            enum: [bonus, cost, client_payment, our_invoice, expert_fee, commission_payment, vendor_invoice]
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [income, expense]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 财务记录列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FinancialRecord'
+                  total:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 财务管理
+      summary: 创建财务记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFinancialRecordRequest'
+      responses:
+        '201':
+          description: 财务记录创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FinancialRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/financial-records/{recordId}:
+    put:
+      tags:
+        - 财务管理
+      summary: 更新财务记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateFinancialRecordRequest'
+      responses:
+        '200':
+          description: 财务记录更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 财务管理
+      summary: 删除财务记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: recordId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 财务记录删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 文件管理
+  /user/projects/{id}/files:
+    get:
+      tags:
+        - 文件管理
+      summary: 获取项目文件列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [contract, bidding, production, invoice, approval, other]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 文件列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/File'
+                  total:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 文件管理
+      summary: 上传文件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - category
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+                  enum: [contract, bidding, production, invoice, approval, other]
+                description:
+                  type: string
+      responses:
+        '201':
+          description: 文件上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/File'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: 文件大小超过限制（最大100MB）
+
+  /user/projects/{id}/files/{fileId}:
+    get:
+      tags:
+        - 文件管理
+      summary: 下载文件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 文件内容
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 无权限访问此文件
+    
+    delete:
+      tags:
+        - 文件管理
+      summary: 删除文件（软删除）
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 文件删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 补充协议管理
+  /user/projects/{id}/contracts/{contractId}/amendments:
+    get:
+      tags:
+        - 合同管理
+      summary: 获取合同补充协议列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 补充协议列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ContractAmendment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 合同管理
+      summary: 创建补充协议
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractAmendmentRequest'
+      responses:
+        '201':
+          description: 补充协议创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ContractAmendment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/contracts/{contractId}/amendments/{amendmentId}:
+    get:
+      tags:
+        - 合同管理
+      summary: 获取补充协议详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: amendmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 补充协议详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ContractAmendment'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 合同管理
+      summary: 更新补充协议
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: amendmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContractAmendmentRequest'
+      responses:
+        '200':
+          description: 补充协议更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 合同管理
+      summary: 删除补充协议
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: contractId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: amendmentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 补充协议删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 招投标信息管理
+  /user/projects/{id}/bidding:
+    get:
+      tags:
+        - 招投标管理
+      summary: 获取项目招投标信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 招投标信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/BiddingInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 招投标管理
+      summary: 更新项目招投标信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBiddingInfoRequest'
+      responses:
+        '200':
+          description: 招投标信息更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 项目生产信息
+  /user/projects/{id}/production:
+    get:
+      tags:
+        - 项目生产
+      summary: 获取项目生产信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 项目生产信息
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProjectProduction'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 生产阶段文件管理
+  /user/projects/{id}/production/files:
+    get:
+      tags:
+        - 生产文件管理
+      summary: 获取项目生产阶段文件列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: stage
+          in: query
+          schema:
+            type: string
+            enum: [scheme, preliminary, construction, change, completion]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 生产阶段文件列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductionFile'
+                  total:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 生产文件管理
+      summary: 上传生产阶段文件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - stage
+              properties:
+                file:
+                  type: string
+                  format: binary
+                stage:
+                  type: string
+                  enum: [scheme, preliminary, construction, change, completion]
+                review_sheet_file:
+                  type: string
+                  format: binary
+                  description: 校审单文件（方案、初步设计、施工图设计必填）
+                score:
+                  type: number
+                  format: float
+                  description: 评分（方案、初步设计、施工图设计必填，0-100）
+                description:
+                  type: string
+      responses:
+        '201':
+          description: 生产阶段文件上传成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProductionFile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/production/files/{fileId}:
+    get:
+      tags:
+        - 生产文件管理
+      summary: 获取生产阶段文件详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 生产阶段文件详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProductionFile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 生产文件管理
+      summary: 删除生产阶段文件
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fileId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 生产阶段文件删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 批复审计信息管理
+  /user/projects/{id}/production/approvals:
+    get:
+      tags:
+        - 批复审计管理
+      summary: 获取项目批复审计信息列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: approval_type
+          in: query
+          schema:
+            type: string
+            enum: [approval, audit]
+      responses:
+        '200':
+          description: 批复审计信息列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductionApproval'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 批复审计管理
+      summary: 创建批复审计信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductionApprovalRequest'
+      responses:
+        '201':
+          description: 批复审计信息创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProductionApproval'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/production/approvals/{approvalId}:
+    get:
+      tags:
+        - 批复审计管理
+      summary: 获取批复审计信息详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 批复审计信息详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProductionApproval'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 批复审计管理
+      summary: 更新批复审计信息
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: approvalId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductionApprovalRequest'
+      responses:
+        '200':
+          description: 批复审计信息更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 对外委托管理
+  /user/projects/{id}/external-commissions:
+    get:
+      tags:
+        - 对外委托管理
+      summary: 获取项目对外委托列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 对外委托列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ExternalCommission'
+                  total:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 对外委托管理
+      summary: 创建对外委托
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExternalCommissionRequest'
+      responses:
+        '201':
+          description: 对外委托创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ExternalCommission'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/external-commissions/{commissionId}:
+    get:
+      tags:
+        - 对外委托管理
+      summary: 获取对外委托详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: commissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 对外委托详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ExternalCommission'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 对外委托管理
+      summary: 更新对外委托
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: commissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExternalCommissionRequest'
+      responses:
+        '200':
+          description: 对外委托更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 对外委托管理
+      summary: 删除对外委托
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: commissionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 对外委托删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 项目成员管理
+  /user/projects/{id}/members:
+    get:
+      tags:
+        - 项目成员管理
+      summary: 获取项目成员列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [designer, participant, reviewer, auditor, approver, business_personnel]
+        - name: discipline_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 项目成员列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProjectMember'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 项目成员管理
+      summary: 添加项目成员
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectMemberRequest'
+      responses:
+        '201':
+          description: 项目成员添加成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ProjectMember'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/projects/{id}/members/{memberId}:
+    put:
+      tags:
+        - 项目成员管理
+      summary: 更新项目成员
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectMemberRequest'
+      responses:
+        '200':
+          description: 项目成员更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 项目成员管理
+      summary: 删除项目成员
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: memberId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 项目成员删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 专业字典管理
+  /user/disciplines:
+    get:
+      tags:
+        - 专业字典管理
+      summary: 获取专业字典列表
+      parameters:
+        - name: is_global
+          in: query
+          schema:
+            type: boolean
+          description: 是否全局专业
+        - name: project_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: 项目ID（查询项目级专业时使用）
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 搜索关键词（专业名称）
+      responses:
+        '200':
+          description: 专业字典列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Discipline'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 专业字典管理
+      summary: 创建专业
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDisciplineRequest'
+      responses:
+        '201':
+          description: 专业创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Discipline'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 专业名称已存在
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/disciplines/{id}:
+    put:
+      tags:
+        - 专业字典管理
+      summary: 更新专业
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDisciplineRequest'
+      responses:
+        '200':
+          description: 专业更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 专业字典管理
+      summary: 删除专业
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 专业删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 用户管理
+  /user/users:
+    get:
+      tags:
+        - 用户管理
+      summary: 获取用户列表
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        - name: has_account
+          in: query
+          schema:
+            type: boolean
+          description: 是否有账号
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 搜索关键词（用户名、真实姓名）
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 用户列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 用户管理
+      summary: 创建用户
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: 用户创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 用户名或邮箱已存在
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/users/{id}:
+    get:
+      tags:
+        - 用户管理
+      summary: 获取用户详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 用户详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 用户管理
+      summary: 更新用户
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: 用户更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # 公司收入管理
+  /user/company/revenue:
+    get:
+      tags:
+        - 公司收入管理
+      summary: 获取公司收入统计
+      description: 需要财务人员权限
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 开始日期
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 结束日期
+      responses:
+        '200':
+          description: 公司收入统计
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CompanyRevenue'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 无权限访问公司收入信息
+
+  # 甲方管理
+  /user/clients:
+    get:
+      tags:
+        - 甲方管理
+      summary: 获取甲方列表
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: string
+          description: 搜索关键词（甲方名称）
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 甲方列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Client'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - 甲方管理
+      summary: 创建甲方
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+      responses:
+        '201':
+          description: 甲方创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Client'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 甲方名称已存在
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/clients/{id}:
+    get:
+      tags:
+        - 甲方管理
+      summary: 获取甲方详情
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 甲方详情
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Client'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    put:
+      tags:
+        - 甲方管理
+      summary: 更新甲方
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClientRequest'
+      responses:
+        '200':
+          description: 甲方更新成功
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    delete:
+      tags:
+        - 甲方管理
+      summary: 删除甲方
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 甲方删除成功
+        '400':
+          description: 甲方已被项目使用，无法删除
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    HeaderAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: 网关验证JWT Token后注入用户信息到Header，后端从Header中读取用户信息（X-User-ID, X-User-Username等）
+
+  schemas:
+    # 基础类型
+    UUID:
+      type: string
+      format: uuid
+      description: UUID v4格式的字符串
+    
+    DateTime:
+      type: string
+      format: date-time
+    
+    # 项目相关
+    Project:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_name:
+          type: string
+          example: "某道路设计项目"
+        project_number:
+          type: string
+          example: "2025-001"
+        start_date:
+          $ref: '#/components/schemas/DateTime'
+        project_overview:
+          type: string
+        drawing_unit:
+          type: string
+        status:
+          type: string
+          enum: [planning, bidding, contract, production, completed, cancelled]
+        business_manager_id:
+          $ref: '#/components/schemas/UUID'
+        production_manager_id:
+          $ref: '#/components/schemas/UUID'
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    ProjectDetail:
+      allOf:
+        - $ref: '#/components/schemas/Project'
+        - type: object
+          properties:
+            business_manager:
+              $ref: '#/components/schemas/User'
+            production_manager:
+              $ref: '#/components/schemas/User'
+            client:
+              $ref: '#/components/schemas/Client'
+    
+    CreateProjectRequest:
+      type: object
+      required:
+        - project_name
+        - project_number
+      properties:
+        project_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        project_number:
+          type: string
+        start_date:
+          $ref: '#/components/schemas/DateTime'
+        project_overview:
+          type: string
+          maxLength: 1000
+        drawing_unit:
+          type: string
+        status:
+          type: string
+          enum: [planning, bidding, contract, production, completed, cancelled]
+        business_manager_id:
+          $ref: '#/components/schemas/UUID'
+        production_manager_id:
+          $ref: '#/components/schemas/UUID'
+    
+    UpdateProjectRequest:
+      type: object
+      properties:
+        project_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        project_number:
+          type: string
+        start_date:
+          $ref: '#/components/schemas/DateTime'
+        project_overview:
+          type: string
+          maxLength: 1000
+        drawing_unit:
+          type: string
+        status:
+          type: string
+          enum: [planning, bidding, contract, production, completed, cancelled]
+        business_manager_id:
+          $ref: '#/components/schemas/UUID'
+        production_manager_id:
+          $ref: '#/components/schemas/UUID'
+    
+    # 用户相关
+    User:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        username:
+          type: string
+        real_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+          enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        has_account:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    # 甲方相关
+    Client:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        client_name:
+          type: string
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        tax_number:
+          type: string
+        bank_account:
+          type: string
+        bank_name:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    CreateClientRequest:
+      type: object
+      required:
+        - client_name
+      properties:
+        client_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        tax_number:
+          type: string
+        bank_account:
+          type: string
+        bank_name:
+          type: string
+    
+    UpdateClientRequest:
+      type: object
+      properties:
+        client_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        contact_name:
+          type: string
+        contact_phone:
+          type: string
+        email:
+          type: string
+        address:
+          type: string
+        tax_number:
+          type: string
+        bank_account:
+          type: string
+        bank_name:
+          type: string
+    
+    # 合同相关
+    Contract:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        contract_number:
+          type: string
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        sign_date:
+          $ref: '#/components/schemas/DateTime'
+        contract_rate:
+          type: number
+          format: float
+        design_fee:
+          type: number
+          format: float
+        survey_fee:
+          type: number
+          format: float
+        consultation_fee:
+          type: number
+          format: float
+        contract_amount:
+          type: number
+          format: float
+        contract_file_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    ContractDetail:
+      allOf:
+        - $ref: '#/components/schemas/Contract'
+        - type: object
+          properties:
+            amendments:
+              type: array
+              items:
+                $ref: '#/components/schemas/ContractAmendment'
+    
+    CreateContractRequest:
+      type: object
+      required:
+        - contract_number
+        - sign_date
+        - design_fee
+        - survey_fee
+        - consultation_fee
+      properties:
+        contract_number:
+          type: string
+        sign_date:
+          $ref: '#/components/schemas/DateTime'
+        contract_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        design_fee:
+          type: number
+          format: float
+          minimum: 0
+        survey_fee:
+          type: number
+          format: float
+          minimum: 0
+        consultation_fee:
+          type: number
+          format: float
+          minimum: 0
+    
+    UpdateContractRequest:
+      type: object
+      properties:
+        sign_date:
+          $ref: '#/components/schemas/DateTime'
+        contract_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        design_fee:
+          type: number
+          format: float
+          minimum: 0
+        survey_fee:
+          type: number
+          format: float
+          minimum: 0
+        consultation_fee:
+          type: number
+          format: float
+          minimum: 0
+    
+    ContractAmendment:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        amendment_number:
+          type: string
+        contract_id:
+          $ref: '#/components/schemas/UUID'
+        sign_date:
+          $ref: '#/components/schemas/DateTime'
+        design_fee:
+          type: number
+          format: float
+        survey_fee:
+          type: number
+          format: float
+        consultation_fee:
+          type: number
+          format: float
+        amendment_amount:
+          type: number
+          format: float
+    
+    # 财务记录相关
+    FinancialRecord:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        financial_type:
+          type: string
+          enum: [bonus, cost, client_payment, our_invoice, expert_fee, commission_payment, vendor_invoice]
+        direction:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          format: float
+        occurred_at:
+          $ref: '#/components/schemas/DateTime'
+        bonus_category:
+          type: string
+          enum: [business, production]
+        recipient_id:
+          $ref: '#/components/schemas/UUID'
+        cost_category:
+          type: string
+          enum: [taxi, accommodation, public_transport]
+        mileage:
+          type: number
+          format: float
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        related_payment_id:
+          $ref: '#/components/schemas/UUID'
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+        expert_name:
+          type: string
+        commission_type:
+          type: string
+          enum: [person, company]
+        vendor_name:
+          type: string
+        vendor_score:
+          type: number
+          format: float
+        related_commission_id:
+          $ref: '#/components/schemas/UUID'
+        description:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    CreateFinancialRecordRequest:
+      type: object
+      required:
+        - financial_type
+        - direction
+        - amount
+        - occurred_at
+      properties:
+        financial_type:
+          type: string
+          enum: [bonus, cost, client_payment, our_invoice, expert_fee, commission_payment, vendor_invoice]
+        direction:
+          type: string
+          enum: [income, expense]
+        amount:
+          type: number
+          format: float
+          minimum: 0
+        occurred_at:
+          $ref: '#/components/schemas/DateTime'
+        bonus_category:
+          type: string
+          enum: [business, production]
+        recipient_id:
+          $ref: '#/components/schemas/UUID'
+        cost_category:
+          type: string
+          enum: [taxi, accommodation, public_transport]
+        mileage:
+          type: number
+          format: float
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        related_payment_id:
+          $ref: '#/components/schemas/UUID'
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+        expert_name:
+          type: string
+        commission_type:
+          type: string
+          enum: [person, company]
+        vendor_name:
+          type: string
+        vendor_score:
+          type: number
+          format: float
+        related_commission_id:
+          $ref: '#/components/schemas/UUID'
+        description:
+          type: string
+    
+    UpdateFinancialRecordRequest:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 0
+        occurred_at:
+          $ref: '#/components/schemas/DateTime'
+        bonus_category:
+          type: string
+          enum: [business, production]
+        recipient_id:
+          $ref: '#/components/schemas/UUID'
+        cost_category:
+          type: string
+          enum: [taxi, accommodation, public_transport]
+        mileage:
+          type: number
+          format: float
+        client_id:
+          $ref: '#/components/schemas/UUID'
+        related_payment_id:
+          $ref: '#/components/schemas/UUID'
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+        expert_name:
+          type: string
+        commission_type:
+          type: string
+          enum: [person, company]
+        vendor_name:
+          type: string
+        vendor_score:
+          type: number
+          format: float
+        related_commission_id:
+          $ref: '#/components/schemas/UUID'
+        description:
+          type: string
+    
+    # 文件相关
+    File:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        file_name:
+          type: string
+        original_name:
+          type: string
+        file_path:
+          type: string
+        file_size:
+          type: integer
+          format: int64
+        mime_type:
+          type: string
+        category:
+          type: string
+          enum: [contract, bidding, production, invoice, approval, other]
+        description:
+          type: string
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        uploader_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    # 项目经营信息
+    ProjectBusiness:
+      type: object
+      properties:
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        client:
+          $ref: '#/components/schemas/Client'
+        contracts:
+          type: array
+          items:
+            $ref: '#/components/schemas/Contract'
+        financial_records:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialRecord'
+        statistics:
+          type: object
+          properties:
+            total_receivable:
+              type: number
+              format: float
+            total_paid:
+              type: number
+              format: float
+            total_unpaid:
+              type: number
+              format: float
+    
+    UpdateProjectBusinessRequest:
+      type: object
+      properties:
+        client_id:
+          $ref: '#/components/schemas/UUID'
+    
+    # 补充协议相关
+    CreateContractAmendmentRequest:
+      type: object
+      required:
+        - amendment_number
+        - sign_date
+        - design_fee
+        - survey_fee
+        - consultation_fee
+      properties:
+        amendment_number:
+          type: string
+        sign_date:
+          $ref: '#/components/schemas/DateTime'
+        contract_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        design_fee:
+          type: number
+          format: float
+          minimum: 0
+        survey_fee:
+          type: number
+          format: float
+          minimum: 0
+        consultation_fee:
+          type: number
+          format: float
+          minimum: 0
+        description:
+          type: string
+    
+    UpdateContractAmendmentRequest:
+      type: object
+      properties:
+        sign_date:
+          $ref: '#/components/schemas/DateTime'
+        contract_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        design_fee:
+          type: number
+          format: float
+          minimum: 0
+        survey_fee:
+          type: number
+          format: float
+          minimum: 0
+        consultation_fee:
+          type: number
+          format: float
+          minimum: 0
+        description:
+          type: string
+    
+    # 招投标信息相关
+    BiddingInfo:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        tender_file_id:
+          $ref: '#/components/schemas/UUID'
+        bid_file_id:
+          $ref: '#/components/schemas/UUID'
+        award_notice_file_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    UpdateBiddingInfoRequest:
+      type: object
+      properties:
+        tender_file_id:
+          $ref: '#/components/schemas/UUID'
+        bid_file_id:
+          $ref: '#/components/schemas/UUID'
+        award_notice_file_id:
+          $ref: '#/components/schemas/UUID'
+    
+    # 项目生产信息
+    ProjectProduction:
+      type: object
+      properties:
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMember'
+        production_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionFile'
+        approvals:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductionApproval'
+        external_commissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExternalCommission'
+    
+    # 生产阶段文件相关
+    ProductionFile:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        stage:
+          type: string
+          enum: [scheme, preliminary, construction, change, completion]
+        file_id:
+          $ref: '#/components/schemas/UUID'
+        review_sheet_file_id:
+          $ref: '#/components/schemas/UUID'
+        score:
+          type: number
+          format: float
+        description:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    # 批复审计信息相关
+    ProductionApproval:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        approval_type:
+          type: string
+          enum: [approval, audit]
+        approver_id:
+          $ref: '#/components/schemas/UUID'
+        status:
+          type: string
+          enum: [pending, approved]
+        signed_at:
+          $ref: '#/components/schemas/DateTime'
+        report_file_id:
+          $ref: '#/components/schemas/UUID'
+        amount_design:
+          type: number
+          format: float
+        amount_survey:
+          type: number
+          format: float
+        amount_consulting:
+          type: number
+          format: float
+        total_amount:
+          type: number
+          format: float
+        source_contract_id:
+          $ref: '#/components/schemas/UUID'
+        override_reason:
+          type: string
+        remarks:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    CreateProductionApprovalRequest:
+      type: object
+      required:
+        - approval_type
+        - amount_design
+        - amount_survey
+        - amount_consulting
+      properties:
+        approval_type:
+          type: string
+          enum: [approval, audit]
+        approver_id:
+          $ref: '#/components/schemas/UUID'
+        report_file_id:
+          $ref: '#/components/schemas/UUID'
+        amount_design:
+          type: number
+          format: float
+          minimum: 0
+        amount_survey:
+          type: number
+          format: float
+          minimum: 0
+        amount_consulting:
+          type: number
+          format: float
+          minimum: 0
+        source_contract_id:
+          $ref: '#/components/schemas/UUID'
+        override_reason:
+          type: string
+        remarks:
+          type: string
+    
+    UpdateProductionApprovalRequest:
+      type: object
+      properties:
+        approver_id:
+          $ref: '#/components/schemas/UUID'
+        status:
+          type: string
+          enum: [pending, approved]
+        signed_at:
+          $ref: '#/components/schemas/DateTime'
+        report_file_id:
+          $ref: '#/components/schemas/UUID'
+        amount_design:
+          type: number
+          format: float
+          minimum: 0
+        amount_survey:
+          type: number
+          format: float
+          minimum: 0
+        amount_consulting:
+          type: number
+          format: float
+          minimum: 0
+        source_contract_id:
+          $ref: '#/components/schemas/UUID'
+        override_reason:
+          type: string
+        remarks:
+          type: string
+    
+    # 对外委托相关
+    ExternalCommission:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        vendor_type:
+          type: string
+          enum: [person, company]
+        vendor_name:
+          type: string
+        score:
+          type: number
+          format: float
+        contract_file_id:
+          $ref: '#/components/schemas/UUID'
+        notes:
+          type: string
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    CreateExternalCommissionRequest:
+      type: object
+      required:
+        - vendor_type
+        - vendor_name
+      properties:
+        vendor_type:
+          type: string
+          enum: [person, company]
+        vendor_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        contract_file_id:
+          $ref: '#/components/schemas/UUID'
+        notes:
+          type: string
+    
+    UpdateExternalCommissionRequest:
+      type: object
+      properties:
+        vendor_type:
+          type: string
+          enum: [person, company]
+        vendor_name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+        contract_file_id:
+          $ref: '#/components/schemas/UUID'
+        notes:
+          type: string
+    
+    # 项目成员相关
+    ProjectMember:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        role:
+          type: string
+          enum: [designer, participant, reviewer, auditor, approver, business_personnel]
+        discipline_id:
+          $ref: '#/components/schemas/UUID'
+        join_date:
+          $ref: '#/components/schemas/DateTime'
+        leave_date:
+          $ref: '#/components/schemas/DateTime'
+        is_active:
+          type: boolean
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    CreateProjectMemberRequest:
+      type: object
+      required:
+        - user_id
+        - role
+        - join_date
+      properties:
+        user_id:
+          $ref: '#/components/schemas/UUID'
+        role:
+          type: string
+          enum: [designer, participant, reviewer, auditor, approver, business_personnel]
+        discipline_id:
+          $ref: '#/components/schemas/UUID'
+        join_date:
+          $ref: '#/components/schemas/DateTime'
+        leave_date:
+          $ref: '#/components/schemas/DateTime'
+    
+    UpdateProjectMemberRequest:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [designer, participant, reviewer, auditor, approver, business_personnel]
+        discipline_id:
+          $ref: '#/components/schemas/UUID'
+        join_date:
+          $ref: '#/components/schemas/DateTime'
+        leave_date:
+          $ref: '#/components/schemas/DateTime'
+        is_active:
+          type: boolean
+    
+    # 专业字典相关
+    Discipline:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UUID'
+        name:
+          type: string
+        code:
+          type: string
+        description:
+          type: string
+        is_global:
+          type: boolean
+        project_id:
+          $ref: '#/components/schemas/UUID'
+        created_at:
+          $ref: '#/components/schemas/DateTime'
+        updated_at:
+          $ref: '#/components/schemas/DateTime'
+    
+    CreateDisciplineRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        code:
+          type: string
+        description:
+          type: string
+        is_global:
+          type: boolean
+          default: true
+        project_id:
+          $ref: '#/components/schemas/UUID'
+    
+    UpdateDisciplineRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+        code:
+          type: string
+        description:
+          type: string
+    
+    # 用户管理相关
+    CreateUserRequest:
+      type: object
+      required:
+        - username
+        - email
+        - real_name
+        - role
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: 密码（仅当has_account=true时必填）
+        real_name:
+          type: string
+          minLength: 2
+          maxLength: 10
+        phone:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+          enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        has_account:
+          type: boolean
+          default: false
+    
+    UpdateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        real_name:
+          type: string
+          minLength: 2
+          maxLength: 10
+        phone:
+          type: string
+        department:
+          type: string
+        role:
+          type: string
+          enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        has_account:
+          type: boolean
+        is_active:
+          type: boolean
+    
+    # 公司收入相关
+    CompanyRevenue:
+      type: object
+      properties:
+        total_receivable:
+          type: number
+          format: float
+          description: 总应收金额
+        total_receivable_by_fee_type:
+          type: object
+          properties:
+            design_fee:
+              type: number
+              format: float
+            survey_fee:
+              type: number
+              format: float
+            consultation_fee:
+              type: number
+              format: float
+        total_invoiced:
+          type: number
+          format: float
+          description: 总开票金额
+        total_paid:
+          type: number
+          format: float
+          description: 总支付金额
+        total_unpaid:
+          type: number
+          format: float
+          description: 总未收金额
+        management_fee_ratio:
+          type: number
+          format: float
+          description: 管理费比例
+        management_fee:
+          type: number
+          format: float
+          description: 管理费金额
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialRecord'
+          description: 所有发票信息
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialRecord'
+          description: 所有支付信息
+    
+    # 错误响应
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        code:
+          type: string
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: 未授权访问
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+

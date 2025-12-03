@@ -154,7 +154,7 @@ export const ProjectMemberList = ({ projectId }: ProjectMemberListProps) => {
         onCancel={() => setEditingMember(null)}
         onOk={() => form.submit()}
         confirmLoading={updateMutation.isPending}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" onFinish={updateMutation.mutate}>
           <Form.Item label="角色" name="role" rules={[{ required: true }]}>
