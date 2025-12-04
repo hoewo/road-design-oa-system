@@ -268,6 +268,104 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /user/projects/{id}/business/export:
+    get:
+      tags:
+        - 项目经营
+      summary: 导出项目经营信息统计
+      description: 导出项目经营信息统计报表，支持 Excel、PDF、CSV 格式
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [excel, pdf, csv]
+            default: excel
+          description: 导出格式
+      responses:
+        '200':
+          description: 导出文件
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                description: Excel 格式（format=excel 时）
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+                description: PDF 格式（format=pdf 时）
+            text/csv:
+              schema:
+                type: string
+                format: binary
+                description: CSV 格式（format=csv 时）
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /user/company/revenue/export:
+    get:
+      tags:
+        - 公司收入管理
+      summary: 导出公司收入统计
+      description: 需要财务人员权限。导出公司收入统计报表，支持 Excel、PDF、CSV 格式
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [excel, pdf, csv]
+            default: excel
+          description: 导出格式
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 开始日期
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 结束日期
+      responses:
+        '200':
+          description: 导出文件
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+                description: Excel 格式（format=excel 时）
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+                description: PDF 格式（format=pdf 时）
+            text/csv:
+              schema:
+                type: string
+                format: binary
+                description: CSV 格式（format=csv 时）
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 无权限，需要财务人员权限
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   # 合同管理
   /user/projects/{id}/contracts:
     get:
@@ -561,6 +659,18 @@ paths:
           schema:
             type: string
             enum: [contract, bidding, production, invoice, approval, other]
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 开始日期（上传时间范围筛选）
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: 结束日期（上传时间范围筛选）
         - name: page
           in: query
           schema:
@@ -594,6 +704,7 @@ paths:
       tags:
         - 文件管理
       summary: 上传文件
+      description: 上传文件，最大支持 100MB。支持的文件类型：PDF、Word、Excel、图片等常见文档格式。禁止上传可执行文件、脚本文件等危险类型。
       parameters:
         - name: id
           in: path
@@ -1834,6 +1945,50 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           description: 无权限访问公司收入信息
+
+  # 公司配置管理
+  /user/company/config:
+    put:
+      tags:
+        - 公司收入管理
+      summary: 设置管理费比例
+      description: 需要财务人员权限。设置公司管理费比例（0-100），用于计算公司收入统计
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - management_fee_ratio
+              properties:
+                management_fee_ratio:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 100
+                  description: 管理费比例（0-100）
+                  example: 15.5
+      responses:
+        '200':
+          description: 设置成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      management_fee_ratio:
+                        type: number
+                        format: float
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 无权限，需要财务人员权限
 
   # 甲方管理
   /user/clients:

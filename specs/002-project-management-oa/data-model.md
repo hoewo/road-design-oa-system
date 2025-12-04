@@ -442,6 +442,66 @@ const (
 - 奖金发放人员必须关联到项目中的用户
 - 详细业务规则见：`research/financial-entity-unification.md`
 
+### 9. ProductionApproval (批复审计信息)
+
+```go
+type ProductionApproval struct {
+    ID              string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+    ProjectID       string    `json:"project_id" gorm:"type:uuid;not null"`
+    Project         Project   `json:"project" gorm:"foreignKey:ProjectID"`
+    
+    ApprovalType    ApprovalType `json:"approval_type" gorm:"not null"` // 类型：批复/审计
+    ApproverID      *string   `json:"approver_id" gorm:"type:uuid"` // 责任人ID
+    Approver         *User     `json:"approver,omitempty" gorm:"foreignKey:ApproverID"`
+    Status          ApprovalStatus `json:"status" gorm:"default:'pending'"` // 状态：待审核/已审核
+    SignedAt        *time.Time `json:"signed_at"` // 签字/确认时间
+    
+    // 批复/审计报告文件
+    ReportFileID    *string   `json:"report_file_id" gorm:"type:uuid"`
+    ReportFile      *File     `json:"report_file,omitempty" gorm:"foreignKey:ReportFileID"`
+    
+    // 批复/审计金额（按设计费、勘察费、咨询费拆分）
+    AmountDesign    float64   `json:"amount_design" gorm:"not null;default:0"` // 设计费（元）
+    AmountSurvey    float64   `json:"amount_survey" gorm:"not null;default:0"` // 勘察费（元）
+    AmountConsulting float64  `json:"amount_consulting" gorm:"not null;default:0"` // 咨询费（元）
+    TotalAmount     float64   `json:"total_amount" gorm:"not null"` // 总金额
+    
+    // 金额来源（默认引用合同金额，可覆盖）
+    SourceContractID *string  `json:"source_contract_id" gorm:"type:uuid"` // 关联的合同ID
+    SourceContract   *Contract `json:"source_contract,omitempty" gorm:"foreignKey:SourceContractID"`
+    OverrideReason   string   `json:"override_reason" gorm:"type:text"` // 覆盖原因说明
+    
+    Remarks         string    `json:"remarks" gorm:"type:text"`
+    
+    CreatedAt       time.Time `json:"created_at"`
+    UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type ApprovalType string
+
+const (
+    ApprovalTypeApproval ApprovalType = "approval" // 批复
+    ApprovalTypeAudit    ApprovalType = "audit"    // 审计
+)
+
+type ApprovalStatus string
+
+const (
+    ApprovalStatusPending ApprovalStatus = "pending" // 待审核
+    ApprovalStatusApproved ApprovalStatus = "approved" // 已审核
+)
+```
+
+**Validation Rules**:
+- AmountDesign, AmountSurvey, AmountConsulting: 大于等于0的数值
+- TotalAmount: 应等于AmountDesign + AmountSurvey + AmountConsulting
+- SignedAt: 如果填写，不能晚于当前日期
+
+**Business Rules**:
+- 批复/审计金额默认引用关联合同（含补充协议）的费用明细
+- 可在批复/审计记录中手工调整金额，并填写覆盖原因
+- 支持两级在线审批流程（审核、审定）
+
 ## Database Schema
 
 ### Indexes
@@ -577,6 +637,7 @@ CREATE INDEX idx_disciplines_project_id ON disciplines(project_id);
 11. **项目成员多角色**: 同一用户在同一项目中可以有多个角色，通过多条ProjectMember记录实现
 12. **生产人员专业关联**: 生产人员角色（设计人、参与人、复核人）必须关联专业
 13. **对外委托支付关联**: 委托支付和对方开票通过FinancialRecord实体管理，通过ProjectID和FinancialType查询
+14. **负责人账号删除处理**: 负责人账号被删除或禁用时，系统保留负责人配置信息（BusinessManagerID、ProductionManagerID），但在权限检查时视为无效，提示项目管理员更新负责人配置。注：暂时不考虑账号删除和禁用功能，后续有需要时再进行功能开发
 
 ### Data Integrity
 
@@ -771,66 +832,6 @@ FROM bonuses;
 - 存储方案兼容：支持MinIO（本地）和OSS（阿里云），通过配置切换
 - 数据库兼容：支持PostgreSQL（本地）和RDS（阿里云），通过连接字符串切换
 - **项目联系人管理**：项目联系人作为独立实体存在，与甲方实体分离，支持相同甲方在不同项目上有不同的联系人
-
-### 9. ProductionApproval (批复审计信息)
-
-```go
-type ProductionApproval struct {
-    ID              string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-    ProjectID       string    `json:"project_id" gorm:"type:uuid;not null"`
-    Project         Project   `json:"project" gorm:"foreignKey:ProjectID"`
-    
-    ApprovalType    ApprovalType `json:"approval_type" gorm:"not null"` // 类型：批复/审计
-    ApproverID      *string   `json:"approver_id" gorm:"type:uuid"` // 责任人ID
-    Approver         *User     `json:"approver,omitempty" gorm:"foreignKey:ApproverID"`
-    Status          ApprovalStatus `json:"status" gorm:"default:'pending'"` // 状态：待审核/已审核
-    SignedAt        *time.Time `json:"signed_at"` // 签字/确认时间
-    
-    // 批复/审计报告文件
-    ReportFileID    *string   `json:"report_file_id" gorm:"type:uuid"`
-    ReportFile      *File     `json:"report_file,omitempty" gorm:"foreignKey:ReportFileID"`
-    
-    // 批复/审计金额（按设计费、勘察费、咨询费拆分）
-    AmountDesign    float64   `json:"amount_design" gorm:"not null;default:0"` // 设计费（元）
-    AmountSurvey    float64   `json:"amount_survey" gorm:"not null;default:0"` // 勘察费（元）
-    AmountConsulting float64  `json:"amount_consulting" gorm:"not null;default:0"` // 咨询费（元）
-    TotalAmount     float64   `json:"total_amount" gorm:"not null"` // 总金额
-    
-    // 金额来源（默认引用合同金额，可覆盖）
-    SourceContractID *string  `json:"source_contract_id" gorm:"type:uuid"` // 关联的合同ID
-    SourceContract   *Contract `json:"source_contract,omitempty" gorm:"foreignKey:SourceContractID"`
-    OverrideReason   string   `json:"override_reason" gorm:"type:text"` // 覆盖原因说明
-    
-    Remarks         string    `json:"remarks" gorm:"type:text"`
-    
-    CreatedAt       time.Time `json:"created_at"`
-    UpdatedAt       time.Time `json:"updated_at"`
-}
-
-type ApprovalType string
-
-const (
-    ApprovalTypeApproval ApprovalType = "approval" // 批复
-    ApprovalTypeAudit    ApprovalType = "audit"    // 审计
-)
-
-type ApprovalStatus string
-
-const (
-    ApprovalStatusPending ApprovalStatus = "pending" // 待审核
-    ApprovalStatusApproved ApprovalStatus = "approved" // 已审核
-)
-```
-
-**Validation Rules**:
-- AmountDesign, AmountSurvey, AmountConsulting: 大于等于0的数值
-- TotalAmount: 应等于AmountDesign + AmountSurvey + AmountConsulting
-- SignedAt: 如果填写，不能晚于当前日期
-
-**Business Rules**:
-- 批复/审计金额默认引用关联合同（含补充协议）的费用明细
-- 可在批复/审计记录中手工调整金额，并填写覆盖原因
-- 支持两级在线审批流程（审核、审定）
 
 ### 10. ProductionFile (生产阶段文件)
 
@@ -1055,4 +1056,9 @@ const (
 - 文件实体通过外键关联到各业务实体，支持统一的文件管理
 - 专业字典支持全局和项目级专业，保证跨项目一致性又保留扩展性
 - 项目成员支持一人多角色，按专业维度维护生产人员配置
+- **管理费设置**: 管理费比例是系统全局配置参数，可通过以下方式实现：
+  - 方式1：使用系统配置表（如 `system_config` 表），存储 key-value 配置，key 为 `management_fee_ratio`，value 为管理费比例（0-100）
+  - 方式2：使用环境变量或配置文件，在应用启动时读取
+  - 方式3：如果后续需要更复杂的配置管理，可定义 `CompanyConfig` 实体，包含管理费比例等全局配置项
+  - 当前建议使用方式1（系统配置表），便于运行时修改且无需重启应用
 
