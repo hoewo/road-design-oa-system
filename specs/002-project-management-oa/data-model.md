@@ -10,17 +10,18 @@
 
 1. **User** - 用户实体（统一账号、经营人员、生产人员）
 2. **Project** - 项目实体
-3. **Client** - 甲方实体
-4. **BiddingInfo** - 招投标信息实体
-5. **Contract** - 合同实体
-6. **ContractAmendment** - 合同补充协议实体
-7. **FinancialRecord** - 财务记录实体（统一所有财务相关业务）
-8. **ProductionApproval** - 批复审计信息实体
-9. **ProductionFile** - 生产阶段文件实体
-10. **ExternalCommission** - 对外委托实体
-11. **File** - 文件实体
-12. **Discipline** - 专业字典实体
-13. **ProjectMember** - 项目成员实体（项目与用户的关联）
+3. **Client** - 甲方实体（仅包含甲方基本信息，不包含联系人信息）
+4. **ProjectContact** - 项目联系人实体（甲方在特定项目中的联系人，作为独立实体存在）
+5. **BiddingInfo** - 招投标信息实体
+6. **Contract** - 合同实体
+7. **ContractAmendment** - 合同补充协议实体
+8. **FinancialRecord** - 财务记录实体（统一所有财务相关业务）
+9. **ProductionApproval** - 批复审计信息实体
+10. **ProductionFile** - 生产阶段文件实体
+11. **ExternalCommission** - 对外委托实体
+12. **File** - 文件实体
+13. **Discipline** - 专业字典实体
+14. **ProjectMember** - 项目成员实体（项目与用户的关联）
 
 ## Detailed Entity Models
 
@@ -90,6 +91,9 @@ type Project struct {
     ClientID        *string  `json:"client_id" gorm:"type:uuid"`
     Client          *Client  `json:"client,omitempty" gorm:"foreignKey:ClientID"`
     
+    // 项目联系人（一对一关系，可选）
+    ProjectContact  *ProjectContact `json:"project_contact,omitempty" gorm:"foreignKey:ProjectID"`
+    
     Members         []ProjectMember `json:"members" gorm:"foreignKey:ProjectID"`
     Contracts       []Contract      `json:"contracts" gorm:"foreignKey:ProjectID"`
     BiddingInfo     *BiddingInfo    `json:"bidding_info,omitempty" gorm:"foreignKey:ProjectID"`
@@ -138,8 +142,6 @@ const (
 type Client struct {
     ID          string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
     ClientName  string    `json:"client_name" gorm:"uniqueIndex;not null"`
-    ContactName string    `json:"contact_name"`
-    ContactPhone string   `json:"contact_phone"`
     Email       string    `json:"email"`
     Address     string    `json:"address"`
     TaxNumber   string    `json:"tax_number"`
@@ -148,7 +150,8 @@ type Client struct {
     IsActive    bool      `json:"is_active" gorm:"default:true"`
     
     // 关联关系
-    Projects    []Project `json:"projects" gorm:"foreignKey:ClientID"`
+    Projects         []Project        `json:"projects" gorm:"foreignKey:ClientID"`
+    ProjectContacts  []ProjectContact `json:"project_contacts" gorm:"foreignKey:ClientID"`
     
     CreatedAt   time.Time `json:"created_at"`
     UpdatedAt   time.Time `json:"updated_at"`
@@ -157,7 +160,6 @@ type Client struct {
 
 **Validation Rules**:
 - ClientName: 2-100字符，必填，**唯一**（数据库唯一索引 + 应用层验证）
-- ContactPhone: 11位手机号或固定电话格式（可选）
 - Email: 有效的邮箱格式（可选）
 - TaxNumber: 18位统一社会信用代码格式（可选）
 - ID: UUID v4格式
@@ -167,8 +169,47 @@ type Client struct {
 - 如果甲方已被项目使用，不允许删除；未使用的甲方可以硬删除
 - 在项目经营信息模块中管理，支持选择已有甲方或创建新甲方
 - 每个项目最多关联一个甲方（可以为空），可以更换或删除关联
+- **重要**：甲方实体不包含联系人信息，联系人信息通过ProjectContact实体管理
 
-### 4. BiddingInfo (招投标信息)
+### 4. ProjectContact (项目联系人)
+
+```go
+type ProjectContact struct {
+    ID          string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+    ProjectID   string    `json:"project_id" gorm:"type:uuid;not null;uniqueIndex"`
+    Project     Project   `json:"project" gorm:"foreignKey:ProjectID"`
+    
+    // 关联甲方
+    ClientID    *string   `json:"client_id" gorm:"type:uuid"`
+    Client      *Client   `json:"client,omitempty" gorm:"foreignKey:ClientID"`
+    
+    ContactName string    `json:"contact_name" gorm:"not null"` // 联系人姓名
+    ContactPhone string  `json:"contact_phone"` // 联系人电话
+    
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+}
+```
+
+**Validation Rules**:
+- ProjectID: 必填，必须是有效的项目ID
+- ClientID: 可选，如果填写则必须是有效的甲方ID
+- ContactName: 2-50字符，必填
+- ContactPhone: 11位手机号或固定电话格式（可选）
+- 一个项目只能有一个项目联系人（uniqueIndex约束）
+- ID: UUID v4格式
+
+**Business Rules**:
+- 项目联系人与项目一对一关系
+- 项目联系人关联到项目的甲方（ClientID），便于直接查询和关联
+- 项目联系人实体与甲方实体分离，但通过ClientID建立关联关系
+- 相同甲方在不同项目中可以有不同的项目联系人实体
+- 修改一个项目的联系人信息不会影响其他项目
+- 当用户为项目关联甲方时，可以同时创建项目联系人实体并关联到该甲方
+- 如果用户只关联甲方但未填写联系人信息，可以不创建项目联系人实体，或创建但联系人信息为空
+- ClientID应该与Project.ClientID保持一致，确保数据一致性
+
+### 5. BiddingInfo (招投标信息)
 
 ```go
 type BiddingInfo struct {
@@ -201,7 +242,7 @@ type BiddingInfo struct {
 - 专家费支付通过FinancialRecord实体管理（financial_type=expert_fee）
 - 文件通过File实体关联，支持上传、下载、删除
 
-### 5. Contract (合同)
+### 6. Contract (合同)
 
 ```go
 type Contract struct {
@@ -244,7 +285,7 @@ type Contract struct {
 - 合同文件通过文件管理功能单独上传和管理
 - 支持补充协议（通过ContractAmendment关联）
 
-### 6. ContractAmendment (合同补充协议)
+### 7. ContractAmendment (合同补充协议)
 
 ```go
 type ContractAmendment struct {
@@ -284,7 +325,7 @@ type ContractAmendment struct {
 - 补充协议金额会影响项目的总应收金额和财务统计
 - 补充协议文件通过文件管理功能上传
 
-### 7. FinancialRecord (财务记录) - 统一财务实体
+### 8. FinancialRecord (财务记录) - 统一财务实体
 
 ```go
 type FinancialRecord struct {
@@ -423,6 +464,10 @@ CREATE INDEX idx_projects_is_deleted ON projects(is_deleted);
 -- 甲方表索引
 CREATE INDEX idx_clients_name ON clients(client_name);
 
+-- 项目联系人表索引
+CREATE INDEX idx_project_contacts_project_id ON project_contacts(project_id);
+CREATE INDEX idx_project_contacts_client_id ON project_contacts(client_id);
+
 -- 招投标信息表索引
 CREATE INDEX idx_bidding_info_project_id ON bidding_info(project_id);
 
@@ -490,28 +535,30 @@ CREATE INDEX idx_disciplines_project_id ON disciplines(project_id);
 4. **User** 1:N **File** (Uploader)
 5. **Client** 1:N **Project**
 6. **Client** 1:N **FinancialRecord** (ClientPayment, OurInvoice)
-7. **Project** 1:1 **BiddingInfo**
-8. **Project** 1:N **Contract**
-9. **Project** 1:N **FinancialRecord**
-10. **Project** 1:N **ProductionFile**
-11. **Project** 1:N **ProductionApproval**
-12. **Project** 1:N **ExternalCommission**
-13. **Project** 1:N **File**
-14. **Contract** 1:N **ContractAmendment**
-15. **FinancialRecord** 1:N **FinancialRecord** (RelatedPayment, RelatedCommission)
-16. **File** 1:1 **BiddingInfo** (TenderFile, BidFile, AwardNoticeFile)
-17. **File** 1:1 **Contract** (ContractFile)
-18. **File** 1:1 **ContractAmendment** (AmendmentFile)
-19. **File** 1:1 **FinancialRecord** (InvoiceFile)
-20. **File** 1:1 **ProductionApproval** (ReportFile)
-21. **File** 1:1 **ProductionFile** (File, ReviewSheetFile)
-22. **File** 1:1 **ExternalCommission** (ContractFile)
-23. **User** 1:N **ProductionApproval** (Approver)
-24. **User** 1:N **ProductionFile** (CreatedBy)
-25. **User** 1:N **ExternalCommission** (CreatedBy)
-26. **Contract** 1:N **ProductionApproval** (SourceContract)
-27. **Discipline** 1:N **ProjectMember** (生产人员专业关联)
-28. **Project** 1:N **Discipline** (项目级专业)
+7. **Client** 1:N **ProjectContact** (项目联系人关联的甲方)
+8. **Project** 1:1 **ProjectContact** (项目联系人)
+9. **Project** 1:1 **BiddingInfo**
+10. **Project** 1:N **Contract**
+11. **Project** 1:N **FinancialRecord**
+12. **Project** 1:N **ProductionFile**
+13. **Project** 1:N **ProductionApproval**
+14. **Project** 1:N **ExternalCommission**
+15. **Project** 1:N **File**
+16. **Contract** 1:N **ContractAmendment**
+17. **FinancialRecord** 1:N **FinancialRecord** (RelatedPayment, RelatedCommission)
+18. **File** 1:1 **BiddingInfo** (TenderFile, BidFile, AwardNoticeFile)
+19. **File** 1:1 **Contract** (ContractFile)
+20. **File** 1:1 **ContractAmendment** (AmendmentFile)
+21. **File** 1:1 **FinancialRecord** (InvoiceFile)
+22. **File** 1:1 **ProductionApproval** (ReportFile)
+23. **File** 1:1 **ProductionFile** (File, ReviewSheetFile)
+24. **File** 1:1 **ExternalCommission** (ContractFile)
+25. **User** 1:N **ProductionApproval** (Approver)
+26. **User** 1:N **ProductionFile** (CreatedBy)
+27. **User** 1:N **ExternalCommission** (CreatedBy)
+28. **Contract** 1:N **ProductionApproval** (SourceContract)
+29. **Discipline** 1:N **ProjectMember** (生产人员专业关联)
+30. **Project** 1:N **Discipline** (项目级专业)
 
 ## Data Validation Rules
 
@@ -560,7 +607,17 @@ User
 
 Project
   ├── 1:1 Client
+  ├── 1:1 ProjectContact (项目联系人)
   ├── 1:1 BiddingInfo
+
+Client
+  ├── 1:N Project
+  ├── 1:N FinancialRecord (ClientPayment, OurInvoice)
+  └── 1:N ProjectContact (项目联系人关联的甲方)
+
+ProjectContact
+  ├── 1:1 Project
+  └── 1:1 Client (关联的甲方)
   ├── 1:N Contract
   ├── 1:N FinancialRecord
   ├── 1:N ProductionFile
@@ -673,7 +730,13 @@ Discipline
 4. **字段变更**
    - Project表新增BusinessManagerID、ProductionManagerID字段
    - Contract表金额字段拆分（DesignFee, SurveyFee, ConsultationFee）
+   - Client表移除ContactName、ContactPhone字段（迁移到ProjectContact实体）
    - 需要数据迁移脚本处理
+
+5. **项目联系人实体**
+   - 新增ProjectContact实体，用于存储项目级别的联系人信息
+   - 从Client实体中移除联系人字段，联系人信息通过ProjectContact实体管理
+   - 需要将现有Client表中的联系人信息迁移到ProjectContact表
 
 ### 迁移脚本示例
 
@@ -707,8 +770,9 @@ FROM bonuses;
 - 项目成员支持一人多角色，按专业维度维护生产人员配置
 - 存储方案兼容：支持MinIO（本地）和OSS（阿里云），通过配置切换
 - 数据库兼容：支持PostgreSQL（本地）和RDS（阿里云），通过连接字符串切换
+- **项目联系人管理**：项目联系人作为独立实体存在，与甲方实体分离，支持相同甲方在不同项目上有不同的联系人
 
-### 8. ProductionApproval (批复审计信息)
+### 9. ProductionApproval (批复审计信息)
 
 ```go
 type ProductionApproval struct {
@@ -768,7 +832,7 @@ const (
 - 可在批复/审计记录中手工调整金额，并填写覆盖原因
 - 支持两级在线审批流程（审核、审定）
 
-### 9. ProductionFile (生产阶段文件)
+### 10. ProductionFile (生产阶段文件)
 
 ```go
 type ProductionFile struct {
@@ -819,7 +883,7 @@ const (
 - 校审单和评分为必填项（仅限方案、初步设计、施工图设计阶段）
 - 系统展示"引用合同金额"按钮以快速带出默认值
 
-### 10. ExternalCommission (对外委托)
+### 11. ExternalCommission (对外委托)
 
 ```go
 type ExternalCommission struct {
@@ -857,7 +921,7 @@ type ExternalCommission struct {
 - 委托支付和对方开票通过FinancialRecord实体管理
 - 可与成本统计、奖金分配联动（如根据评分决定奖金比例）
 
-### 11. File (文件)
+### 12. File (文件)
 
 ```go
 type File struct {
@@ -909,7 +973,7 @@ const (
 - 文件权限验证：用户只能访问有权限的项目文件
 - 支持按项目、文件类型、上传时间搜索和筛选
 
-### 12. Discipline (专业字典)
+### 13. Discipline (专业字典)
 
 ```go
 type Discipline struct {
@@ -937,7 +1001,7 @@ type Discipline struct {
 - 专业列表优先从全局专业字典选择，若缺少可在项目内新增并同步回字典
 - 保证跨项目一致性又保留扩展性
 
-### 13. ProjectMember (项目成员)
+### 14. ProjectMember (项目成员)
 
 ```go
 type ProjectMember struct {
