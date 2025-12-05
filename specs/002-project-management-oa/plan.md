@@ -12,8 +12,9 @@
 **关键设计决策**：
 1. **技术架构**：以 `001-project-management-oa` 为准（React 18+ + Go 1.21+ + PostgreSQL + MinIO）
 2. **业务方案**：完全参考 `002-project-management-oa` 重新设计（统一的财务记录实体、业务模型）
-3. **路由与认证**：以 `specs/002-project-management-oa/auth.md` 为准（`/{service}/{version}/{auth_level}/{path}` 格式）
+3. **路由与认证**：以 `specs/002-project-management-oa/ai-quick-reference.md` 为准（`/{service}/{version}/{auth_level}/{path}` 格式，根据业务需求选择三种认证级别：public、user、admin）
 4. **存储方案**：同时兼容本地方案（MinIO、PostgreSQL）和阿里云方案（OSS、RDS）
+5. **认证模式**：支持 `self_validate`（开发环境）和 `gateway`（生产环境）两种模式
 
 ## Technical Context
 
@@ -42,7 +43,10 @@
 - 用户操作成功率>95%
 - 支持中文界面和数据
 - 必须遵循统一的路由格式：`/{service}/{version}/{auth_level}/{path}`
-- 必须从 Header 中读取用户信息（X-User-ID, X-User-Username 等）
+- 必须支持三种认证级别：`public`（无需认证）、`user`（JWT Token 认证）、`admin`（管理员权限）
+- 必须从 Header 中读取用户信息（X-User-ID, X-User-Username, X-User-AppID, X-User-SessionID 等）
+- 必须支持认证模式切换：`self_validate`（开发环境）和 `gateway`（生产环境）
+- 生产环境必须注册服务到 NebulaAuth 网关
 **Scale/Scope**: 
 - 1000+并发用户
 - 10000+项目数据
@@ -66,8 +70,10 @@
 - ✅ API文档自动生成和维护（OpenAPI 3.0）
 
 **III. Security & Data Integrity**
-- ✅ 用户认证和授权机制（JWT Token，通过网关验证）
+- ✅ 用户认证和授权机制（JWT Token，通过网关验证或自行验证）
+- ✅ 支持两种认证模式：`self_validate`（开发环境，调用 NebulaAuth API 验证）和 `gateway`（生产环境，从 Header 读取）
 - ✅ 从 Header 中读取用户信息（X-User-ID, X-User-Username, X-User-AppID, X-User-SessionID）
+- ✅ 支持三种认证级别：`public`（无需认证）、`user`（JWT Token）、`admin`（管理员）
 - ✅ 财务数据完整性保护
 - ✅ 文件上传安全验证：仅限制危险文件类型（可执行文件、脚本文件等），其他文件类型均允许上传
 
@@ -100,7 +106,7 @@ specs/002-project-management-oa/
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
 │   └── openapi.yaml     # OpenAPI 3.0 specification
-├── auth.md              # 路由与认证规范（已存在）
+├── ai-quick-reference.md # NebulaAuth 应用服务开发完整指南（已存在）
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
@@ -156,12 +162,12 @@ backend/
 │   │   ├── external_commission_handler.go
 │   │   └── file_handler.go
 │   ├── middleware/
-│   │   ├── auth.go                       # 从 Header 读取用户信息
+│   │   ├── auth.go                       # 统一认证中间件（支持 self_validate 和 gateway 两种模式）
 │   │   ├── cors.go
 │   │   ├── error_handler.go
 │   │   └── logging.go
 │   ├── config/
-│   │   └── config.go                     # 支持本地/阿里云配置切换
+│   │   └── config.go                     # 支持本地/阿里云配置切换，支持认证模式配置（AUTH_MODE）
 │   └── router/
 │       └── router.go                     # 统一路由格式：/{service}/{version}/{auth_level}/{path}
 ├── pkg/
@@ -231,7 +237,9 @@ README.md
 - 选择Web应用结构，包含独立的前端和后端目录
 - 后端使用Go + Gin框架，采用分层架构（handlers -> services -> models）
 - 路由遵循统一格式：`/{service}/{version}/{auth_level}/{path}`（service: `timejourney`, version: `v1`）
-- 认证通过网关验证JWT Token，从Header中读取用户信息
+- 支持三种认证级别：`public`（无需认证）、`user`（JWT Token）、`admin`（管理员）
+- 认证模式：支持 `self_validate`（开发环境，调用 NebulaAuth API 验证）和 `gateway`（生产环境，从 Header 读取用户信息）
+- 生产环境需注册服务到 NebulaAuth 网关
 - 存储层抽象：支持MinIO（本地）和OSS（阿里云）切换
 - 数据库层抽象：支持PostgreSQL（本地）和RDS（阿里云）切换
 - 前端使用React + TypeScript，采用组件化设计
@@ -239,32 +247,61 @@ README.md
 
 ## Design Decisions & Clarifications
 
-### 路由与认证规范（基于 auth.md）
+### 路由与认证规范（基于 ai-quick-reference.md）
 
 **路由格式**：
 - 统一格式：`/{service}/{version}/{auth_level}/{path}`
 - service: `timejourney`
-- version: `v1`
-- auth_level: `public` 或 `user`
+- version: `v1` 或 `v2`（仅支持这两个版本）
+- auth_level: `public`、`user`、`admin`（根据业务需求选择，NebulaAuth 还支持 `apikey`，但当前业务暂不需要）
 - path: 具体接口路径
 
-**认证级别**：
-- **public**: 无需认证（如健康检查）
-- **user**: JWT Token 认证（所有业务接口）
+**认证级别选择（基于业务需求）**：
+- **public**: 无需认证（健康检查等公开接口）
+- **user**: JWT Token 认证（所有业务接口：项目管理、经营信息、生产信息等，权限通过业务逻辑判断）
+- **admin**: 管理员权限（系统管理、用户管理、公司收入管理、项目彻底删除等）
+
+**说明**：
+- NebulaAuth 支持四种认证级别（public、user、apikey、admin），但根据当前业务需求，只使用三种
+- `apikey` 级别用于服务间调用和第三方集成，当前业务暂无此需求，如未来需要可再添加
+- 业务角色（项目管理员、经营负责人、生产负责人、财务人员等）通过业务逻辑判断，不是通过认证级别区分
+
+**认证模式**：
+- **self_validate**（开发环境）：
+  - 业务服务器调用 NebulaAuth API 验证 Token
+  - 性能：较慢（网络调用，10-50ms）
+  - 使用场景：本地开发测试
+- **gateway**（生产环境）：
+  - 从网关注入的 Header 读取用户信息
+  - 性能：快（直接读取，<1ms）
+  - 使用场景：生产环境部署
 
 **Header 转发机制**：
-- 网关验证JWT Token成功后，注入以下Header：
+
+**user/admin 级别（外部服务会收到）**：
   - `X-User-ID`: 用户ID（UUID格式）
   - `X-User-Username`: 用户名
   - `X-User-AppID`: 应用ID
   - `X-User-SessionID`: 会话ID（UUID格式）
-- **重要**：系统不会收到 `X-User-Role` 和 `X-User-IsAdmin` header（仅本地服务可接收）
-- 系统必须从Header中读取用户信息，用于数据隔离和权限验证
+- **注意**：外部服务不会收到 `X-User-Role` 和 `X-User-IsAdmin` header（出于安全考虑）
+
+**说明**：当前业务不使用 `apikey` 级别，如未来需要第三方集成或服务间调用，可参考 `ai-quick-reference.md` 中的 apikey 级别 Header 规范
 
 **实现要求**：
-- 后端middleware从Header中提取用户信息
-- 所有业务接口使用 `user` 级别认证
+- 后端middleware根据 `AUTH_MODE` 环境变量选择认证模式
+- 开发环境使用 `self_validate` 模式，调用 NebulaAuth API 验证 Token
+- 生产环境使用 `gateway` 模式，从 Header 中读取用户信息
+- 所有业务接口根据需求选择合适的认证级别（`user` 或 `admin`）
 - 健康检查等系统接口使用 `public` 级别认证
+- 生产环境必须注册服务到 NebulaAuth 网关
+
+**环境配置**：
+- `AUTH_MODE`: `self_validate`（开发）或 `gateway`（生产）
+- `NEBULA_AUTH_URL`: NebulaAuth 服务地址
+- `API_BASE_URL`: 客户端访问地址（开发：localhost:8080，生产：网关地址）
+- `SERVICE_NAME`: 服务名称（`timejourney`）
+- `SERVICE_PORT`: 服务端口（`8080`）
+- `SERVICE_HOST`: 云端服务器 IP（仅生产环境需要，用于服务注册）
 
 ### 存储方案兼容性设计
 
@@ -372,35 +409,48 @@ database:
 **路由格式**：
 - 所有API遵循：`/{service}/{version}/{auth_level}/{path}`
 - 示例：
-  - `GET /timejourney/v1/public/health` - 健康检查
-  - `GET /timejourney/v1/user/projects` - 项目列表
-  - `POST /timejourney/v1/user/projects` - 创建项目
-  - `GET /timejourney/v1/user/projects/{id}` - 项目详情
+  - `GET /timejourney/v1/public/health` - 健康检查（public）
+  - `GET /timejourney/v1/user/projects` - 项目列表（user）
+  - `POST /timejourney/v1/user/projects` - 创建项目（user）
+  - `GET /timejourney/v1/user/projects/{id}` - 项目详情（user）
+  - `GET /timejourney/v1/admin/users` - 用户管理（admin）
+  - `GET /timejourney/v1/admin/revenue` - 公司收入管理（admin）
 
 **认证要求**：
-- 所有业务接口使用 `user` 级别认证
-- 从Header中读取用户信息（X-User-ID等）
-- 系统接口（健康检查）使用 `public` 级别认证
+- **public**：无需认证（健康检查等公开接口）
+- **user**：JWT Token 认证（所有业务接口：项目管理、经营信息、生产信息等）
+- **admin**：管理员权限（系统管理、用户管理、公司收入管理、项目彻底删除等）
+- 从Header中读取用户信息（X-User-ID、X-User-Username、X-User-AppID、X-User-SessionID等）
+- 业务角色权限（项目管理员、经营负责人、生产负责人、财务人员等）通过业务逻辑判断，不是通过认证级别区分
 
 **响应格式**：
 - 统一JSON响应格式
-- 错误信息统一格式
+- 错误信息统一格式：`{"error": "错误描述", "code": "ERROR_CODE"}`
 - 支持分页、排序、筛选
 
-### 部署规范（基于 auth.md）
+### 部署规范（基于 ai-quick-reference.md）
 
 **本地开发部署**：
 - 使用 `dev.sh` 脚本
 - Docker Compose 启动完整环境
 - 数据库初始化、环境变量配置
+- 设置 `AUTH_MODE=self_validate`
 - 健康检查验证
 
 **生产部署**：
 - 使用 `deploy.sh` 脚本
 - SSH免密连接部署
 - 数据库迁移自动执行
+- 设置 `AUTH_MODE=gateway`
+- 注册服务到 NebulaAuth 网关（使用管理员 Token）
 - 回滚支持
 - 健康检查验证
+
+**服务注册流程**：
+1. 获取管理员 Token（通过 NebulaAuth 登录接口）
+2. 调用服务注册 API：`POST /service-registry/v1/admin/services`
+3. 如果服务名已存在，使用更新接口：`PUT /service-registry/v1/admin/services/{service_name}`
+4. 验证服务注册成功（通过健康检查接口）
 
 ## Complexity Tracking
 
@@ -414,9 +464,11 @@ database:
 ### Phase 0: Outline & Research
 1. 研究存储方案抽象层设计（MinIO/OSS兼容）
 2. 研究数据库兼容性设计（PostgreSQL/RDS）
-3. 研究路由与认证中间件实现（Header读取）
-4. 研究财务记录统一实体的详细设计
-5. 研究专业字典的设计方案
+3. 研究路由与认证中间件实现（支持 self_validate 和 gateway 两种模式）
+4. 研究三种认证级别的实现方式（public、user、admin），了解 NebulaAuth 支持的 apikey 级别（暂不使用）
+5. 研究服务注册到 NebulaAuth 的流程
+6. 研究财务记录统一实体的详细设计
+7. 研究专业字典的设计方案
 
 ### Phase 1: Design & Contracts
 1. 生成 `data-model.md`：基于002的业务模型设计
