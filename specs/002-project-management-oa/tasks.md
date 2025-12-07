@@ -15,7 +15,7 @@
 - **Phase 3-8**: User Stories（部分实现，US1-US6）
 
 **关键改造点**:
-1. 路由格式：`/api/v1` → `/timejourney/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
+1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
 2. 认证方式：支持两种模式
    - self_validate（开发环境）：调用NebulaAuth API验证Token
    - gateway（生产环境）：从Header读取用户信息（X-User-ID等）
@@ -56,7 +56,7 @@
 改造现有代码以符合002规范：路由格式、认证方式、数据模型、ID类型。
 
 ### Independent Test Criteria
-- 所有路由遵循新格式：`/timejourney/v1/{auth_level}/{path}`
+- 所有路由遵循新格式：`/{service}/v1/{auth_level}/{path}`
 - 认证中间件从Header读取用户信息
 - 所有ID字段使用UUID string类型
 - 数据模型符合002规范
@@ -68,16 +68,16 @@
 - [ ] T009 创建统一路由模块 backend/internal/router/router.go
 - [ ] T010 实现路由分组逻辑（public/user/admin级别）backend/internal/router/router.go
 - [ ] T011 更新main.go使用新路由模块 backend/cmd/server/main.go
-- [ ] T012 [P] 迁移健康检查路由到 /timejourney/v1/public/health
-- [ ] T013 [P] 迁移认证路由到 /timejourney/v1/public/auth/*
-- [ ] T014 [P] 迁移项目路由到 /timejourney/v1/user/projects/*
-- [ ] T015 [P] 迁移合同路由到 /timejourney/v1/user/contracts/*
-- [ ] T016 [P] 迁移客户端路由到 /timejourney/v1/user/clients/*
-- [ ] T017 [P] 迁移用户路由到 /timejourney/v1/user/users/*
-- [ ] T018 [P] 迁移财务路由到 /timejourney/v1/user/financial-records/*
-- [ ] T019 [P] 迁移文件路由到 /timejourney/v1/user/files/*
-- [ ] T020 [P] 迁移用户管理路由到 /timejourney/v1/admin/users/*（系统管理功能）
-- [ ] T021 [P] 迁移公司收入管理路由到 /timejourney/v1/admin/revenue/*（需要管理员权限）
+- [ ] T012 [P] 迁移健康检查路由到 /project-oa/v1/public/health
+- [ ] T013 [P] 迁移认证路由到 /project-oa/v1/public/auth/*
+- [ ] T014 [P] 迁移项目路由到 /project-oa/v1/user/projects/*
+- [ ] T015 [P] 迁移合同路由到 /project-oa/v1/user/contracts/*
+- [ ] T016 [P] 迁移客户端路由到 /project-oa/v1/user/clients/*
+- [ ] T017 [P] 迁移用户路由到 /project-oa/v1/user/users/*
+- [ ] T018 [P] 迁移财务路由到 /project-oa/v1/user/financial-records/*
+- [ ] T019 [P] 迁移文件路由到 /project-oa/v1/user/files/*
+- [ ] T020 [P] 迁移用户管理路由到 /project-oa/v1/admin/users/*（系统管理功能）
+- [ ] T021 [P] 迁移公司收入管理路由到 /project-oa/v1/admin/revenue/*（需要管理员权限）
 - [ ] T022 更新前端API客户端使用新路由格式 frontend/src/services/api.ts
 
 #### 2.2 认证中间件改造

@@ -236,7 +236,7 @@ README.md
 **Structure Decision**: 
 - 选择Web应用结构，包含独立的前端和后端目录
 - 后端使用Go + Gin框架，采用分层架构（handlers -> services -> models）
-- 路由遵循统一格式：`/{service}/{version}/{auth_level}/{path}`（service: `timejourney`, version: `v1`）
+- 路由遵循统一格式：`/{service}/{version}/{auth_level}/{path}`（service: `project-oa`, version: `v1`）
 - 支持三种认证级别：`public`（无需认证）、`user`（JWT Token）、`admin`（管理员）
 - 认证模式：支持 `self_validate`（开发环境，调用 NebulaAuth API 验证）和 `gateway`（生产环境，从 Header 读取用户信息）
 - 生产环境需注册服务到 NebulaAuth 网关
@@ -251,7 +251,7 @@ README.md
 
 **路由格式**：
 - 统一格式：`/{service}/{version}/{auth_level}/{path}`
-- service: `timejourney`
+- service: `{service}`（本项目服务名：`project-oa`）
 - version: `v1` 或 `v2`（仅支持这两个版本）
 - auth_level: `public`、`user`、`admin`（根据业务需求选择，NebulaAuth 还支持 `apikey`，但当前业务暂不需要）
 - path: 具体接口路径
@@ -299,7 +299,7 @@ README.md
 - `AUTH_MODE`: `self_validate`（开发）或 `gateway`（生产）
 - `NEBULA_AUTH_URL`: NebulaAuth 服务地址
 - `API_BASE_URL`: 客户端访问地址（开发：localhost:8080，生产：网关地址）
-- `SERVICE_NAME`: 服务名称（`timejourney`）
+- `SERVICE_NAME`: 服务名称（`project-oa`）
 - `SERVICE_PORT`: 服务端口（`8080`）
 - `SERVICE_HOST`: 云端服务器 IP（仅生产环境需要，用于服务注册）
 
@@ -408,13 +408,13 @@ database:
 
 **路由格式**：
 - 所有API遵循：`/{service}/{version}/{auth_level}/{path}`
-- 示例：
-  - `GET /timejourney/v1/public/health` - 健康检查（public）
-  - `GET /timejourney/v1/user/projects` - 项目列表（user）
-  - `POST /timejourney/v1/user/projects` - 创建项目（user）
-  - `GET /timejourney/v1/user/projects/{id}` - 项目详情（user）
-  - `GET /timejourney/v1/admin/users` - 用户管理（admin）
-  - `GET /timejourney/v1/admin/revenue` - 公司收入管理（admin）
+- 示例（本项目服务名：`project-oa`）：
+  - `GET /project-oa/v1/public/health` - 健康检查（public）
+  - `GET /project-oa/v1/user/projects` - 项目列表（user）
+  - `POST /project-oa/v1/user/projects` - 创建项目（user）
+  - `GET /project-oa/v1/user/projects/{id}` - 项目详情（user）
+  - `GET /project-oa/v1/admin/users` - 用户管理（admin）
+  - `GET /project-oa/v1/admin/revenue` - 公司收入管理（admin）
 
 **认证要求**：
 - **public**：无需认证（健康检查等公开接口）

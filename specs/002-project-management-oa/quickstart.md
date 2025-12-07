@@ -20,7 +20,7 @@
 ```
 
 **路由格式**: 所有API遵循统一格式：`/{service}/{version}/{auth_level}/{path}`
-- service: `timejourney`
+- service: `{service}`（本项目服务名：`project-oa`）
 - version: `v1`
 - auth_level: `public` (无需认证) 或 `user` (需要JWT认证)
 
@@ -109,7 +109,7 @@ SERVER_HOST=0.0.0.0
 创建 `frontend/.env` 文件：
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080/timejourney/v1
+VITE_API_BASE_URL=http://localhost:8080/project-oa/v1
 VITE_APP_NAME=道路设计公司项目管理系统
 ```
 
@@ -141,7 +141,7 @@ docker-compose down
 #### 健康检查（无需认证）
 
 ```bash
-curl http://localhost:8080/timejourney/v1/public/health
+curl http://localhost:8080/project-oa/v1/public/health
 ```
 
 响应：
@@ -161,7 +161,7 @@ curl -H "X-User-ID: <user-id>" \
      -H "X-User-Username: <username>" \
      -H "X-User-AppID: <app-id>" \
      -H "X-User-SessionID: <session-id>" \
-     http://localhost:8080/timejourney/v1/user/projects
+     http://localhost:8080/project-oa/v1/user/projects
 ```
 
 ## 开发环境搭建

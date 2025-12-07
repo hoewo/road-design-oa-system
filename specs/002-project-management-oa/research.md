@@ -119,8 +119,8 @@ func AuthMiddleware() gin.HandlerFunc {
 }
 
 // 路由配置
-router.GET("/timejourney/v1/public/health", healthHandler)
-router.Group("/timejourney/v1/user").Use(AuthMiddleware())
+router.GET("/project-oa/v1/public/health", healthHandler)
+router.Group("/project-oa/v1/user").Use(AuthMiddleware())
 ```
 
 **Alternatives considered**:
@@ -213,13 +213,13 @@ func SetupRouter() *gin.Engine {
     router := gin.Default()
     
     // Public routes
-    public := router.Group("/timejourney/v1/public")
+    public := router.Group("/project-oa/v1/public")
     {
         public.GET("/health", healthHandler)
     }
     
     // User routes (需要认证)
-    user := router.Group("/timejourney/v1/user")
+    user := router.Group("/project-oa/v1/user")
     user.Use(AuthMiddleware())
     {
         // 项目相关

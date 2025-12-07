@@ -900,14 +900,14 @@ components:
 #### 002 的路由格式
 
 ```
-/timejourney/v1/user/projects
-/timejourney/v1/user/projects/{id}
-/timejourney/v1/user/projects/{id}/contracts
-/timejourney/v1/public/health
+/project-oa/v1/user/projects
+/project-oa/v1/user/projects/{id}
+/project-oa/v1/user/projects/{id}/contracts
+/project-oa/v1/public/health
 ```
 
 **说明**: 002 使用统一路由格式 `/{service}/{version}/{auth_level}/{path}`，其中：
-- `service`: timejourney
+- `service`: project-oa
 - `version`: v1
 - `auth_level`: public (无需认证) / user (需要认证)
 - `path`: 具体业务路径
@@ -1066,12 +1066,12 @@ components:
 ```
 
 **示例**:
-- `/timejourney/v1/user/projects`
-- `/timejourney/v1/user/projects/{uuid}`
-- `/timejourney/v1/user/projects/{uuid}/contracts`
+- `/project-oa/v1/user/projects`
+- `/project-oa/v1/user/projects/{uuid}`
+- `/project-oa/v1/user/projects/{uuid}/contracts`
 
 **说明**:
-- `service`: timejourney（服务名称）
+- `service`: project-oa（服务名称）
 - `version`: v1（API 版本）
 - `auth_level`: public（无需认证）或 user（需要认证）
 - `resource`: 业务资源路径
@@ -1117,11 +1117,11 @@ components:
 ### 6.1 API 路径迁移
 
 1. **基础路径变更**
-   - 001: `/api/v1/` → 002: `/timejourney/v1/user/` 或 `/timejourney/v1/public/`
+   - 001: `/api/v1/` → 002: `/project-oa/v1/user/` 或 `/project-oa/v1/public/`
 
 2. **资源路径迁移**
    - 保持资源路径不变，但需要添加认证级别前缀
-   - 示例: `/api/v1/projects` → `/timejourney/v1/user/projects`
+   - 示例: `/api/v1/projects` → `/project-oa/v1/user/projects`
 
 3. **路径参数迁移**
    - 所有路径参数从整数 ID 变更为 UUID 字符串

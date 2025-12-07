@@ -8,9 +8,9 @@ info:
     email: dev@company.com
 
 servers:
-  - url: http://localhost:8080/timejourney/v1
+  - url: http://localhost:8080/project-oa/v1
     description: 本地开发环境
-  - url: https://api.project-oa.com/timejourney/v1
+  - url: https://api.project-oa.com/project-oa/v1
     description: 生产环境
 
 # 安全定义
