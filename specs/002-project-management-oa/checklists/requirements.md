@@ -19,7 +19,6 @@
 - [x] Success criteria are technology-agnostic (no implementation details)
 - [x] All acceptance scenarios are defined
 - [x] Edge cases are identified
-- [x] Edge cases are defined with clear handling rules (see [edge-cases.md](./edge-cases.md))
 - [x] Scope is clearly bounded
 - [x] Dependencies and assumptions identified
 
@@ -32,10 +31,9 @@
 
 ## Notes
 
-- 规范已完整覆盖需求梳理.md中的所有功能点
-- 所有用户故事都有明确的优先级和独立测试方法
-- 成功标准都是可测量且与技术无关的
-- 所有功能需求都有明确的业务价值描述
-- **2025-01-28 更新**: 明确了甲方信息管理功能，联系人信息是项目级别的，相同甲方在不同项目上可以有不同的联系人信息。已更新 User Story 4、FR-005、Key Entities 和 Edge Cases (EC-034, EC-035)
-- **最新更新**: 明确了甲方的项目联系人作为一个单独实体存在，已更新 User Story 4、FR-005、Key Entities（新增项目联系人实体）和 Edge Cases (EC-034, EC-035)
-
+- 已更新：移除注册功能，只允许系统管理员预设账号登录
+- User Story 1 已更新为管理员预设账号和用户登录场景
+- FR-001 已更新，明确不提供公开注册功能
+- SC-001 已更新，移除注册相关时间要求
+- 新增边界情况 EC-036 和 EC-037，说明账号注册限制和管理员预设账号流程
+- 所有更新已完成，spec 已准备好进行规划阶段
