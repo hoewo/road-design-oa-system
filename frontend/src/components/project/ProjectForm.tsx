@@ -24,7 +24,7 @@ const { TextArea } = Input
 const { Option } = Select
 
 interface ProjectFormProps {
-  projectId?: number
+  projectId?: string // UUID string
   onSuccess?: () => void
   onCancel?: () => void
 }
@@ -67,13 +67,19 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
       onSuccess?.()
     },
     onError: (error: any) => {
-      message.error(error?.message || '项目创建失败')
+      const errorMessage = error?.response?.data?.error || error?.message || '项目创建失败'
+      if (errorMessage.includes('project number already exists') || errorMessage.includes('项目编号已存在')) {
+        message.error('项目编号已存在，请使用其他编号')
+        form.setFields([{ name: 'project_number', errors: ['项目编号已存在'] }])
+      } else {
+        message.error(errorMessage)
+      }
     },
   })
 
   // Update project mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateProjectRequest }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateProjectRequest }) =>
       projectService.updateProject(id, data),
     onSuccess: () => {
       message.success('项目更新成功')
@@ -150,7 +156,12 @@ const ProjectForm = ({ projectId, onSuccess, onCancel }: ProjectFormProps) => {
           <Form.Item
             name="project_number"
             label="项目编号"
-            rules={[{ required: !projectId, message: '请输入项目编号' }]}
+            rules={[
+              { required: !projectId, message: '请输入项目编号' },
+              { pattern: /^[A-Za-z0-9_-]+$/, message: '项目编号只能包含字母、数字、下划线和连字符' },
+            ]}
+            validateStatus={form.getFieldError('project_number')?.length > 0 ? 'error' : ''}
+            help={form.getFieldError('project_number')?.[0]}
           >
             <Input placeholder="请输入项目编号" disabled={!!projectId} />
           </Form.Item>

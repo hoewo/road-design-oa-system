@@ -8,6 +8,7 @@ import (
 
 	"project-oa-backend/internal/config"
 	"project-oa-backend/internal/middleware"
+	"project-oa-backend/internal/models"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -84,23 +85,40 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 // GetCurrentUser returns the current authenticated user
 // @Summary Get current user
-// @Description Get information about the current authenticated user
+// @Description Get information about the current authenticated user (from Header)
 // @Tags 认证
 // @Security BearerAuth
 // @Success 200 {object} models.User
 // @Failure 401 {object} utils.ErrorResponse
 // @Router /auth/me [get]
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
+	// Get user ID from Header (set by auth middleware)
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
-	user, err := h.authService.GetCurrentUser(userID)
-	if err != nil {
-		utils.HandleError(c, http.StatusNotFound, "User not found", err)
+	// Get username from Header (if available)
+	username := c.GetHeader("X-User-Username")
+	if username == "" {
+		// Fallback to service lookup if header not available
+		user, err := h.authService.GetCurrentUser(userID)
+		if err != nil {
+			utils.HandleError(c, http.StatusNotFound, "User not found", err)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"success": true,
+			"data":    user,
+		})
 		return
+	}
+
+	// Build user info from Header (gateway mode)
+	user := &models.User{
+		ID:       userID,
+		Username: username,
 	}
 
 	c.JSON(http.StatusOK, gin.H{

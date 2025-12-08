@@ -1,6 +1,6 @@
 // User types
 export interface User {
-  id: number
+  id: string // UUID string
   username: string
   email: string
   real_name: string
@@ -8,6 +8,7 @@ export interface User {
   department?: string
   phone?: string
   is_active: boolean
+  has_account?: boolean // 是否有账号
   created_at: string
   updated_at: string
 }
@@ -22,15 +23,15 @@ export type UserRole =
 
 // Project types
 export interface Project {
-  id: number
+  id: string // UUID string
   project_name: string
   project_number: string
-  start_date: string
+  start_date?: string
   project_overview?: string
   drawing_unit?: string
   status: ProjectStatus
-  client_id: number
-  manager_id: number
+  client_id?: string // UUID string (optional)
+  manager_id?: string // UUID string (optional)
   management_fee_ratio?: number | null // 管理费比例（可选，null表示使用公司默认值）
   created_at: string
   updated_at: string

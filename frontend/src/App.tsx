@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
-import { Layout, Button } from 'antd'
-import { LogoutOutlined } from '@ant-design/icons'
+import { Layout } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { authService } from '@/services/auth'
@@ -11,6 +10,7 @@ import ProjectRevenue from './pages/ProjectRevenue'
 import CompanyConfig from './pages/CompanyConfig'
 import CompanyRevenue from './pages/CompanyRevenue'
 import ContractDetail from './components/contract/ContractDetail'
+import UserInfo from './components/auth/UserInfo'
 import './App.css'
 
 const { Header, Content } = Layout
@@ -43,13 +43,6 @@ const ProjectProductionRedirect = () => {
 }
 
 function App() {
-  const navigate = useNavigate()
-
-  const handleLogout = async () => {
-    await authService.logout()
-    navigate('/login')
-  }
-
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
@@ -77,9 +70,7 @@ function App() {
                 >
                   项目管理OA系统
                 </div>
-                <Button icon={<LogoutOutlined />} onClick={handleLogout}>
-                  退出登录
-                </Button>
+                <UserInfo />
               </Header>
               <Content style={{ padding: '24px' }}>
                 <Routes>

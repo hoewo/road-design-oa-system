@@ -216,13 +216,13 @@
 
 ### Implementation Tasks
 
-- [ ] T093 [US1] 更新User模型添加HasAccount字段 backend/internal/models/user.go
-- [ ] T094 [US1] 更新UserService支持账号查询 backend/internal/services/user_service.go
-- [ ] T095 [US1] 更新UserHandler支持账号查询 backend/internal/handlers/user_handler.go
-- [ ] T096 [US1] 实现用户信息获取接口（从Header读取）backend/internal/handlers/auth_handler.go
-- [ ] T097 [US1] 更新前端登录页面适配新认证方式，移除注册入口 frontend/src/pages/Login.tsx
-- [ ] T098 [US1] 实现前端登录页面提示（如需账号请联系管理员）frontend/src/pages/Login.tsx
-- [ ] T099 [US1] 更新前端用户信息显示组件 frontend/src/components/auth/UserInfo.tsx
+- [X] T093 [US1] 更新User模型添加HasAccount字段 backend/internal/models/user.go
+- [X] T094 [US1] 更新UserService支持账号查询 backend/internal/services/user_service.go
+- [X] T095 [US1] 更新UserHandler支持账号查询 backend/internal/handlers/user_handler.go
+- [X] T096 [US1] 实现用户信息获取接口（从Header读取）backend/internal/handlers/auth_handler.go
+- [X] T097 [US1] 更新前端登录页面适配新认证方式，移除注册入口 frontend/src/pages/Login.tsx
+- [X] T098 [US1] 实现前端登录页面提示（如需账号请联系管理员）frontend/src/pages/Login.tsx
+- [X] T099 [US1] 更新前端用户信息显示组件 frontend/src/components/auth/UserInfo.tsx
 
 ---
 
@@ -238,13 +238,13 @@
 
 ### Implementation Tasks
 
-- [ ] T100 [US2] 更新Project模型符合002规范 backend/internal/models/project.go
-- [ ] T101 [US2] 更新ProjectService支持项目创建 backend/internal/services/project_service.go
-- [ ] T102 [US2] 实现项目编号唯一性验证 backend/internal/services/project_service.go
-- [ ] T103 [US2] 更新ProjectHandler支持项目创建 backend/internal/handlers/project_handler.go
-- [ ] T104 [US2] 更新前端项目创建表单 frontend/src/components/project/ProjectForm.tsx
-- [ ] T105 [US2] 更新前端项目列表页面 frontend/src/pages/ProjectList.tsx
-- [ ] T106 [US2] 实现项目编号重复验证前端提示 frontend/src/components/project/ProjectForm.tsx
+- [X] T100 [US2] 更新Project模型符合002规范 backend/internal/models/project.go
+- [X] T101 [US2] 更新ProjectService支持项目创建 backend/internal/services/project_service.go
+- [X] T102 [US2] 实现项目编号唯一性验证 backend/internal/services/project_service.go
+- [X] T103 [US2] 更新ProjectHandler支持项目创建 backend/internal/handlers/project_handler.go
+- [X] T104 [US2] 更新前端项目创建表单 frontend/src/components/project/ProjectForm.tsx
+- [X] T105 [US2] 更新前端项目列表页面 frontend/src/pages/ProjectList.tsx
+- [X] T106 [US2] 实现项目编号重复验证前端提示 frontend/src/components/project/ProjectForm.tsx
 
 ---
 

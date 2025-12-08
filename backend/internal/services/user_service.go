@@ -23,11 +23,12 @@ func NewUserService() *UserService {
 
 // ListUsersRequest represents the request to list users
 type ListUsersRequest struct {
-	Page     int    `form:"page"`
-	Size     int    `form:"size"`
-	Keyword  string `form:"keyword"`
-	Role     string `form:"role"`
-	IsActive *bool  `form:"is_active"`
+	Page      int    `form:"page"`
+	Size      int    `form:"size"`
+	Keyword   string `form:"keyword"`
+	Role      string `form:"role"`
+	IsActive  *bool  `form:"is_active"`
+	HasAccount *bool `form:"has_account"` // 账号查询过滤
 }
 
 // ListUsersResponse represents the response for listing users
@@ -87,6 +88,11 @@ func (s *UserService) ListUsers(req *ListUsersRequest) (*ListUsersResponse, erro
 	// Apply is_active filter
 	if req.IsActive != nil {
 		query = query.Where("is_active = ?", *req.IsActive)
+	}
+
+	// Apply has_account filter
+	if req.HasAccount != nil {
+		query = query.Where("has_account = ?", *req.HasAccount)
 	}
 
 	// Get total count

@@ -56,8 +56,9 @@ const Login = () => {
             </Button>
           </Form.Item>
         </Form>
-        <div style={{ marginTop: 16, color: '#999', fontSize: 12 }}>
-          <p>测试账号：admin / admin123</p>
+        <div style={{ marginTop: 16, color: '#999', fontSize: 12, textAlign: 'center' }}>
+          <p style={{ marginBottom: 8 }}>如需账号，请联系系统管理员</p>
+          <p style={{ fontSize: 11 }}>系统不提供公开注册功能</p>
         </div>
       </Card>
     </div>
