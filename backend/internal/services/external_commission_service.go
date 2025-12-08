@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"time"
 
 	"gorm.io/gorm"
 
@@ -19,23 +18,21 @@ func NewExternalCommissionService() *ExternalCommissionService {
 }
 
 type CreateExternalCommissionRequest struct {
-	ProjectID      uint
+	ProjectID      string // UUID string
 	VendorName     string
 	VendorType     models.ExternalVendorType
-	Score          *int
-	ContractFileID *uint
-	InvoiceFileID  *uint
-	PaymentAmount  float64
-	PaymentDate    *time.Time
-	Notes          string
-	CreatedByID    uint
+	Score          *float64 // 委托方评分（类型从 *int 改为 *float64）
+	ContractFileID *string  // UUID string
+	// 注意：InvoiceFileID, PaymentAmount, PaymentDate 字段已移除，这些信息通过FinancialRecord管理
+	Notes       string
+	CreatedByID string // UUID string
 }
 
 func (s *ExternalCommissionService) CreateCommission(req *CreateExternalCommissionRequest) (*models.ExternalCommission, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
-	if req.ProjectID == 0 || req.VendorName == "" {
+	if req.ProjectID == "" || req.VendorName == "" {
 		return nil, errors.New("project_id and vendor_name are required")
 	}
 
@@ -43,24 +40,29 @@ func (s *ExternalCommissionService) CreateCommission(req *CreateExternalCommissi
 		return nil, err
 	}
 
+	// Convert Score from *int to *float64 if needed
+	var score *float64
+	if req.Score != nil {
+		scoreVal := float64(*req.Score)
+		score = &scoreVal
+	}
+
 	commission := &models.ExternalCommission{
 		ProjectID:      req.ProjectID,
 		VendorName:     req.VendorName,
 		VendorType:     req.VendorType,
-		Score:          req.Score,
+		Score:          score,
 		ContractFileID: req.ContractFileID,
-		InvoiceFileID:  req.InvoiceFileID,
-		PaymentAmount:  req.PaymentAmount,
-		PaymentDate:    req.PaymentDate,
-		Notes:          req.Notes,
-		CreatedByID:    req.CreatedByID,
+		// 注意：InvoiceFileID, PaymentAmount, PaymentDate 字段已移除，这些信息通过FinancialRecord管理
+		Notes:       req.Notes,
+		CreatedByID: req.CreatedByID,
 	}
 
 	if err := s.db.Create(commission).Error; err != nil {
 		return nil, err
 	}
 
-	s.db.Preload("ContractFile").Preload("InvoiceFile").Preload("CreatedBy").First(commission, commission.ID)
+	s.db.Preload("ContractFile").Preload("CreatedBy").First(commission, "id = ?", commission.ID)
 	return commission, nil
 }
 
@@ -70,7 +72,7 @@ type ListExternalCommissionParams struct {
 	Size       int
 }
 
-func (s *ExternalCommissionService) ListByProject(projectID uint, params *ListExternalCommissionParams) ([]models.ExternalCommission, int64, error) {
+func (s *ExternalCommissionService) ListByProject(projectID string, params *ListExternalCommissionParams) ([]models.ExternalCommission, int64, error) {
 	query := s.db.Model(&models.ExternalCommission{}).Where("project_id = ?", projectID)
 	if params != nil && params.VendorType != "" {
 		query = query.Where("vendor_type = ?", params.VendorType)
@@ -94,7 +96,7 @@ func (s *ExternalCommissionService) ListByProject(projectID uint, params *ListEx
 	var items []models.ExternalCommission
 	if err := query.
 		Preload("ContractFile").
-		Preload("InvoiceFile").
+		// 注意：InvoiceFile Preload已移除，因为InvoiceFileID字段已删除
 		Order("created_at DESC").
 		Offset((page - 1) * size).
 		Limit(size).
@@ -105,9 +107,9 @@ func (s *ExternalCommissionService) ListByProject(projectID uint, params *ListEx
 	return items, total, nil
 }
 
-func (s *ExternalCommissionService) ensureProjectExists(projectID uint) error {
+func (s *ExternalCommissionService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}

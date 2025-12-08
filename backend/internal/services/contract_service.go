@@ -25,7 +25,7 @@ func NewContractService() *ContractService {
 // CreateContractRequest represents the request to create a contract
 type CreateContractRequest struct {
 	ContractNumber  string    `json:"contract_number" binding:"required"`
-	ContractType    string    `json:"contract_type" binding:"required"`
+	ContractType    string    `json:"contract_type" binding:"required"` // 注意：此字段在模型中保留，但根据新设计，合同金额已按设计费、勘察费、咨询费分别录入，此字段可能冗余
 	SignDate        time.Time `json:"sign_date" binding:"required"`
 	ContractRate    *float64  `json:"contract_rate"`
 	ContractAmount  float64   `json:"contract_amount" binding:"required"`
@@ -46,11 +46,11 @@ type UpdateContractRequest struct {
 	ConsultationFee *float64   `json:"consultation_fee"`
 }
 
-// CreateContract creates a new contract
-func (s *ContractService) CreateContract(projectID uint, req *CreateContractRequest) (*models.Contract, error) {
+// CreateContract creates a new contract (UUID string)
+func (s *ContractService) CreateContract(projectID string, req *CreateContractRequest) (*models.Contract, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -117,15 +117,15 @@ func (s *ContractService) CreateContract(projectID uint, req *CreateContractRequ
 	}
 
 	// Load associations
-	s.db.Preload("Project").Preload("Amendments").First(contract, contract.ID)
+	s.db.Preload("Project").Preload("Amendments").First(contract, "id = ?", contract.ID)
 
 	return contract, nil
 }
 
-// GetContract retrieves a contract by ID
-func (s *ContractService) GetContract(id uint) (*models.Contract, error) {
+// GetContract retrieves a contract by ID (UUID string)
+func (s *ContractService) GetContract(id string) (*models.Contract, error) {
 	var contract models.Contract
-	if err := s.db.Preload("Project").Preload("Amendments").First(&contract, id).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("Amendments").First(&contract, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract not found")
 		}
@@ -135,8 +135,8 @@ func (s *ContractService) GetContract(id uint) (*models.Contract, error) {
 	return &contract, nil
 }
 
-// ListContractsByProject retrieves all contracts for a project
-func (s *ContractService) ListContractsByProject(projectID uint) ([]models.Contract, error) {
+// ListContractsByProject retrieves all contracts for a project (UUID string)
+func (s *ContractService) ListContractsByProject(projectID string) ([]models.Contract, error) {
 	var contracts []models.Contract
 	if err := s.db.Where("project_id = ?", projectID).
 		Preload("Amendments").
@@ -148,10 +148,10 @@ func (s *ContractService) ListContractsByProject(projectID uint) ([]models.Contr
 	return contracts, nil
 }
 
-// UpdateContract updates an existing contract
-func (s *ContractService) UpdateContract(id uint, req *UpdateContractRequest) (*models.Contract, error) {
+// UpdateContract updates an existing contract (UUID string)
+func (s *ContractService) UpdateContract(id string, req *UpdateContractRequest) (*models.Contract, error) {
 	var contract models.Contract
-	if err := s.db.First(&contract, id).Error; err != nil {
+	if err := s.db.First(&contract, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract not found")
 		}
@@ -232,15 +232,15 @@ func (s *ContractService) UpdateContract(id uint, req *UpdateContractRequest) (*
 	}
 
 	// Reload with associations
-	s.db.Preload("Project").Preload("Amendments").First(&contract, id)
+	s.db.Preload("Project").Preload("Amendments").First(&contract, "id = ?", id)
 
 	return &contract, nil
 }
 
-// DeleteContract deletes a contract
-func (s *ContractService) DeleteContract(id uint) error {
+// DeleteContract deletes a contract (UUID string)
+func (s *ContractService) DeleteContract(id string) error {
 	var contract models.Contract
-	if err := s.db.First(&contract, id).Error; err != nil {
+	if err := s.db.First(&contract, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("contract not found")
 		}

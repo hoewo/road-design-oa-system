@@ -23,28 +23,28 @@ func NewProjectBusinessService() *ProjectBusinessService {
 
 // ProjectBusiness represents the business information of a project
 type ProjectBusiness struct {
-	ProjectID            uint           `json:"project_id"`
-	ClientID             *uint          `json:"client_id"`
+	ProjectID            string         `json:"project_id"` // UUID string
+	ClientID             *string        `json:"client_id"`  // UUID string
 	Client               *models.Client `json:"client,omitempty"`
 	ContactName          string         `json:"contact_name"`
 	ContactPhone         string         `json:"contact_phone"`
-	BusinessManagerIDs   []uint         `json:"business_manager_ids"`   // 经营负责人ID列表
-	BusinessPersonnelIDs []uint         `json:"business_personnel_ids"` // 经营人员ID列表
+	BusinessManagerIDs   []string       `json:"business_manager_ids"`   // 经营负责人ID列表 (UUID strings)
+	BusinessPersonnelIDs []string       `json:"business_personnel_ids"` // 经营人员ID列表 (UUID strings)
 }
 
 // UpdateProjectBusinessRequest represents the request to update project business information
 type UpdateProjectBusinessRequest struct {
-	ClientID             *uint   `json:"client_id"` // nil表示删除关联
-	ContactName          *string `json:"contact_name"`
-	ContactPhone         *string `json:"contact_phone"`
-	BusinessManagerIDs   []uint  `json:"business_manager_ids"`   // 经营负责人ID列表
-	BusinessPersonnelIDs []uint  `json:"business_personnel_ids"` // 经营人员ID列表
+	ClientID             *string  `json:"client_id"` // nil表示删除关联 (UUID string)
+	ContactName          *string  `json:"contact_name"`
+	ContactPhone         *string  `json:"contact_phone"`
+	BusinessManagerIDs   []string `json:"business_manager_ids"`   // 经营负责人ID列表 (UUID strings)
+	BusinessPersonnelIDs []string `json:"business_personnel_ids"` // 经营人员ID列表 (UUID strings)
 }
 
-// GetProjectBusiness retrieves business information for a project
-func (s *ProjectBusinessService) GetProjectBusiness(projectID uint) (*ProjectBusiness, error) {
+// GetProjectBusiness retrieves business information for a project (UUID string)
+func (s *ProjectBusinessService) GetProjectBusiness(projectID string) (*ProjectBusiness, error) {
 	var project models.Project
-	if err := s.db.Preload("Client").Preload("Members").First(&project, projectID).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Members").First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -57,8 +57,8 @@ func (s *ProjectBusinessService) GetProjectBusiness(projectID uint) (*ProjectBus
 		Client:               project.Client,
 		ContactName:          "", // 从项目或单独字段获取
 		ContactPhone:         "", // 从项目或单独字段获取
-		BusinessManagerIDs:   []uint{},
-		BusinessPersonnelIDs: []uint{},
+		BusinessManagerIDs:   []string{},
+		BusinessPersonnelIDs: []string{},
 	}
 
 	// 提取经营负责人和经营人员
@@ -74,11 +74,11 @@ func (s *ProjectBusinessService) GetProjectBusiness(projectID uint) (*ProjectBus
 	return business, nil
 }
 
-// UpdateProjectBusiness updates business information for a project
-func (s *ProjectBusinessService) UpdateProjectBusiness(projectID uint, req *UpdateProjectBusinessRequest) (*ProjectBusiness, error) {
+// UpdateProjectBusiness updates business information for a project (UUID string)
+func (s *ProjectBusinessService) UpdateProjectBusiness(projectID string, req *UpdateProjectBusinessRequest) (*ProjectBusiness, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -88,9 +88,9 @@ func (s *ProjectBusinessService) UpdateProjectBusiness(projectID uint, req *Upda
 	// Update client association
 	if req.ClientID != nil {
 		// If ClientID is provided, verify it exists
-		if *req.ClientID != 0 {
+		if *req.ClientID != "" {
 			var client models.Client
-			if err := s.db.First(&client, *req.ClientID).Error; err != nil {
+			if err := s.db.First(&client, "id = ?", *req.ClientID).Error; err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					return nil, errors.New("client not found")
 				}
@@ -98,7 +98,7 @@ func (s *ProjectBusinessService) UpdateProjectBusiness(projectID uint, req *Upda
 			}
 			project.ClientID = req.ClientID
 		} else {
-			// 0 or nil means remove association
+			// Empty string or nil means remove association
 			project.ClientID = nil
 		}
 	}
@@ -119,7 +119,7 @@ func (s *ProjectBusinessService) UpdateProjectBusiness(projectID uint, req *Upda
 	for _, userID := range req.BusinessManagerIDs {
 		// Verify user exists
 		var user models.User
-		if err := s.db.First(&user, userID).Error; err != nil {
+		if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue // Skip invalid user IDs
 			}
@@ -150,7 +150,7 @@ func (s *ProjectBusinessService) UpdateProjectBusiness(projectID uint, req *Upda
 	for _, userID := range req.BusinessPersonnelIDs {
 		// Verify user exists
 		var user models.User
-		if err := s.db.First(&user, userID).Error; err != nil {
+		if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue // Skip invalid user IDs
 			}

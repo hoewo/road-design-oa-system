@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -37,17 +36,17 @@ func NewExpertFeePaymentHandler(logger *zap.Logger) *ExpertFeePaymentHandler {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/expert-fee-payments [get]
 func (h *ExpertFeePaymentHandler) GetExpertFeePayments(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	payments, err := h.paymentService.ListExpertFeePaymentsByProject(uint(id))
+	payments, err := h.paymentService.ListExpertFeePaymentsByProject(id)
 	if err != nil {
 		h.logger.Error("Failed to get expert fee payments",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to get expert fee payments", err)
 		return
@@ -73,9 +72,9 @@ func (h *ExpertFeePaymentHandler) GetExpertFeePayments(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/expert-fee-payments [post]
 func (h *ExpertFeePaymentHandler) CreateExpertFeePayment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -86,19 +85,17 @@ func (h *ExpertFeePaymentHandler) CreateExpertFeePayment(c *gin.Context) {
 	}
 
 	// Get current user from context (set by auth middleware)
-	userID, exists := c.Get(string(middleware.UserIDKey))
-	if !exists {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
-	createdByID := userID.(uint)
-
-	payment, err := h.paymentService.CreateExpertFeePayment(uint(id), createdByID, &req)
+	payment, err := h.paymentService.CreateExpertFeePayment(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create expert fee payment",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" || err.Error() == "expert user not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create expert fee payment", err)
@@ -109,8 +106,8 @@ func (h *ExpertFeePaymentHandler) CreateExpertFeePayment(c *gin.Context) {
 	}
 
 	h.logger.Info("Expert fee payment created successfully",
-		zap.Uint("payment_id", payment.ID),
-		zap.Uint("project_id", uint(id)),
+		zap.String("payment_id", payment.ID),
+		zap.String("project_id", id),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -130,17 +127,17 @@ func (h *ExpertFeePaymentHandler) CreateExpertFeePayment(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /expert-fee-payments/{id} [get]
 func (h *ExpertFeePaymentHandler) GetExpertFeePayment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid payment ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Payment ID is required", nil)
 		return
 	}
 
-	payment, err := h.paymentService.GetExpertFeePayment(uint(id))
+	payment, err := h.paymentService.GetExpertFeePayment(id)
 	if err != nil {
 		h.logger.Error("Failed to get expert fee payment",
 			zap.Error(err),
-			zap.Uint("payment_id", uint(id)),
+			zap.String("payment_id", id),
 		)
 		utils.HandleError(c, http.StatusNotFound, "Failed to get expert fee payment", err)
 		return
@@ -166,9 +163,9 @@ func (h *ExpertFeePaymentHandler) GetExpertFeePayment(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /expert-fee-payments/{id} [put]
 func (h *ExpertFeePaymentHandler) UpdateExpertFeePayment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid payment ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Payment ID is required", nil)
 		return
 	}
 
@@ -178,11 +175,11 @@ func (h *ExpertFeePaymentHandler) UpdateExpertFeePayment(c *gin.Context) {
 		return
 	}
 
-	payment, err := h.paymentService.UpdateExpertFeePayment(uint(id), &req)
+	payment, err := h.paymentService.UpdateExpertFeePayment(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update expert fee payment",
 			zap.Error(err),
-			zap.Uint("payment_id", uint(id)),
+			zap.String("payment_id", id),
 		)
 		if err.Error() == "expert fee payment not found" || err.Error() == "expert user not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update expert fee payment", err)
@@ -193,7 +190,7 @@ func (h *ExpertFeePaymentHandler) UpdateExpertFeePayment(c *gin.Context) {
 	}
 
 	h.logger.Info("Expert fee payment updated successfully",
-		zap.Uint("payment_id", uint(id)),
+		zap.String("payment_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -212,16 +209,16 @@ func (h *ExpertFeePaymentHandler) UpdateExpertFeePayment(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /expert-fee-payments/{id} [delete]
 func (h *ExpertFeePaymentHandler) DeleteExpertFeePayment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid payment ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Payment ID is required", nil)
 		return
 	}
 
-	if err := h.paymentService.DeleteExpertFeePayment(uint(id)); err != nil {
+	if err := h.paymentService.DeleteExpertFeePayment(id); err != nil {
 		h.logger.Error("Failed to delete expert fee payment",
 			zap.Error(err),
-			zap.Uint("payment_id", uint(id)),
+			zap.String("payment_id", id),
 		)
 		if err.Error() == "expert fee payment not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to delete expert fee payment", err)
@@ -232,7 +229,7 @@ func (h *ExpertFeePaymentHandler) DeleteExpertFeePayment(c *gin.Context) {
 	}
 
 	h.logger.Info("Expert fee payment deleted successfully",
-		zap.Uint("payment_id", uint(id)),
+		zap.String("payment_id", id),
 	)
 
 	c.Status(http.StatusNoContent)

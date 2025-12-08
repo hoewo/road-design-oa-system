@@ -23,26 +23,36 @@ func NewContractAmendmentService() *ContractAmendmentService {
 }
 
 // CreateContractAmendmentRequest represents the request to create a contract amendment
+// 注意：FilePath字段已移除，文件通过File实体关联
 type CreateContractAmendmentRequest struct {
 	AmendmentNumber string    `json:"amendment_number" binding:"required"`
 	SignDate        time.Time `json:"sign_date" binding:"required"`
-	FilePath        string    `json:"file_path" binding:"required"`
 	Description     string    `json:"description"`
+	// 金额明细（按设计费、勘察费、咨询费分别录入）
+	DesignFee       *float64 `json:"design_fee"`       // 设计费
+	SurveyFee       *float64 `json:"survey_fee"`       // 勘察费
+	ConsultationFee *float64 `json:"consultation_fee"` // 咨询费
+	ContractRate    *float64 `json:"contract_rate"`    // 合同费率%
 }
 
 // UpdateContractAmendmentRequest represents the request to update a contract amendment
+// 注意：FilePath字段已移除，文件通过File实体关联
 type UpdateContractAmendmentRequest struct {
 	AmendmentNumber *string    `json:"amendment_number"`
 	SignDate        *time.Time `json:"sign_date"`
-	FilePath        *string    `json:"file_path"`
 	Description     *string    `json:"description"`
+	// 金额明细（按设计费、勘察费、咨询费分别录入）
+	DesignFee       *float64 `json:"design_fee"`       // 设计费
+	SurveyFee       *float64 `json:"survey_fee"`       // 勘察费
+	ConsultationFee *float64 `json:"consultation_fee"` // 咨询费
+	ContractRate    *float64 `json:"contract_rate"`    // 合同费率%
 }
 
-// CreateContractAmendment creates a new contract amendment
-func (s *ContractAmendmentService) CreateContractAmendment(contractID uint, req *CreateContractAmendmentRequest) (*models.ContractAmendment, error) {
+// CreateContractAmendment creates a new contract amendment (UUID string)
+func (s *ContractAmendmentService) CreateContractAmendment(contractID string, req *CreateContractAmendmentRequest) (*models.ContractAmendment, error) {
 	// Verify contract exists and get sign date
 	var contract models.Contract
-	if err := s.db.First(&contract, contractID).Error; err != nil {
+	if err := s.db.First(&contract, "id = ?", contractID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract not found")
 		}
@@ -65,13 +75,34 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID uint, req 
 		return nil, errors.New("amendment sign date cannot be earlier than contract sign date")
 	}
 
+	// Set default values for fee breakdown
+	designFee := 0.0
+	surveyFee := 0.0
+	consultationFee := 0.0
+	if req.DesignFee != nil {
+		designFee = *req.DesignFee
+	}
+	if req.SurveyFee != nil {
+		surveyFee = *req.SurveyFee
+	}
+	if req.ConsultationFee != nil {
+		consultationFee = *req.ConsultationFee
+	}
+
 	// Create amendment
 	amendment := &models.ContractAmendment{
 		AmendmentNumber: req.AmendmentNumber,
 		SignDate:        req.SignDate,
-		FilePath:        req.FilePath,
 		Description:     req.Description,
+		DesignFee:       designFee,
+		SurveyFee:       surveyFee,
+		ConsultationFee: consultationFee,
 		ContractID:      contractID,
+	}
+
+	// Set contract rate if provided
+	if req.ContractRate != nil {
+		amendment.ContractRate = *req.ContractRate
 	}
 
 	if err := s.db.Create(amendment).Error; err != nil {
@@ -79,15 +110,15 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID uint, req 
 	}
 
 	// Load associations
-	s.db.Preload("Contract").First(amendment, amendment.ID)
+	s.db.Preload("Contract").First(amendment, "id = ?", amendment.ID)
 
 	return amendment, nil
 }
 
-// GetContractAmendment retrieves a contract amendment by ID
-func (s *ContractAmendmentService) GetContractAmendment(id uint) (*models.ContractAmendment, error) {
+// GetContractAmendment retrieves a contract amendment by ID (UUID string)
+func (s *ContractAmendmentService) GetContractAmendment(id string) (*models.ContractAmendment, error) {
 	var amendment models.ContractAmendment
-	if err := s.db.Preload("Contract").First(&amendment, id).Error; err != nil {
+	if err := s.db.Preload("Contract").First(&amendment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract amendment not found")
 		}
@@ -97,8 +128,8 @@ func (s *ContractAmendmentService) GetContractAmendment(id uint) (*models.Contra
 	return &amendment, nil
 }
 
-// ListContractAmendments retrieves all amendments for a contract
-func (s *ContractAmendmentService) ListContractAmendments(contractID uint) ([]models.ContractAmendment, error) {
+// ListContractAmendments retrieves all amendments for a contract (UUID string)
+func (s *ContractAmendmentService) ListContractAmendments(contractID string) ([]models.ContractAmendment, error) {
 	var amendments []models.ContractAmendment
 	if err := s.db.Where("contract_id = ?", contractID).
 		Order("sign_date DESC").
@@ -109,10 +140,10 @@ func (s *ContractAmendmentService) ListContractAmendments(contractID uint) ([]mo
 	return amendments, nil
 }
 
-// UpdateContractAmendment updates an existing contract amendment
-func (s *ContractAmendmentService) UpdateContractAmendment(id uint, req *UpdateContractAmendmentRequest) (*models.ContractAmendment, error) {
+// UpdateContractAmendment updates an existing contract amendment (UUID string)
+func (s *ContractAmendmentService) UpdateContractAmendment(id string, req *UpdateContractAmendmentRequest) (*models.ContractAmendment, error) {
 	var amendment models.ContractAmendment
-	if err := s.db.Preload("Contract").First(&amendment, id).Error; err != nil {
+	if err := s.db.Preload("Contract").First(&amendment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract amendment not found")
 		}
@@ -145,11 +176,20 @@ func (s *ContractAmendmentService) UpdateContractAmendment(id uint, req *UpdateC
 	if req.SignDate != nil {
 		updates["sign_date"] = *req.SignDate
 	}
-	if req.FilePath != nil {
-		updates["file_path"] = *req.FilePath
-	}
 	if req.Description != nil {
 		updates["description"] = *req.Description
+	}
+	if req.DesignFee != nil {
+		updates["design_fee"] = *req.DesignFee
+	}
+	if req.SurveyFee != nil {
+		updates["survey_fee"] = *req.SurveyFee
+	}
+	if req.ConsultationFee != nil {
+		updates["consultation_fee"] = *req.ConsultationFee
+	}
+	if req.ContractRate != nil {
+		updates["contract_rate"] = *req.ContractRate
 	}
 
 	if err := s.db.Model(&amendment).Updates(updates).Error; err != nil {
@@ -157,15 +197,15 @@ func (s *ContractAmendmentService) UpdateContractAmendment(id uint, req *UpdateC
 	}
 
 	// Reload with associations
-	s.db.Preload("Contract").First(&amendment, id)
+	s.db.Preload("Contract").First(&amendment, "id = ?", id)
 
 	return &amendment, nil
 }
 
-// DeleteContractAmendment deletes a contract amendment
-func (s *ContractAmendmentService) DeleteContractAmendment(id uint) error {
+// DeleteContractAmendment deletes a contract amendment (UUID string)
+func (s *ContractAmendmentService) DeleteContractAmendment(id string) error {
 	var amendment models.ContractAmendment
-	if err := s.db.First(&amendment, id).Error; err != nil {
+	if err := s.db.First(&amendment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("contract amendment not found")
 		}

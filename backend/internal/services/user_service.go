@@ -115,10 +115,10 @@ func (s *UserService) ListUsers(req *ListUsersRequest) (*ListUsersResponse, erro
 	}, nil
 }
 
-// GetUser retrieves a user by ID
-func (s *UserService) GetUser(userID uint) (*models.User, error) {
+// GetUser retrieves a user by ID (UUID string)
+func (s *UserService) GetUser(userID string) (*models.User, error) {
 	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
@@ -167,10 +167,10 @@ func (s *UserService) CreateUser(req *CreateUserRequest) (*models.User, error) {
 	return user, nil
 }
 
-// UpdateUser updates an existing user
-func (s *UserService) UpdateUser(userID uint, req *UpdateUserRequest) (*models.User, error) {
+// UpdateUser updates an existing user (UUID string)
+func (s *UserService) UpdateUser(userID string, req *UpdateUserRequest) (*models.User, error) {
 	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}

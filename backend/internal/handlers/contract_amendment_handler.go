@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -36,17 +35,17 @@ func NewContractAmendmentHandler(logger *zap.Logger) *ContractAmendmentHandler {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contracts/{id}/amendments [get]
 func (h *ContractAmendmentHandler) GetContractAmendments(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid contract ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Contract ID is required", nil)
 		return
 	}
 
-	amendments, err := h.amendmentService.ListContractAmendments(uint(id))
+	amendments, err := h.amendmentService.ListContractAmendments(id)
 	if err != nil {
 		h.logger.Error("Failed to get contract amendments",
 			zap.Error(err),
-			zap.Uint("contract_id", uint(id)),
+			zap.String("contract_id", id),
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to get contract amendments", err)
 		return
@@ -72,9 +71,9 @@ func (h *ContractAmendmentHandler) GetContractAmendments(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contracts/{id}/amendments [post]
 func (h *ContractAmendmentHandler) CreateContractAmendment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid contract ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Contract ID is required", nil)
 		return
 	}
 
@@ -84,11 +83,11 @@ func (h *ContractAmendmentHandler) CreateContractAmendment(c *gin.Context) {
 		return
 	}
 
-	amendment, err := h.amendmentService.CreateContractAmendment(uint(id), &req)
+	amendment, err := h.amendmentService.CreateContractAmendment(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to create contract amendment",
 			zap.Error(err),
-			zap.Uint("contract_id", uint(id)),
+			zap.String("contract_id", id),
 		)
 		if err.Error() == "contract not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create contract amendment", err)
@@ -99,8 +98,8 @@ func (h *ContractAmendmentHandler) CreateContractAmendment(c *gin.Context) {
 	}
 
 	h.logger.Info("Contract amendment created successfully",
-		zap.Uint("amendment_id", amendment.ID),
-		zap.Uint("contract_id", uint(id)),
+		zap.String("amendment_id", amendment.ID),
+		zap.String("contract_id", id),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -120,17 +119,17 @@ func (h *ContractAmendmentHandler) CreateContractAmendment(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contract-amendments/{id} [get]
 func (h *ContractAmendmentHandler) GetContractAmendment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid amendment ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Amendment ID is required", nil)
 		return
 	}
 
-	amendment, err := h.amendmentService.GetContractAmendment(uint(id))
+	amendment, err := h.amendmentService.GetContractAmendment(id)
 	if err != nil {
 		h.logger.Error("Failed to get contract amendment",
 			zap.Error(err),
-			zap.Uint("amendment_id", uint(id)),
+			zap.String("amendment_id", id),
 		)
 		utils.HandleError(c, http.StatusNotFound, "Failed to get contract amendment", err)
 		return
@@ -156,9 +155,9 @@ func (h *ContractAmendmentHandler) GetContractAmendment(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contract-amendments/{id} [put]
 func (h *ContractAmendmentHandler) UpdateContractAmendment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid amendment ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Amendment ID is required", nil)
 		return
 	}
 
@@ -168,11 +167,11 @@ func (h *ContractAmendmentHandler) UpdateContractAmendment(c *gin.Context) {
 		return
 	}
 
-	amendment, err := h.amendmentService.UpdateContractAmendment(uint(id), &req)
+	amendment, err := h.amendmentService.UpdateContractAmendment(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update contract amendment",
 			zap.Error(err),
-			zap.Uint("amendment_id", uint(id)),
+			zap.String("amendment_id", id),
 		)
 		if err.Error() == "contract amendment not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update contract amendment", err)
@@ -183,7 +182,7 @@ func (h *ContractAmendmentHandler) UpdateContractAmendment(c *gin.Context) {
 	}
 
 	h.logger.Info("Contract amendment updated successfully",
-		zap.Uint("amendment_id", uint(id)),
+		zap.String("amendment_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -202,16 +201,16 @@ func (h *ContractAmendmentHandler) UpdateContractAmendment(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contract-amendments/{id} [delete]
 func (h *ContractAmendmentHandler) DeleteContractAmendment(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid amendment ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Amendment ID is required", nil)
 		return
 	}
 
-	if err := h.amendmentService.DeleteContractAmendment(uint(id)); err != nil {
+	if err := h.amendmentService.DeleteContractAmendment(id); err != nil {
 		h.logger.Error("Failed to delete contract amendment",
 			zap.Error(err),
-			zap.Uint("amendment_id", uint(id)),
+			zap.String("amendment_id", id),
 		)
 		if err.Error() == "contract amendment not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to delete contract amendment", err)
@@ -222,7 +221,7 @@ func (h *ContractAmendmentHandler) DeleteContractAmendment(c *gin.Context) {
 	}
 
 	h.logger.Info("Contract amendment deleted successfully",
-		zap.Uint("amendment_id", uint(id)),
+		zap.String("amendment_id", id),
 	)
 
 	c.Status(http.StatusNoContent)

@@ -19,29 +19,29 @@ func NewProductionApprovalService() *ProductionApprovalService {
 }
 
 type CreateProductionApprovalRequest struct {
-	ProjectID              uint
+	ProjectID              string // UUID string
 	RecordType             models.ProductionApprovalType
-	ApproverID             uint
+	ApproverID             string // UUID string
 	Status                 string
 	SignedAt               *time.Time
-	AttachmentFileID       *uint
+	AttachmentFileID       *string // UUID string
 	Remarks                string
 	ReportType             models.AuditReportType
-	ReportFileID           *uint
+	ReportFileID           *string // UUID string
 	AmountDesign           float64
 	AmountSurvey           float64
 	AmountConsultation     float64
-	SourceContractID       *uint
+	SourceContractID       *string // UUID string
 	DefaultAmountReference string
 	OverrideReason         string
-	CreatedByID            uint
+	CreatedByID            string // UUID string
 }
 
 func (s *ProductionApprovalService) CreateApproval(req *CreateProductionApprovalRequest) (*models.ProductionApprovalRecord, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
-	if req.ProjectID == 0 {
+	if req.ProjectID == "" {
 		return nil, errors.New("project_id is required")
 	}
 
@@ -90,7 +90,7 @@ func (s *ProductionApprovalService) CreateApproval(req *CreateProductionApproval
 		Preload("AuditResolution").
 		Preload("AuditResolution.ReportFile").
 		Preload("AuditResolution.ApprovalRecord").
-		First(record, record.ID)
+		First(record, "id = ?", record.ID)
 
 	return record, nil
 }
@@ -102,7 +102,7 @@ type ListApprovalsParams struct {
 	Size   int
 }
 
-func (s *ProductionApprovalService) ListApprovals(projectID uint, params *ListApprovalsParams) ([]models.ProductionApprovalRecord, int64, error) {
+func (s *ProductionApprovalService) ListApprovals(projectID string, params *ListApprovalsParams) ([]models.ProductionApprovalRecord, int64, error) {
 	query := s.db.Model(&models.ProductionApprovalRecord{}).Where("project_id = ?", projectID)
 
 	if params != nil {
@@ -145,9 +145,9 @@ func (s *ProductionApprovalService) ListApprovals(projectID uint, params *ListAp
 	return records, total, nil
 }
 
-func (s *ProductionApprovalService) ensureProjectExists(projectID uint) error {
+func (s *ProductionApprovalService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}

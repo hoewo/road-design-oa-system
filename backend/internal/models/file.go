@@ -16,7 +16,7 @@ const (
 )
 
 type File struct {
-	ID           uint         `json:"id" gorm:"primaryKey"`
+	ID           string       `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	FileName     string       `json:"file_name" gorm:"not null"`
 	OriginalName string       `json:"original_name" gorm:"not null"`
 	FilePath     string       `json:"file_path" gorm:"not null"`
@@ -27,11 +27,11 @@ type File struct {
 	Description  string       `json:"description"`
 
 	// 关联关系
-	ProjectID uint    `json:"project_id" gorm:"not null"`
+	ProjectID string  `json:"project_id" gorm:"type:uuid;not null"`
 	Project   Project `json:"project" gorm:"foreignKey:ProjectID"`
 
-	UploaderID uint `json:"uploader_id" gorm:"not null"`
-	Uploader   User `json:"uploader" gorm:"foreignKey:UploaderID"`
+	UploaderID string `json:"uploader_id" gorm:"type:uuid;not null"`
+	Uploader   User   `json:"uploader" gorm:"foreignKey:UploaderID"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

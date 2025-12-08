@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -27,9 +26,9 @@ func NewProjectDisciplineHandler(logger *zap.Logger) *ProjectDisciplineHandler {
 
 // ListAssignments lists the assignments of a project.
 func (h *ProjectDisciplineHandler) ListAssignments(c *gin.Context) {
-	projectID, err := parseProjectID(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -47,9 +46,9 @@ func (h *ProjectDisciplineHandler) ListAssignments(c *gin.Context) {
 
 // ReplaceAssignments replaces the assignments for a project.
 func (h *ProjectDisciplineHandler) ReplaceAssignments(c *gin.Context) {
-	projectID, err := parseProjectID(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -69,12 +68,4 @@ func (h *ProjectDisciplineHandler) ReplaceAssignments(c *gin.Context) {
 		"success": true,
 		"data":    assignments,
 	})
-}
-
-func parseProjectID(rawID string) (uint, error) {
-	id, err := strconv.ParseUint(rawID, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return uint(id), nil
 }

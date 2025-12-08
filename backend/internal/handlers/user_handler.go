@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -64,28 +63,28 @@ func (h *UserHandler) ListUsers(c *gin.Context) {
 	})
 }
 
-// GetUser handles retrieving a user by ID
+// GetUser handles retrieving a user by ID (UUID string)
 // @Summary Get user details
 // @Description Get detailed information about a specific user
 // @Tags 用户管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "User ID"
+// @Param id path string true "User ID (UUID)"
 // @Success 200 {object} models.User
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /users/{id} [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid user ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "User ID is required", nil)
 		return
 	}
 
-	user, err := h.userService.GetUser(uint(id))
+	user, err := h.userService.GetUser(id)
 	if err != nil {
 		h.logger.Error("Failed to get user",
 			zap.Error(err),
-			zap.Uint("user_id", uint(id)),
+			zap.String("user_id", id),
 		)
 		if err.Error() == "user not found" {
 			utils.HandleError(c, http.StatusNotFound, "User not found", err)
@@ -134,7 +133,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	h.logger.Info("User created successfully",
-		zap.Uint("user_id", user.ID),
+		zap.String("user_id", user.ID),
 		zap.String("username", user.Username),
 	)
 
@@ -151,7 +150,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "User ID"
+// @Param id path string true "User ID (UUID)"
 // @Param request body services.UpdateUserRequest true "User information to update"
 // @Success 200 {object} models.User
 // @Failure 400 {object} utils.ErrorResponse
@@ -159,9 +158,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 // @Failure 409 {object} utils.ErrorResponse
 // @Router /users/{id} [put]
 func (h *UserHandler) UpdateUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid user ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "User ID is required", nil)
 		return
 	}
 
@@ -171,11 +170,11 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.UpdateUser(uint(id), &req)
+	user, err := h.userService.UpdateUser(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update user",
 			zap.Error(err),
-			zap.Uint("user_id", uint(id)),
+			zap.String("user_id", id),
 		)
 		if err.Error() == "user not found" {
 			utils.HandleError(c, http.StatusNotFound, "User not found", err)
@@ -188,7 +187,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	h.logger.Info("User updated successfully",
-		zap.Uint("user_id", user.ID),
+		zap.String("user_id", user.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

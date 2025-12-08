@@ -1,12 +1,15 @@
 package middleware
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 
 	"project-oa-backend/internal/config"
 )
@@ -15,193 +18,190 @@ import (
 type AuthContextKey string
 
 const (
-	// UserIDKey is the context key for user ID
+	// UserIDKey is the context key for user ID (UUID string)
 	UserIDKey AuthContextKey = "user_id"
 	// UsernameKey is the context key for username
 	UsernameKey AuthContextKey = "username"
 	// UserRoleKey is the context key for user role
 	UserRoleKey AuthContextKey = "user_role"
+	// UserAppIDKey is the context key for app ID
+	UserAppIDKey AuthContextKey = "user_app_id"
+	// UserSessionIDKey is the context key for session ID
+	UserSessionIDKey AuthContextKey = "user_session_id"
 )
 
-// MockAuthService provides mock authentication for development
-// TODO: Replace with real authentication server integration
-type MockAuthService struct {
-	jwtSecret []byte
+// AuthLevel 认证级别
+type AuthLevel string
+
+const (
+	// AuthLevelPublic 无需认证
+	AuthLevelPublic AuthLevel = "public"
+	// AuthLevelUser 需要JWT Token认证
+	AuthLevelUser AuthLevel = "user"
+	// AuthLevelAdmin 需要管理员权限
+	AuthLevelAdmin AuthLevel = "admin"
+)
+
+// NebulaAuthValidateResponse NebulaAuth验证响应
+type NebulaAuthValidateResponse struct {
+	Valid     bool   `json:"valid"`
+	UserID    string `json:"user_id"`
+	Username  string `json:"username"`
+	AppID     string `json:"app_id"`
+	SessionID string `json:"session_id"`
+	Role      string `json:"role"`
+	IsAdmin   bool   `json:"is_admin"`
 }
 
-// NewMockAuthService creates a new mock auth service
-func NewMockAuthService(cfg *config.Config) *MockAuthService {
-	return &MockAuthService{
-		jwtSecret: []byte(cfg.JWTSecret),
+// validateTokenSelfValidate 在self_validate模式下验证Token（调用NebulaAuth API）
+func validateTokenSelfValidate(cfg *config.Config, tokenString string) (*NebulaAuthValidateResponse, error) {
+	// 调用NebulaAuth API验证Token
+	url := cfg.NebulaAuthURL + "/auth-server/v1/public/auth/validate"
+
+	reqBody := map[string]string{
+		"token": tokenString,
 	}
-}
-
-// ValidateToken validates a JWT token and returns claims
-func (s *MockAuthService) ValidateToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Validate signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return s.jwtSecret, nil
-	})
-
+	jsonData, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		return claims, nil
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to call NebulaAuth API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("NebulaAuth API returned status %d", resp.StatusCode)
 	}
 
-	return nil, jwt.ErrSignatureInvalid
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var validateResp NebulaAuthValidateResponse
+	if err := json.Unmarshal(body, &validateResp); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	if !validateResp.Valid {
+		return nil, fmt.Errorf("token is invalid")
+	}
+
+	return &validateResp, nil
 }
 
-// GetUserFromToken extracts user information from token claims
-// Mock implementation - returns mock user data
-func (s *MockAuthService) GetUserFromToken(claims jwt.MapClaims) (userID uint, username string, role string, err error) {
-	// Mock user data - in production, this would query the database or auth server
-	// For now, we extract from token claims or use defaults
-	if userIDFloat, ok := claims["user_id"].(float64); ok {
-		userID = uint(userIDFloat)
-	} else {
-		// Default mock user
-		userID = 1
+// getUserFromGateway 在gateway模式下从Header读取用户信息
+func getUserFromGateway(c *gin.Context) (*NebulaAuthValidateResponse, error) {
+	userID := c.GetHeader("X-User-ID")
+	username := c.GetHeader("X-User-Username")
+	appID := c.GetHeader("X-User-AppID")
+	sessionID := c.GetHeader("X-User-SessionID")
+
+	if userID == "" {
+		return nil, fmt.Errorf("X-User-ID header is required")
 	}
 
-	if usernameStr, ok := claims["username"].(string); ok {
-		username = usernameStr
-	} else {
-		username = "mock_user"
-	}
-
-	if roleStr, ok := claims["role"].(string); ok {
-		role = roleStr
-	} else {
-		role = "manager"
-	}
-
-	return userID, username, role, nil
+	// 注意：gateway模式下不会收到X-User-Role和X-User-IsAdmin（出于安全考虑）
+	// 业务角色权限通过业务逻辑判断
+	return &NebulaAuthValidateResponse{
+		Valid:     true,
+		UserID:    userID,
+		Username:  username,
+		AppID:     appID,
+		SessionID: sessionID,
+		Role:      "",    // 业务角色通过业务逻辑判断
+		IsAdmin:   false, // 管理员权限通过业务逻辑判断
+	}, nil
 }
 
-// AuthMiddleware creates a Gin middleware for JWT authentication
-// Uses mock authentication service - can be replaced with real auth server
-func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
-	authService := NewMockAuthService(cfg)
-
+// AuthMiddleware 创建认证中间件，支持两种认证模式和三种认证级别
+func AuthMiddleware(cfg *config.Config, level AuthLevel) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get token from Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authorization header required",
-			})
-			c.Abort()
+		// Public级别无需认证
+		if level == AuthLevelPublic {
+			c.Next()
 			return
 		}
 
-		// Extract token from "Bearer <token>"
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid authorization header format",
-			})
-			c.Abort()
-			return
+		var userInfo *NebulaAuthValidateResponse
+		var err error
+
+		// 根据认证模式获取用户信息
+		if cfg.AuthMode == "gateway" {
+			// Gateway模式：从Header读取用户信息
+			userInfo, err = getUserFromGateway(c)
+		} else {
+			// Self_validate模式：调用NebulaAuth API验证Token
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": "Authorization header required",
+				})
+				c.Abort()
+				return
+			}
+
+			// Extract token from "Bearer <token>"
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				c.JSON(http.StatusUnauthorized, gin.H{
+					"error": "Invalid authorization header format",
+				})
+				c.Abort()
+				return
+			}
+
+			tokenString := parts[1]
+			userInfo, err = validateTokenSelfValidate(cfg, tokenString)
 		}
 
-		tokenString := parts[1]
-
-		// Validate token
-		claims, err := authService.ValidateToken(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid or expired token",
+				"error": "Authentication failed: " + err.Error(),
 			})
 			c.Abort()
 			return
 		}
 
-		// Extract user information from token
-		userID, username, role, err := authService.GetUserFromToken(claims)
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Failed to extract user information",
-			})
-			c.Abort()
-			return
+		// Admin级别需要验证管理员权限
+		if level == AuthLevelAdmin {
+			// 注意：gateway模式下不会收到IsAdmin header，需要通过业务逻辑判断
+			// 这里暂时允许通过，实际权限验证在业务层进行
+			// TODO: 实现管理员权限验证逻辑
 		}
 
-		// Store user information in context
-		c.Set(string(UserIDKey), userID)
-		c.Set(string(UsernameKey), username)
-		c.Set(string(UserRoleKey), role)
+		// Store user information in context (使用UUID string类型)
+		c.Set(string(UserIDKey), userInfo.UserID)
+		c.Set(string(UsernameKey), userInfo.Username)
+		c.Set(string(UserAppIDKey), userInfo.AppID)
+		c.Set(string(UserSessionIDKey), userInfo.SessionID)
+		c.Set(string(UserRoleKey), userInfo.Role)
 
 		// Also set in request context for use in handlers
-		ctx := context.WithValue(c.Request.Context(), UserIDKey, userID)
-		ctx = context.WithValue(ctx, UsernameKey, username)
-		ctx = context.WithValue(ctx, UserRoleKey, role)
+		ctx := context.WithValue(c.Request.Context(), UserIDKey, userInfo.UserID)
+		ctx = context.WithValue(ctx, UsernameKey, userInfo.Username)
+		ctx = context.WithValue(ctx, UserAppIDKey, userInfo.AppID)
+		ctx = context.WithValue(ctx, UserSessionIDKey, userInfo.SessionID)
+		ctx = context.WithValue(ctx, UserRoleKey, userInfo.Role)
 		c.Request = c.Request.WithContext(ctx)
 
 		c.Next()
 	}
 }
 
-// OptionalAuthMiddleware creates a middleware that doesn't require authentication
-// but extracts user info if token is provided
-func OptionalAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
-	authService := NewMockAuthService(cfg)
-
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.Next()
-			return
-		}
-
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.Next()
-			return
-		}
-
-		tokenString := parts[1]
-		claims, err := authService.ValidateToken(tokenString)
-		if err != nil {
-			c.Next()
-			return
-		}
-
-		userID, username, role, err := authService.GetUserFromToken(claims)
-		if err == nil {
-			c.Set(string(UserIDKey), userID)
-			c.Set(string(UsernameKey), username)
-			c.Set(string(UserRoleKey), role)
-
-			ctx := context.WithValue(c.Request.Context(), UserIDKey, userID)
-			ctx = context.WithValue(ctx, UsernameKey, username)
-			ctx = context.WithValue(ctx, UserRoleKey, role)
-			c.Request = c.Request.WithContext(ctx)
-		}
-
-		c.Next()
-	}
-}
-
-// GetUserID retrieves user ID from context
-func GetUserID(c *gin.Context) (uint, bool) {
+// GetUserID retrieves user ID from context (returns UUID string)
+func GetUserID(c *gin.Context) (string, bool) {
 	userID, exists := c.Get(string(UserIDKey))
 	if !exists {
-		return 0, false
+		return "", false
 	}
 
-	id, ok := userID.(uint)
+	id, ok := userID.(string)
 	if !ok {
-		// Try float64 (from JSON unmarshaling)
-		if idFloat, ok := userID.(float64); ok {
-			return uint(idFloat), true
-		}
-		return 0, false
+		return "", false
 	}
 
 	return id, true

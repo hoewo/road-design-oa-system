@@ -60,8 +60,8 @@ func (s *CompanyConfigService) GetDefaultManagementFeeRatio() (float64, error) {
 	return ratio, nil
 }
 
-// SetConfig creates or updates a configuration value
-func (s *CompanyConfigService) SetConfig(key, value, description string, createdByID uint) (*models.CompanyConfig, error) {
+// SetConfig creates or updates a configuration value (UUID string)
+func (s *CompanyConfigService) SetConfig(key, value, description string, createdByID string) (*models.CompanyConfig, error) {
 	// Validate key
 	if key == "" {
 		return nil, errors.New("config key cannot be empty")
@@ -111,7 +111,7 @@ func (s *CompanyConfigService) SetConfig(key, value, description string, created
 	}
 
 	// Load the created_by relationship
-	if err := s.db.Preload("CreatedBy").First(&config, config.ID).Error; err != nil {
+	if err := s.db.Preload("CreatedBy").First(&config, "id = ?", config.ID).Error; err != nil {
 		return nil, err
 	}
 
@@ -119,8 +119,8 @@ func (s *CompanyConfigService) SetConfig(key, value, description string, created
 }
 
 // SetDefaultManagementFeeRatio sets the default management fee ratio
-// ratio should be between 0 and 1 (e.g., 0.15 for 15%)
-func (s *CompanyConfigService) SetDefaultManagementFeeRatio(ratio float64, description string, createdByID uint) (*models.CompanyConfig, error) {
+// ratio should be between 0 and 1 (e.g., 0.15 for 15%) (UUID string)
+func (s *CompanyConfigService) SetDefaultManagementFeeRatio(ratio float64, description string, createdByID string) (*models.CompanyConfig, error) {
 	// Validate ratio
 	if ratio < 0 || ratio > 1 {
 		return nil, errors.New("management fee ratio must be between 0 and 1")

@@ -38,7 +38,7 @@ func LoggerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 
 		// Add user info if available
 		if userID, exists := GetUserID(c); exists {
-			fields = append(fields, zap.Uint("user_id", userID))
+			fields = append(fields, zap.String("user_id", userID))
 		}
 
 		if username, exists := GetUsername(c); exists {

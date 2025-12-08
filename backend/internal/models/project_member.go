@@ -17,10 +17,15 @@ const (
 )
 
 type ProjectMember struct {
-	ID        uint       `json:"id" gorm:"primaryKey"`
-	ProjectID uint       `json:"project_id" gorm:"not null;index:idx_project_role,priority:1;index:idx_project_user_role,priority:1"`
-	UserID    uint       `json:"user_id" gorm:"not null;index:idx_project_user_role,priority:2"`
+	ID        string     `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ProjectID string     `json:"project_id" gorm:"type:uuid;not null;index:idx_project_role,priority:1;index:idx_project_user_role,priority:1"`
+	UserID    string     `json:"user_id" gorm:"type:uuid;not null;index:idx_project_user_role,priority:2"`
 	Role      MemberRole `json:"role" gorm:"not null;size:64;index:idx_project_role,priority:2"`
+
+	// 专业关联（生产人员角色需要）
+	DisciplineID *string     `json:"discipline_id" gorm:"type:uuid"` // 专业ID（生产人员角色必填）
+	Discipline   *Discipline `json:"discipline,omitempty" gorm:"foreignKey:DisciplineID"`
+
 	JoinDate  time.Time  `json:"join_date" gorm:"not null"`
 	LeaveDate *time.Time `json:"leave_date"`
 	IsActive  bool       `json:"is_active" gorm:"default:true"`

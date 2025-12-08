@@ -26,9 +26,9 @@ func NewProductionApprovalHandler(logger *zap.Logger) *ProductionApprovalHandler
 }
 
 func (h *ProductionApprovalHandler) ListApprovals(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -58,25 +58,25 @@ func (h *ProductionApprovalHandler) ListApprovals(c *gin.Context) {
 }
 
 func (h *ProductionApprovalHandler) CreateApproval(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
 	var payload struct {
 		RecordType             string  `json:"record_type" binding:"required"`
-		ApproverID             uint    `json:"approver_id" binding:"required"`
+		ApproverID             string  `json:"approver_id" binding:"required"` // UUID string
 		Status                 string  `json:"status" binding:"required"`
 		SignedAt               *string `json:"signed_at"`
-		AttachmentFileID       *uint   `json:"attachment_file_id"`
+		AttachmentFileID       *string `json:"attachment_file_id"` // UUID string
 		Remarks                string  `json:"remarks"`
 		ReportType             string  `json:"report_type" binding:"required"`
-		ReportFileID           *uint   `json:"report_file_id"`
+		ReportFileID           *string `json:"report_file_id"` // UUID string
 		AmountDesign           float64 `json:"amount_design"`
 		AmountSurvey           float64 `json:"amount_survey"`
 		AmountConsultation     float64 `json:"amount_consultation"`
-		SourceContractID       *uint   `json:"source_contract_id"`
+		SourceContractID       *string `json:"source_contract_id"` // UUID string
 		DefaultAmountReference string  `json:"default_amount_reference"`
 		OverrideReason         string  `json:"override_reason"`
 	}
@@ -85,12 +85,11 @@ func (h *ProductionApprovalHandler) CreateApproval(c *gin.Context) {
 		return
 	}
 
-	userID, ok := c.Get(string(middleware.UserIDKey))
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
-	creator := userID.(uint)
 
 	var signedAt *time.Time
 	if payload.SignedAt != nil && *payload.SignedAt != "" {
@@ -115,7 +114,7 @@ func (h *ProductionApprovalHandler) CreateApproval(c *gin.Context) {
 		SourceContractID:       payload.SourceContractID,
 		DefaultAmountReference: payload.DefaultAmountReference,
 		OverrideReason:         payload.OverrideReason,
-		CreatedByID:            creator,
+		CreatedByID:            userID,
 	})
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "创建审批记录失败", err)

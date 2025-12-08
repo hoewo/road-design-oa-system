@@ -32,7 +32,7 @@ type CreateProjectRequest struct {
 	StartDate       *types.Date `json:"start_date"`
 	ProjectOverview string      `json:"project_overview"`
 	DrawingUnit     string      `json:"drawing_unit"`
-	ManagerID       *uint       `json:"manager_id"`
+	ManagerID       *string     `json:"manager_id"` // UUID string
 }
 
 // UpdateProjectRequest represents the request to update a project
@@ -66,7 +66,7 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 	// Validate manager exists (if provided)
 	if req.ManagerID != nil {
 		var manager models.User
-		if err := s.db.First(&manager, *req.ManagerID).Error; err != nil {
+		if err := s.db.First(&manager, "id = ?", *req.ManagerID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, errors.New("manager not found")
 			}
@@ -117,15 +117,15 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 	}
 
 	// Load associations
-	s.db.Preload("Client").Preload("Manager").First(project, project.ID)
+	s.db.Preload("Client").Preload("Manager").Preload("ProjectContact").First(project, "id = ?", project.ID)
 
 	return project, nil
 }
 
-// GetProject retrieves a project by ID
-func (s *ProjectService) GetProject(id uint) (*models.Project, error) {
+// GetProject retrieves a project by ID (UUID string)
+func (s *ProjectService) GetProject(id string) (*models.Project, error) {
 	var project models.Project
-	if err := s.db.Preload("Client").Preload("Manager").First(&project, id).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Manager").Preload("ProjectContact").First(&project, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -172,10 +172,10 @@ func (s *ProjectService) ListProjects(params *ListProjectsParams) ([]models.Proj
 	return projects, total, nil
 }
 
-// UpdateProject updates an existing project
-func (s *ProjectService) UpdateProject(id uint, req *UpdateProjectRequest) (*models.Project, error) {
+// UpdateProject updates an existing project (UUID string)
+func (s *ProjectService) UpdateProject(id string, req *UpdateProjectRequest) (*models.Project, error) {
 	var project models.Project
-	if err := s.db.First(&project, id).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -222,15 +222,15 @@ func (s *ProjectService) UpdateProject(id uint, req *UpdateProjectRequest) (*mod
 	}
 
 	// Reload with associations
-	s.db.Preload("Client").Preload("Manager").First(&project, id)
+	s.db.Preload("Client").Preload("Manager").Preload("ProjectContact").First(&project, "id = ?", id)
 
 	return &project, nil
 }
 
-// DeleteProject deletes a project
-func (s *ProjectService) DeleteProject(id uint) error {
+// DeleteProject deletes a project (UUID string)
+func (s *ProjectService) DeleteProject(id string) error {
 	var project models.Project
-	if err := s.db.First(&project, id).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}

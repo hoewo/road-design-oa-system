@@ -13,11 +13,12 @@ const (
 
 // ProjectDisciplineAssignment stores the mapping among project, discipline, role and user.
 type ProjectDisciplineAssignment struct {
-	ID         uint           `json:"id" gorm:"primaryKey"`
-	ProjectID  uint           `json:"project_id" gorm:"not null;index:idx_project_discipline_role,priority:1"`
-	Discipline string         `json:"discipline" gorm:"size:100;not null;index:idx_project_discipline_role,priority:2"`
-	Role       DisciplineRole `json:"role" gorm:"not null;size:32;index:idx_project_discipline_role,priority:3"`
-	UserID     uint           `json:"user_id" gorm:"not null"`
+	ID           string         `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ProjectID    string         `json:"project_id" gorm:"type:uuid;not null;index:idx_project_discipline_role,priority:1"`
+	DisciplineID string         `json:"discipline_id" gorm:"type:uuid;not null;index:idx_project_discipline_role,priority:2"` // 使用Discipline实体
+	Discipline   *Discipline    `json:"discipline,omitempty" gorm:"foreignKey:DisciplineID"`
+	Role         DisciplineRole `json:"role" gorm:"not null;size:32;index:idx_project_discipline_role,priority:3"`
+	UserID       string         `json:"user_id" gorm:"type:uuid;not null"`
 
 	User User `json:"user" gorm:"foreignKey:UserID"`
 

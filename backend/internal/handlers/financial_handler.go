@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,22 +33,22 @@ func NewFinancialHandler(logger *zap.Logger) *FinancialHandler {
 // @Tags 财务管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Success 200 {object} services.ProjectFinancial
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/financial [get]
 func (h *FinancialHandler) GetProjectFinancial(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	financial, err := h.financialService.GetProjectFinancial(uint(id))
+	financial, err := h.financialService.GetProjectFinancial(id)
 	if err != nil {
 		h.logger.Error("Failed to get project financial information",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" {
 			utils.HandleError(c, http.StatusNotFound, "Project not found", err)
@@ -65,17 +64,30 @@ func (h *FinancialHandler) GetProjectFinancial(c *gin.Context) {
 	})
 }
 
-// CreateFinancialRecordRequest represents the raw request with string dates
+// CreateFinancialRecordRequestRaw represents the raw request with string dates
+// 支持统一财务记录模型
 type CreateFinancialRecordRequestRaw struct {
-	RecordType       string  `json:"record_type" binding:"required"`
-	FeeType          string  `json:"fee_type" binding:"required"`
-	ReceivableAmount float64 `json:"receivable_amount" binding:"required"`
-	InvoiceNumber    string  `json:"invoice_number"`
-	InvoiceDate      *string `json:"invoice_date"`
-	InvoiceAmount    float64 `json:"invoice_amount"`
-	PaymentDate      *string `json:"payment_date"`
-	PaymentAmount    float64 `json:"payment_amount"`
-	Description      string  `json:"description"`
+	FinancialType string  `json:"financial_type" binding:"required"` // 财务类型
+	Direction     string  `json:"direction" binding:"required"`      // 方向：income/expense
+	Amount        float64 `json:"amount" binding:"required"`         // 金额
+	OccurredAt    string  `json:"occurred_at" binding:"required"`    // 发生时间 (ISO 8601)
+
+	// 类型特定字段
+	BonusCategory       *string  `json:"bonus_category"`        // 奖金类别
+	RecipientID         *string  `json:"recipient_id"`          // 发放人员ID
+	CostCategory        *string  `json:"cost_category"`         // 成本类别
+	Mileage             *float64 `json:"mileage"`               // 里程
+	ClientID            *string  `json:"client_id"`             // 甲方ID
+	RelatedPaymentID    *string  `json:"related_payment_id"`    // 关联支付ID
+	PaymentMethod       *string  `json:"payment_method"`        // 支付方式
+	ExpertName          string   `json:"expert_name"`           // 专家姓名
+	CommissionType      *string  `json:"commission_type"`       // 委托类型
+	VendorName          string   `json:"vendor_name"`           // 委托方名称
+	VendorScore         *float64 `json:"vendor_score"`          // 委托方评分
+	RelatedCommissionID *string  `json:"related_commission_id"` // 关联委托ID
+	InvoiceFileID       *string  `json:"invoice_file_id"`       // 发票文件ID
+
+	Description string `json:"description"` // 描述
 }
 
 // CreateFinancialRecord handles financial record creation
@@ -85,16 +97,16 @@ type CreateFinancialRecordRequestRaw struct {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Param request body CreateFinancialRecordRequestRaw true "Financial record information"
 // @Success 201 {object} models.FinancialRecord
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/financial [post]
 func (h *FinancialHandler) CreateFinancialRecord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -104,54 +116,71 @@ func (h *FinancialHandler) CreateFinancialRecord(c *gin.Context) {
 		return
 	}
 
-	// Parse date strings to time.Time
-	var invoiceDate *time.Time
-	if rawReq.InvoiceDate != nil && *rawReq.InvoiceDate != "" {
-		parsed, err := time.Parse("2006-01-02", *rawReq.InvoiceDate)
+	// Parse occurred_at string to time.Time
+	occurredAt, err := time.Parse(time.RFC3339, rawReq.OccurredAt)
+	if err != nil {
+		// Try alternative format
+		occurredAt, err = time.Parse("2006-01-02T15:04:05Z07:00", rawReq.OccurredAt)
 		if err != nil {
-			utils.HandleError(c, http.StatusBadRequest, "Invalid invoice_date format, expected YYYY-MM-DD", err)
-			return
+			occurredAt, err = time.Parse("2006-01-02", rawReq.OccurredAt)
+			if err != nil {
+				utils.HandleError(c, http.StatusBadRequest, "Invalid occurred_at format, expected ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)", err)
+				return
+			}
 		}
-		invoiceDate = &parsed
 	}
 
-	var paymentDate *time.Time
-	if rawReq.PaymentDate != nil && *rawReq.PaymentDate != "" {
-		parsed, err := time.Parse("2006-01-02", *rawReq.PaymentDate)
-		if err != nil {
-			utils.HandleError(c, http.StatusBadRequest, "Invalid payment_date format, expected YYYY-MM-DD", err)
-			return
-		}
-		paymentDate = &parsed
+	// Convert string enums to typed enums
+	financialType := models.FinancialType(rawReq.FinancialType)
+	direction := models.FinancialDirection(rawReq.Direction)
+
+	// Convert type-specific fields
+	var bonusCategory *models.BonusCategory
+	if rawReq.BonusCategory != nil {
+		bc := models.BonusCategory(*rawReq.BonusCategory)
+		bonusCategory = &bc
+	}
+
+	var costCategory *models.CostCategory
+	if rawReq.CostCategory != nil {
+		cc := models.CostCategory(*rawReq.CostCategory)
+		costCategory = &cc
 	}
 
 	// Convert to service request
 	req := services.CreateFinancialRecordRequest{
-		RecordType:       models.FinancialType(rawReq.RecordType),
-		FeeType:          models.FeeType(rawReq.FeeType),
-		ReceivableAmount: rawReq.ReceivableAmount,
-		InvoiceNumber:    rawReq.InvoiceNumber,
-		InvoiceDate:      invoiceDate,
-		InvoiceAmount:    rawReq.InvoiceAmount,
-		PaymentDate:      paymentDate,
-		PaymentAmount:    rawReq.PaymentAmount,
-		Description:      rawReq.Description,
+		FinancialType:       financialType,
+		Direction:           direction,
+		Amount:              rawReq.Amount,
+		OccurredAt:          occurredAt,
+		BonusCategory:       bonusCategory,
+		RecipientID:         rawReq.RecipientID,
+		CostCategory:        costCategory,
+		Mileage:             rawReq.Mileage,
+		ClientID:            rawReq.ClientID,
+		RelatedPaymentID:    rawReq.RelatedPaymentID,
+		PaymentMethod:       rawReq.PaymentMethod,
+		ExpertName:          rawReq.ExpertName,
+		CommissionType:      rawReq.CommissionType,
+		VendorName:          rawReq.VendorName,
+		VendorScore:         rawReq.VendorScore,
+		RelatedCommissionID: rawReq.RelatedCommissionID,
+		InvoiceFileID:       rawReq.InvoiceFileID,
+		Description:         rawReq.Description,
 	}
 
 	// Get current user from context (set by auth middleware)
-	userID, exists := c.Get(string(middleware.UserIDKey))
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
-	createdByID := userID.(uint)
-
-	record, err := h.financialService.CreateFinancialRecord(uint(id), createdByID, &req)
+	record, err := h.financialService.CreateFinancialRecord(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create financial record",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create financial record", err)
@@ -162,8 +191,8 @@ func (h *FinancialHandler) CreateFinancialRecord(c *gin.Context) {
 	}
 
 	h.logger.Info("Financial record created successfully",
-		zap.Uint("record_id", record.ID),
-		zap.Uint("project_id", uint(id)),
+		zap.String("record_id", record.ID),
+		zap.String("project_id", id),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -173,16 +202,40 @@ func (h *FinancialHandler) CreateFinancialRecord(c *gin.Context) {
 }
 
 // UpdateFinancialRecordRequestRaw represents the raw request with string dates
+// 根据新的统一财务记录模型设计
 type UpdateFinancialRecordRequestRaw struct {
-	RecordType       *string  `json:"record_type"`
-	FeeType          *string  `json:"fee_type"`
-	ReceivableAmount *float64 `json:"receivable_amount"`
-	InvoiceNumber    *string  `json:"invoice_number"`
-	InvoiceDate      *string  `json:"invoice_date"`
-	InvoiceAmount    *float64 `json:"invoice_amount"`
-	PaymentDate      *string  `json:"payment_date"`
-	PaymentAmount    *float64 `json:"payment_amount"`
-	Description      *string  `json:"description"`
+	FinancialType *string  `json:"financial_type"` // 财务类型
+	Direction     *string  `json:"direction"`      // 方向：income/expense
+	Amount        *float64 `json:"amount"`         // 金额
+	OccurredAt    *string  `json:"occurred_at"`    // 发生时间（YYYY-MM-DD格式）
+
+	// 类型特定字段（根据FinancialType使用不同字段）
+	// 奖金类型
+	BonusCategory *string `json:"bonus_category"` // 奖金类别
+	RecipientID   *string `json:"recipient_id"`   // 发放人员ID
+
+	// 成本类型
+	CostCategory *string  `json:"cost_category"` // 成本类别
+	Mileage      *float64 `json:"mileage"`       // 里程
+
+	// 甲方支付/我方开票类型
+	ClientID         *string `json:"client_id"`          // 甲方ID
+	RelatedPaymentID *string `json:"related_payment_id"` // 关联的甲方支付记录ID
+
+	// 专家费类型
+	PaymentMethod *string `json:"payment_method"` // 支付方式
+	ExpertName    *string `json:"expert_name"`    // 专家姓名
+
+	// 委托支付/对方开票类型
+	CommissionType      *string  `json:"commission_type"`       // 委托类型
+	VendorName          *string  `json:"vendor_name"`           // 委托方名称
+	VendorScore         *float64 `json:"vendor_score"`          // 委托方评分
+	RelatedCommissionID *string  `json:"related_commission_id"` // 关联的委托支付记录ID
+
+	// 文件关联
+	InvoiceFileID *string `json:"invoice_file_id"` // 发票文件ID
+
+	Description *string `json:"description"` // 描述
 }
 
 // UpdateFinancialRecord handles financial record update
@@ -199,9 +252,9 @@ type UpdateFinancialRecordRequestRaw struct {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /financial-records/{id} [put]
 func (h *FinancialHandler) UpdateFinancialRecord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid financial record ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Financial record ID is required", nil)
 		return
 	}
 
@@ -212,72 +265,101 @@ func (h *FinancialHandler) UpdateFinancialRecord(c *gin.Context) {
 	}
 
 	// Parse date strings to time.Time
-	var invoiceDate *time.Time
-	if rawReq.InvoiceDate != nil && *rawReq.InvoiceDate != "" {
-		parsed, err := time.Parse("2006-01-02", *rawReq.InvoiceDate)
+	var occurredAt *time.Time
+	if rawReq.OccurredAt != nil && *rawReq.OccurredAt != "" {
+		parsed, err := time.Parse("2006-01-02", *rawReq.OccurredAt)
 		if err != nil {
-			utils.HandleError(c, http.StatusBadRequest, "Invalid invoice_date format, expected YYYY-MM-DD", err)
+			utils.HandleError(c, http.StatusBadRequest, "Invalid occurred_at format, expected YYYY-MM-DD", err)
 			return
 		}
-		invoiceDate = &parsed
-	}
-
-	var paymentDate *time.Time
-	if rawReq.PaymentDate != nil && *rawReq.PaymentDate != "" {
-		parsed, err := time.Parse("2006-01-02", *rawReq.PaymentDate)
-		if err != nil {
-			utils.HandleError(c, http.StatusBadRequest, "Invalid payment_date format, expected YYYY-MM-DD", err)
-			return
-		}
-		paymentDate = &parsed
+		occurredAt = &parsed
 	}
 
 	// Convert to service request
 	req := services.UpdateFinancialRecordRequest{}
 
-	if rawReq.RecordType != nil {
-		recordType := models.FinancialType(*rawReq.RecordType)
-		req.RecordType = &recordType
+	if rawReq.FinancialType != nil {
+		financialType := models.FinancialType(*rawReq.FinancialType)
+		req.FinancialType = &financialType
 	}
 
-	if rawReq.FeeType != nil {
-		feeType := models.FeeType(*rawReq.FeeType)
-		req.FeeType = &feeType
+	if rawReq.Direction != nil {
+		direction := models.FinancialDirection(*rawReq.Direction)
+		req.Direction = &direction
 	}
 
-	if rawReq.ReceivableAmount != nil {
-		req.ReceivableAmount = rawReq.ReceivableAmount
+	if rawReq.Amount != nil {
+		req.Amount = rawReq.Amount
 	}
 
-	if rawReq.InvoiceNumber != nil {
-		req.InvoiceNumber = rawReq.InvoiceNumber
+	if occurredAt != nil {
+		req.OccurredAt = occurredAt
 	}
 
-	if invoiceDate != nil {
-		req.InvoiceDate = invoiceDate
+	// Type-specific fields
+	if rawReq.BonusCategory != nil {
+		bonusCategory := models.BonusCategory(*rawReq.BonusCategory)
+		req.BonusCategory = &bonusCategory
 	}
 
-	if rawReq.InvoiceAmount != nil {
-		req.InvoiceAmount = rawReq.InvoiceAmount
+	if rawReq.RecipientID != nil {
+		req.RecipientID = rawReq.RecipientID
 	}
 
-	if paymentDate != nil {
-		req.PaymentDate = paymentDate
+	if rawReq.CostCategory != nil {
+		costCategory := models.CostCategory(*rawReq.CostCategory)
+		req.CostCategory = &costCategory
 	}
 
-	if rawReq.PaymentAmount != nil {
-		req.PaymentAmount = rawReq.PaymentAmount
+	if rawReq.Mileage != nil {
+		req.Mileage = rawReq.Mileage
+	}
+
+	if rawReq.ClientID != nil {
+		req.ClientID = rawReq.ClientID
+	}
+
+	if rawReq.RelatedPaymentID != nil {
+		req.RelatedPaymentID = rawReq.RelatedPaymentID
+	}
+
+	if rawReq.PaymentMethod != nil {
+		req.PaymentMethod = rawReq.PaymentMethod
+	}
+
+	if rawReq.ExpertName != nil {
+		req.ExpertName = rawReq.ExpertName
+	}
+
+	if rawReq.CommissionType != nil {
+		req.CommissionType = rawReq.CommissionType
+	}
+
+	if rawReq.VendorName != nil {
+		req.VendorName = rawReq.VendorName
+	}
+
+	if rawReq.VendorScore != nil {
+		req.VendorScore = rawReq.VendorScore
+	}
+
+	if rawReq.RelatedCommissionID != nil {
+		req.RelatedCommissionID = rawReq.RelatedCommissionID
+	}
+
+	if rawReq.InvoiceFileID != nil {
+		req.InvoiceFileID = rawReq.InvoiceFileID
 	}
 
 	if rawReq.Description != nil {
 		req.Description = rawReq.Description
 	}
 
-	record, err := h.financialService.UpdateFinancialRecord(uint(id), &req)
+	record, err := h.financialService.UpdateFinancialRecord(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update financial record",
 			zap.Error(err),
-			zap.Uint("record_id", uint(id)),
+			zap.String("record_id", id),
 		)
 		if err.Error() == "financial record not found" {
 			utils.HandleError(c, http.StatusNotFound, "Financial record not found", err)
@@ -288,7 +370,7 @@ func (h *FinancialHandler) UpdateFinancialRecord(c *gin.Context) {
 	}
 
 	h.logger.Info("Financial record updated successfully",
-		zap.Uint("record_id", record.ID),
+		zap.String("record_id", record.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -303,21 +385,21 @@ func (h *FinancialHandler) UpdateFinancialRecord(c *gin.Context) {
 // @Tags 财务管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Financial Record ID"
+// @Param id path string true "Financial Record ID (UUID)"
 // @Success 200 {object} map[string]interface{}
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /financial-records/{id} [delete]
 func (h *FinancialHandler) DeleteFinancialRecord(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid financial record ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Financial record ID is required", nil)
 		return
 	}
 
-	if err := h.financialService.DeleteFinancialRecord(uint(id)); err != nil {
+	if err := h.financialService.DeleteFinancialRecord(id); err != nil {
 		h.logger.Error("Failed to delete financial record",
 			zap.Error(err),
-			zap.Uint("record_id", uint(id)),
+			zap.String("record_id", id),
 		)
 		if err.Error() == "financial record not found" {
 			utils.HandleError(c, http.StatusNotFound, "Financial record not found", err)
@@ -328,7 +410,7 @@ func (h *FinancialHandler) DeleteFinancialRecord(c *gin.Context) {
 	}
 
 	h.logger.Info("Financial record deleted successfully",
-		zap.Uint("record_id", uint(id)),
+		zap.String("record_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

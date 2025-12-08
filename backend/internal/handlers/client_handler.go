@@ -59,7 +59,7 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 	}
 
 	h.logger.Info("Client created successfully",
-		zap.Uint("client_id", client.ID),
+		zap.String("client_id", client.ID),
 		zap.String("client_name", client.ClientName),
 	)
 
@@ -75,18 +75,18 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 // @Tags 甲方管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Client ID"
+// @Param id path string true "Client ID (UUID)"
 // @Success 200 {object} models.Client
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /clients/{id} [get]
 func (h *ClientHandler) GetClient(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid client ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Client ID is required", nil)
 		return
 	}
 
-	client, err := h.clientService.GetClient(uint(id))
+	client, err := h.clientService.GetClient(id)
 	if err != nil {
 		utils.HandleError(c, http.StatusNotFound, "Client not found", err)
 		return
@@ -152,16 +152,16 @@ func (h *ClientHandler) ListClients(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Client ID"
+// @Param id path string true "Client ID (UUID)"
 // @Param request body services.UpdateClientRequest true "Client update information"
 // @Success 200 {object} models.Client
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /clients/{id} [put]
 func (h *ClientHandler) UpdateClient(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid client ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Client ID is required", nil)
 		return
 	}
 
@@ -171,11 +171,11 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 		return
 	}
 
-	client, err := h.clientService.UpdateClient(uint(id), &req)
+	client, err := h.clientService.UpdateClient(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update client",
 			zap.Error(err),
-			zap.Uint("client_id", uint(id)),
+			zap.String("client_id", id),
 		)
 		// Check if error is due to duplicate client name
 		if err.Error() == "甲方名称已存在，请使用已存在的甲方" {
@@ -187,7 +187,7 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 	}
 
 	h.logger.Info("Client updated successfully",
-		zap.Uint("client_id", client.ID),
+		zap.String("client_id", client.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -202,29 +202,29 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 // @Tags 甲方管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Client ID"
+// @Param id path string true "Client ID (UUID)"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /clients/{id} [delete]
 func (h *ClientHandler) DeleteClient(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid client ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Client ID is required", nil)
 		return
 	}
 
-	if err := h.clientService.DeleteClient(uint(id)); err != nil {
+	if err := h.clientService.DeleteClient(id); err != nil {
 		h.logger.Error("Failed to delete client",
 			zap.Error(err),
-			zap.Uint("client_id", uint(id)),
+			zap.String("client_id", id),
 		)
 		utils.HandleError(c, http.StatusBadRequest, "Failed to delete client", err)
 		return
 	}
 
 	h.logger.Info("Client deleted successfully",
-		zap.Uint("client_id", uint(id)),
+		zap.String("client_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

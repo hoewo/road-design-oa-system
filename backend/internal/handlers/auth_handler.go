@@ -56,7 +56,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	h.logger.Info("User logged in successfully",
 		zap.String("username", req.Username),
-		zap.Uint("user_id", response.User.ID),
+		zap.String("user_id", response.User.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -74,7 +74,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	userID, _ := middleware.GetUserID(c)
-	h.logger.Info("User logged out", zap.Uint("user_id", userID))
+	h.logger.Info("User logged out", zap.String("user_id", userID))
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,

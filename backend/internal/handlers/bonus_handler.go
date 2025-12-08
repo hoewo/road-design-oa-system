@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -37,17 +36,17 @@ func NewBonusHandler(logger *zap.Logger) *BonusHandler {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/bonuses [get]
 func (h *BonusHandler) GetBonuses(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	bonuses, err := h.bonusService.ListBonusesByProject(uint(id))
+	bonuses, err := h.bonusService.ListBonusesByProject(id)
 	if err != nil {
 		h.logger.Error("Failed to get bonuses",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" {
 			utils.HandleError(c, http.StatusNotFound, "Project not found", err)
@@ -77,9 +76,9 @@ func (h *BonusHandler) GetBonuses(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/bonuses [post]
 func (h *BonusHandler) CreateBonus(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -90,19 +89,17 @@ func (h *BonusHandler) CreateBonus(c *gin.Context) {
 	}
 
 	// Get current user from context (set by auth middleware)
-	userID, exists := c.Get(string(middleware.UserIDKey))
-	if !exists {
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
-	createdByID := userID.(uint)
-
-	bonus, err := h.bonusService.CreateBonus(uint(id), createdByID, &req)
+	bonus, err := h.bonusService.CreateBonus(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create bonus",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" || err.Error() == "user not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create bonus", err)
@@ -115,8 +112,8 @@ func (h *BonusHandler) CreateBonus(c *gin.Context) {
 	}
 
 	h.logger.Info("Bonus created successfully",
-		zap.Uint("bonus_id", bonus.ID),
-		zap.Uint("project_id", uint(id)),
+		zap.String("bonus_id", bonus.ID),
+		zap.String("project_id", id),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -139,9 +136,9 @@ func (h *BonusHandler) CreateBonus(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /bonuses/{id} [put]
 func (h *BonusHandler) UpdateBonus(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid bonus ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Bonus ID is required", nil)
 		return
 	}
 
@@ -151,11 +148,11 @@ func (h *BonusHandler) UpdateBonus(c *gin.Context) {
 		return
 	}
 
-	bonus, err := h.bonusService.UpdateBonus(uint(id), &req)
+	bonus, err := h.bonusService.UpdateBonus(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update bonus",
 			zap.Error(err),
-			zap.Uint("bonus_id", uint(id)),
+			zap.String("bonus_id", id),
 		)
 		if err.Error() == "bonus not found" || err.Error() == "user not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update bonus", err)
@@ -166,7 +163,7 @@ func (h *BonusHandler) UpdateBonus(c *gin.Context) {
 	}
 
 	h.logger.Info("Bonus updated successfully",
-		zap.Uint("bonus_id", bonus.ID),
+		zap.String("bonus_id", bonus.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -186,16 +183,16 @@ func (h *BonusHandler) UpdateBonus(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /bonuses/{id} [delete]
 func (h *BonusHandler) DeleteBonus(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid bonus ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Bonus ID is required", nil)
 		return
 	}
 
-	if err := h.bonusService.DeleteBonus(uint(id)); err != nil {
+	if err := h.bonusService.DeleteBonus(id); err != nil {
 		h.logger.Error("Failed to delete bonus",
 			zap.Error(err),
-			zap.Uint("bonus_id", uint(id)),
+			zap.String("bonus_id", id),
 		)
 		if err.Error() == "bonus not found" {
 			utils.HandleError(c, http.StatusNotFound, "Bonus not found", err)
@@ -206,7 +203,7 @@ func (h *BonusHandler) DeleteBonus(c *gin.Context) {
 	}
 
 	h.logger.Info("Bonus deleted successfully",
-		zap.Uint("bonus_id", uint(id)),
+		zap.String("bonus_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

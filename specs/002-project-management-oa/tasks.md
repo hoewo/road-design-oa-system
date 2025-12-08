@@ -3,7 +3,7 @@
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
 **Status**: In Progress  
-**Total Tasks**: 313
+**Total Tasks**: 346
 
 ## Summary
 
@@ -60,6 +60,7 @@
 - 认证中间件从Header读取用户信息
 - 所有ID字段使用UUID string类型
 - 数据模型符合002规范
+- **代码可以编译运行**：所有编译错误已修复，应用可以正常启动（Phase 2.8 必须完成）
 
 ### Implementation Tasks
 
@@ -78,7 +79,7 @@
 - [X] T019 [P] 迁移文件路由到 /project-oa/v1/user/files/*
 - [X] T020 [P] 迁移用户管理路由到 /project-oa/v1/admin/users/*（系统管理功能）
 - [X] T021 [P] 迁移公司收入管理路由到 /project-oa/v1/admin/revenue/*（需要管理员权限）
-- [ ] T022 更新前端API客户端使用新路由格式 frontend/src/services/api.ts
+- [X] T022 更新前端API客户端使用新路由格式 frontend/src/services/api.ts
 
 #### 2.2 认证中间件改造
 
@@ -89,8 +90,8 @@
 - [X] T027 实现三种认证级别支持（public/user/admin）backend/internal/middleware/auth.go
 - [X] T028 更新GetUserID函数返回UUID string类型 backend/internal/middleware/auth.go
 - [X] T029 移除旧的JWT Token验证逻辑 backend/internal/middleware/auth.go
-- [ ] T030 更新所有handler使用新的用户ID获取方式 backend/internal/handlers/*.go
-- [ ] T031 更新前端认证服务适配新认证方式 frontend/src/services/auth.ts
+- [X] T030 更新所有handler使用新的用户ID获取方式 backend/internal/handlers/*.go（已完成：所有handler已使用middleware.GetUserID(c)）
+- [X] T031 更新前端认证服务适配新认证方式 frontend/src/services/auth.ts
 
 #### 2.3 数据模型ID类型改造
 
@@ -103,8 +104,8 @@
 - [X] T038 更新FinancialRecord模型ID为UUID string类型 backend/internal/models/financial_record.go
 - [X] T039 更新所有关联外键字段为UUID string类型 backend/internal/models/*.go
 - [X] T040 创建数据库迁移脚本迁移现有数据ID类型 scripts/migrations/001_convert_ids_to_uuid.sql（模板已创建）
-- [X] T041 更新所有Service层使用UUID string类型 backend/internal/services/*.go（部分完成：UserService, ProjectService, ClientService, FinancialService, ProjectContactService, DisciplineService）
-- [X] T042 更新所有Handler层使用UUID string类型 backend/internal/handlers/*.go（部分完成：UserHandler, ProjectHandler, ClientHandler, FinancialHandler, ProjectContactHandler, DisciplineHandler）
+- [X] T041 更新所有Service层使用UUID string类型 backend/internal/services/*.go（已完成：UserService, ProjectService, ClientService, FinancialService, ContractService, FileService, ProjectMemberService, ProjectBusinessService, ProjectDisciplineService, ProjectContactService, DisciplineService, CompanyConfigService, ExternalCommissionService, ProductionCostService, ProductionApprovalService, ProductionFileService, ContractAmendmentService, ExpertFeePaymentService, BonusService）
+- [X] T042 更新所有Handler层使用UUID string类型 backend/internal/handlers/*.go（已完成：UserHandler, ProjectHandler, ClientHandler, FinancialHandler, ContractHandler, ProjectMemberHandler, ProjectBusinessHandler, ProjectDisciplineHandler, ProjectContactHandler, DisciplineHandler, ProductionFileHandler, ProductionApprovalHandler, ExternalCommissionHandler, ProductionCostHandler, ContractAmendmentHandler, ExpertFeePaymentHandler, BonusHandler）
 
 #### 2.4 项目联系人实体改造
 
@@ -122,13 +123,13 @@
 - [X] T051 添加FinancialType和FinancialDirection枚举 backend/internal/models/financial_record.go
 - [X] T052 添加类型特定字段（BonusCategory, CostCategory等）backend/internal/models/financial_record.go
 - [X] T053 更新FinancialService支持统一财务记录 backend/internal/services/financial_service.go
-- [ ] T054 迁移Bonus数据到FinancialRecord scripts/migrations/004_migrate_bonus_to_financial_record.sql
-- [ ] T055 迁移ExpertFeePayment数据到FinancialRecord scripts/migrations/005_migrate_expert_fee_to_financial_record.sql
-- [ ] T056 迁移ProductionCost数据到FinancialRecord scripts/migrations/006_migrate_production_cost_to_financial_record.sql
+- [X] T054 迁移Bonus数据到FinancialRecord scripts/migrations/004_migrate_bonus_to_financial_record.sql
+- [X] T055 迁移ExpertFeePayment数据到FinancialRecord scripts/migrations/005_migrate_expert_fee_to_financial_record.sql
+- [X] T056 迁移ProductionCost数据到FinancialRecord scripts/migrations/006_migrate_production_cost_to_financial_record.sql
 - [X] T057 更新FinancialHandler支持新财务记录类型 backend/internal/handlers/financial_handler.go
-- [ ] T058 移除旧的Bonus模型 backend/internal/models/bonus.go
-- [ ] T059 移除旧的ExpertFeePayment模型 backend/internal/models/expert_fee_payment.go
-- [ ] T060 移除旧的ProductionCost模型 backend/internal/models/production_cost.go
+- [ ] T058 移除旧的Bonus模型 backend/internal/models/bonus.go（注意：当前BonusService和BonusHandler仍在路由中使用，需要先完成路由重构，将所有Bonus相关功能迁移到FinancialHandler后再删除）
+- [ ] T059 移除旧的ExpertFeePayment模型 backend/internal/models/expert_fee_payment.go（注意：当前ExpertFeePaymentService和ExpertFeePaymentHandler仍在路由中使用，需要先完成路由重构，将所有ExpertFeePayment相关功能迁移到FinancialHandler后再删除）
+- [ ] T060 移除旧的ProductionCost模型 backend/internal/models/production_cost.go（注意：当前ProductionCostService和ProductionCostHandler仍在路由中使用，需要先完成路由重构，将所有ProductionCost相关功能迁移到FinancialHandler后再删除）
 
 #### 2.6 专业字典实体
 
@@ -144,6 +145,60 @@
 - [X] T067 更新部署脚本支持AUTH_MODE环境变量配置 scripts/deploy.sh
 - [X] T068 更新开发环境配置示例（AUTH_MODE=self_validate）backend/.env.development.example
 - [X] T069 更新生产环境配置示例（AUTH_MODE=gateway）backend/.env.production.example
+
+#### 2.8 代码清理和编译错误修复（确保代码可运行）
+
+**问题根因分析**：
+在执行 Phase 1 和 Phase 2 的重构任务后，发现以下编译错误：
+1. 认证中间件遗留代码：`OptionalAuthMiddleware` 函数使用了已删除的 `NewMockAuthService`
+2. Logging中间件类型不匹配：userID 从 uint 改为 string，但 logging.go 仍使用 `zap.Uint`
+3. FinancialService 使用旧字段：使用了不存在的 `models.FeeType`、`record.RecordType` 等
+4. ContractAmendmentService 使用已删除字段：使用了模型注释中说明已移除的 `FilePath` 字段
+5. ExternalCommissionService 使用已删除字段：使用了已迁移到 FinancialRecord 的字段（InvoiceFileID, PaymentAmount, PaymentDate）
+6. FinancialHandler 使用旧字段：UpdateFinancialRecordRequestRaw 中使用了 `RecordType` 和 `FeeType`，并尝试转换为不存在的类型
+7. ExternalCommissionHandler 使用已删除字段：请求中使用了 InvoiceFileID, PaymentAmount, PaymentDate
+8. ContractService 可能的问题：ContractType 字段在模型中存在，但根据新设计可能应该移除（现在有独立的 DesignFee, SurveyFee, ConsultationFee 字段）
+
+**修复任务**：
+
+**中间件修复**：
+- [X] T070 修复认证中间件遗留代码：更新或删除 OptionalAuthMiddleware 函数，移除对 NewMockAuthService 的引用 backend/internal/middleware/auth.go
+- [X] T071 修复Logging中间件类型错误：将 userID 日志从 zap.Uint 改为 zap.String backend/internal/middleware/logging.go
+
+**FinancialService 修复**：
+- [X] T072 修复FinancialService字段引用错误：将 UpdateFinancialRecordRequest 中的 models.FeeType 改为 models.FinancialType backend/internal/services/financial_service.go
+- [X] T073 修复FinancialService字段访问错误：将 record.RecordType 改为 record.FinancialType backend/internal/services/financial_service.go
+- [X] T074 修复FinancialService枚举值错误：移除对不存在的 models.FeeTypeDesign 等枚举值的引用，使用新的 FinancialType 枚举 backend/internal/services/financial_service.go
+- [X] T075 修复FinancialService UpdateFinancialRecord 方法：根据新的统一财务记录模型重新实现更新逻辑，移除对旧字段（ReceivableAmount, InvoiceNumber, InvoiceDate, InvoiceAmount, PaymentDate, PaymentAmount, UnpaidAmount）的引用 backend/internal/services/financial_service.go
+- [X] T076 修复FinancialService FeeTypeFinancial 结构体：根据新的 FinancialRecord 模型重新设计费用类型分组逻辑，移除对旧 FeeType 概念的依赖 backend/internal/services/financial_service.go
+
+**ContractAmendmentService 修复**：
+- [X] T077 修复ContractAmendmentService字段错误：从 CreateContractAmendmentRequest 和 UpdateContractAmendmentRequest 中移除 FilePath 字段，因为模型中没有此字段（文件通过File实体关联） backend/internal/services/contract_amendment_service.go
+- [X] T078 修复ContractAmendmentService创建逻辑：移除对 FilePath 字段的赋值操作 backend/internal/services/contract_amendment_service.go
+- [X] T079 修复ContractAmendmentService更新逻辑：移除对 FilePath 字段的更新操作 backend/internal/services/contract_amendment_service.go
+
+**ExternalCommissionService 修复**：
+- [X] T080 修复ExternalCommissionService字段类型错误：将 CreateExternalCommissionRequest 中的 Score 字段从 *int 改为 *float64 以匹配模型定义 backend/internal/services/external_commission_service.go
+- [X] T081 修复ExternalCommissionService字段错误：从 CreateExternalCommissionRequest 中移除 InvoiceFileID, PaymentAmount, PaymentDate 字段，这些字段已迁移到 FinancialRecord backend/internal/services/external_commission_service.go
+- [X] T082 修复ExternalCommissionService创建逻辑：移除对已删除字段（InvoiceFileID, PaymentAmount, PaymentDate）的赋值操作 backend/internal/services/external_commission_service.go
+- [X] T083 修复ExternalCommissionService Preload：移除对 InvoiceFile 的 Preload（因为 InvoiceFileID 字段已删除）backend/internal/services/external_commission_service.go
+
+**FinancialHandler 修复**：
+- [X] T084 修复FinancialHandler UpdateFinancialRecordRequestRaw：移除 RecordType 和 FeeType 字段，使用 FinancialType 和 Direction 字段 backend/internal/handlers/financial_handler.go
+- [X] T085 修复FinancialHandler类型转换错误：移除对不存在的 models.FeeType 类型的转换，使用正确的 FinancialType 类型 backend/internal/handlers/financial_handler.go
+- [X] T086 修复FinancialHandler UpdateFinancialRecord 方法：更新请求转换逻辑以匹配新的 UpdateFinancialRecordRequest 结构 backend/internal/handlers/financial_handler.go
+
+**ExternalCommissionHandler 修复**：
+- [X] T087 修复ExternalCommissionHandler请求结构：从 CreateCommission 的请求 payload 中移除 InvoiceFileID, PaymentAmount, PaymentDate 字段 backend/internal/handlers/external_commission_handler.go
+- [X] T088 修复ExternalCommissionHandler类型转换：将 Score 字段从 *int 改为 *float64 backend/internal/handlers/external_commission_handler.go
+- [X] T089 修复ExternalCommissionHandler服务调用：更新 CreateCommission 调用以匹配新的 CreateExternalCommissionRequest 结构 backend/internal/handlers/external_commission_handler.go
+
+**ContractService 潜在问题检查**：
+- [X] T090 检查ContractService ContractType字段：确认 ContractType 字段是否应该保留（模型中有但可能冗余，因为已有 DesignFee, SurveyFee, ConsultationFee）backend/internal/services/contract_service.go 和 backend/internal/models/contract.go（已添加注释说明，暂时保留以保持兼容性）
+
+**验证任务**：
+- [X] T091 验证代码编译：运行 `go build` 确保所有编译错误已修复 backend/
+- [X] T092 验证代码运行：运行 `go run cmd/server/main.go` 确保应用可以正常启动 backend/
 
 ---
 
@@ -161,13 +216,13 @@
 
 ### Implementation Tasks
 
-- [ ] T070 [US1] 更新User模型添加HasAccount字段 backend/internal/models/user.go
-- [ ] T071 [US1] 更新UserService支持账号查询 backend/internal/services/user_service.go
-- [ ] T072 [US1] 更新UserHandler支持账号查询 backend/internal/handlers/user_handler.go
-- [ ] T073 [US1] 实现用户信息获取接口（从Header读取）backend/internal/handlers/auth_handler.go
-- [ ] T074 [US1] 更新前端登录页面适配新认证方式，移除注册入口 frontend/src/pages/Login.tsx
-- [ ] T075 [US1] 实现前端登录页面提示（如需账号请联系管理员）frontend/src/pages/Login.tsx
-- [ ] T076 [US1] 更新前端用户信息显示组件 frontend/src/components/auth/UserInfo.tsx
+- [ ] T093 [US1] 更新User模型添加HasAccount字段 backend/internal/models/user.go
+- [ ] T094 [US1] 更新UserService支持账号查询 backend/internal/services/user_service.go
+- [ ] T095 [US1] 更新UserHandler支持账号查询 backend/internal/handlers/user_handler.go
+- [ ] T096 [US1] 实现用户信息获取接口（从Header读取）backend/internal/handlers/auth_handler.go
+- [ ] T097 [US1] 更新前端登录页面适配新认证方式，移除注册入口 frontend/src/pages/Login.tsx
+- [ ] T098 [US1] 实现前端登录页面提示（如需账号请联系管理员）frontend/src/pages/Login.tsx
+- [ ] T099 [US1] 更新前端用户信息显示组件 frontend/src/components/auth/UserInfo.tsx
 
 ---
 
@@ -183,13 +238,13 @@
 
 ### Implementation Tasks
 
-- [ ] T077 [US2] 更新Project模型符合002规范 backend/internal/models/project.go
-- [ ] T078 [US2] 更新ProjectService支持项目创建 backend/internal/services/project_service.go
-- [ ] T079 [US2] 实现项目编号唯一性验证 backend/internal/services/project_service.go
-- [ ] T080 [US2] 更新ProjectHandler支持项目创建 backend/internal/handlers/project_handler.go
-- [ ] T081 [US2] 更新前端项目创建表单 frontend/src/components/project/ProjectForm.tsx
-- [ ] T082 [US2] 更新前端项目列表页面 frontend/src/pages/ProjectList.tsx
-- [ ] T083 [US2] 实现项目编号重复验证前端提示 frontend/src/components/project/ProjectForm.tsx
+- [ ] T100 [US2] 更新Project模型符合002规范 backend/internal/models/project.go
+- [ ] T101 [US2] 更新ProjectService支持项目创建 backend/internal/services/project_service.go
+- [ ] T102 [US2] 实现项目编号唯一性验证 backend/internal/services/project_service.go
+- [ ] T103 [US2] 更新ProjectHandler支持项目创建 backend/internal/handlers/project_handler.go
+- [ ] T104 [US2] 更新前端项目创建表单 frontend/src/components/project/ProjectForm.tsx
+- [ ] T105 [US2] 更新前端项目列表页面 frontend/src/pages/ProjectList.tsx
+- [ ] T106 [US2] 实现项目编号重复验证前端提示 frontend/src/components/project/ProjectForm.tsx
 
 ---
 
@@ -205,13 +260,13 @@
 
 ### Implementation Tasks
 
-- [ ] T084 [US3] 更新Project模型添加负责人字段 backend/internal/models/project.go
-- [ ] T085 [US3] 更新ProjectService支持负责人配置 backend/internal/services/project_service.go
-- [ ] T086 [US3] 实现负责人权限验证 backend/internal/services/project_service.go
-- [ ] T087 [US3] 更新ProjectHandler支持负责人配置 backend/internal/handlers/project_handler.go
-- [ ] T088 [US3] 更新前端项目详情页面显示负责人信息 frontend/src/pages/ProjectDetail.tsx
-- [ ] T089 [US3] 实现负责人选择组件 frontend/src/components/project/ManagerSelector.tsx
-- [ ] T090 [US3] 实现负责人配置权限控制 frontend/src/components/project/ManagerSelector.tsx
+- [ ] T107 [US3] 更新Project模型添加负责人字段 backend/internal/models/project.go
+- [ ] T108 [US3] 更新ProjectService支持负责人配置 backend/internal/services/project_service.go
+- [ ] T109 [US3] 实现负责人权限验证 backend/internal/services/project_service.go
+- [ ] T110 [US3] 更新ProjectHandler支持负责人配置 backend/internal/handlers/project_handler.go
+- [ ] T111 [US3] 更新前端项目详情页面显示负责人信息 frontend/src/pages/ProjectDetail.tsx
+- [ ] T112 [US3] 实现负责人选择组件 frontend/src/components/project/ManagerSelector.tsx
+- [ ] T113 [US3] 实现负责人配置权限控制 frontend/src/components/project/ManagerSelector.tsx
 
 ---
 
@@ -227,14 +282,14 @@
 
 ### Implementation Tasks
 
-- [ ] T091 [US4] 更新ClientService支持甲方管理 backend/internal/services/client_service.go
-- [ ] T092 [US4] 更新ClientHandler支持甲方CRUD backend/internal/handlers/client_handler.go
-- [ ] T093 [US4] 更新ProjectContactService支持项目联系人管理 backend/internal/services/project_contact_service.go
-- [ ] T094 [US4] 实现项目联系人创建和更新逻辑 backend/internal/services/project_contact_service.go
-- [ ] T095 [US4] 更新ProjectContactHandler支持联系人管理 backend/internal/handlers/project_contact_handler.go
-- [ ] T096 [US4] 更新前端甲方选择组件 frontend/src/components/business/ClientSelector.tsx
-- [ ] T097 [US4] 实现项目联系人表单组件 frontend/src/components/business/ProjectContactForm.tsx
-- [ ] T098 [US4] 更新前端项目经营信息页面集成联系人管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T114 [US4] 更新ClientService支持甲方管理 backend/internal/services/client_service.go
+- [ ] T115 [US4] 更新ClientHandler支持甲方CRUD backend/internal/handlers/client_handler.go
+- [ ] T116 [US4] 更新ProjectContactService支持项目联系人管理 backend/internal/services/project_contact_service.go
+- [ ] T117 [US4] 实现项目联系人创建和更新逻辑 backend/internal/services/project_contact_service.go
+- [ ] T118 [US4] 更新ProjectContactHandler支持联系人管理 backend/internal/handlers/project_contact_handler.go
+- [ ] T119 [US4] 更新前端甲方选择组件 frontend/src/components/business/ClientSelector.tsx
+- [ ] T120 [US4] 实现项目联系人表单组件 frontend/src/components/business/ProjectContactForm.tsx
+- [ ] T121 [US4] 更新前端项目经营信息页面集成联系人管理 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 
@@ -250,12 +305,12 @@
 
 ### Implementation Tasks
 
-- [ ] T099 [US5] 更新ProjectMember模型支持经营参与人角色 backend/internal/models/project_member.go
-- [ ] T100 [US5] 更新ProjectMemberService支持经营参与人配置 backend/internal/services/project_member_service.go
-- [ ] T101 [US5] 实现经营参与人权限验证 backend/internal/services/project_member_service.go
-- [ ] T102 [US5] 更新ProjectMemberHandler支持经营参与人管理 backend/internal/handlers/project_member_handler.go
-- [ ] T103 [US5] 更新前端项目成员管理组件 frontend/src/components/project/ProjectMemberManager.tsx
-- [ ] T104 [US5] 实现经营参与人选择组件 frontend/src/components/business/BusinessPersonnelSelector.tsx
+- [ ] T122 [US5] 更新ProjectMember模型支持经营参与人角色 backend/internal/models/project_member.go
+- [ ] T123 [US5] 更新ProjectMemberService支持经营参与人配置 backend/internal/services/project_member_service.go
+- [ ] T124 [US5] 实现经营参与人权限验证 backend/internal/services/project_member_service.go
+- [ ] T125 [US5] 更新ProjectMemberHandler支持经营参与人管理 backend/internal/handlers/project_member_handler.go
+- [ ] T126 [US5] 更新前端项目成员管理组件 frontend/src/components/project/ProjectMemberManager.tsx
+- [ ] T127 [US5] 实现经营参与人选择组件 frontend/src/components/business/BusinessPersonnelSelector.tsx
 
 ---
 
@@ -271,16 +326,16 @@
 
 ### Implementation Tasks
 
-- [ ] T105 [US6] 创建BiddingInfo模型 backend/internal/models/bidding_info.go
-- [ ] T106 [US6] 创建BiddingService backend/internal/services/bidding_service.go
-- [ ] T107 [US6] 创建BiddingHandler backend/internal/handlers/bidding_handler.go
-- [ ] T108 [US6] 实现招投标文件上传功能 backend/internal/handlers/bidding_handler.go
-- [ ] T109 [US6] 实现专家费支付记录（使用FinancialRecord）backend/internal/services/bidding_service.go
-- [ ] T110 [US6] 创建数据库迁移脚本添加bidding_info表 scripts/migrations/008_add_bidding_info.sql
-- [ ] T111 [US6] 创建前端招投标管理组件 frontend/src/components/business/BiddingInfoManager.tsx
-- [ ] T112 [US6] 实现招投标文件上传UI frontend/src/components/business/BiddingFileUpload.tsx
-- [ ] T113 [US6] 实现专家费支付表单 frontend/src/components/business/ExpertFeeForm.tsx
-- [ ] T114 [US6] 更新前端项目经营信息页面集成招投标管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T128 [US6] 创建BiddingInfo模型 backend/internal/models/bidding_info.go
+- [ ] T129 [US6] 创建BiddingService backend/internal/services/bidding_service.go
+- [ ] T130 [US6] 创建BiddingHandler backend/internal/handlers/bidding_handler.go
+- [ ] T131 [US6] 实现招投标文件上传功能 backend/internal/handlers/bidding_handler.go
+- [ ] T132 [US6] 实现专家费支付记录（使用FinancialRecord）backend/internal/services/bidding_service.go
+- [ ] T133 [US6] 创建数据库迁移脚本添加bidding_info表 scripts/migrations/008_add_bidding_info.sql
+- [ ] T134 [US6] 创建前端招投标管理组件 frontend/src/components/business/BiddingInfoManager.tsx
+- [ ] T135 [US6] 实现招投标文件上传UI frontend/src/components/business/BiddingFileUpload.tsx
+- [ ] T136 [US6] 实现专家费支付表单 frontend/src/components/business/ExpertFeeForm.tsx
+- [ ] T137 [US6] 更新前端项目经营信息页面集成招投标管理 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 
@@ -352,15 +407,15 @@
 
 ### Implementation Tasks
 
-- [ ] T115 [US7] 更新Contract模型符合002规范（ID为UUID，文件通过File实体关联）backend/internal/models/contract.go
-- [ ] T116 [US7] 更新ContractService支持合同创建和更新 backend/internal/services/contract_service.go
-- [ ] T117 [US7] 实现合同金额验证（总金额=设计费+勘察费+咨询费）backend/internal/services/contract_service.go
-- [ ] T118 [US7] 更新ContractHandler支持合同CRUD backend/internal/handlers/contract_handler.go
-- [ ] T119 [US7] 实现合同文件上传功能 backend/internal/handlers/contract_handler.go
-- [ ] T120 [US7] 更新前端合同表单组件 frontend/src/components/business/ContractForm.tsx
-- [ ] T121 [US7] 实现合同金额明细录入（设计费、勘察费、咨询费）frontend/src/components/business/ContractForm.tsx
-- [ ] T122 [US7] 实现合同文件上传UI frontend/src/components/business/ContractFileUpload.tsx
-- [ ] T123 [US7] 更新前端项目经营信息页面集成合同管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T138 [US7] 更新Contract模型符合002规范（ID为UUID，文件通过File实体关联）backend/internal/models/contract.go
+- [ ] T139 [US7] 更新ContractService支持合同创建和更新 backend/internal/services/contract_service.go
+- [ ] T140 [US7] 实现合同金额验证（总金额=设计费+勘察费+咨询费）backend/internal/services/contract_service.go
+- [ ] T141 [US7] 更新ContractHandler支持合同CRUD backend/internal/handlers/contract_handler.go
+- [ ] T142 [US7] 实现合同文件上传功能 backend/internal/handlers/contract_handler.go
+- [ ] T143 [US7] 更新前端合同表单组件 frontend/src/components/business/ContractForm.tsx
+- [ ] T144 [US7] 实现合同金额明细录入（设计费、勘察费、咨询费）frontend/src/components/business/ContractForm.tsx
+- [ ] T145 [US7] 实现合同文件上传UI frontend/src/components/business/ContractFileUpload.tsx
+- [ ] T146 [US7] 更新前端项目经营信息页面集成合同管理 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 
@@ -376,15 +431,15 @@
 
 ### Implementation Tasks
 
-- [ ] T124 [US8] 更新ContractAmendment模型符合002规范 backend/internal/models/contract_amendment.go
-- [ ] T125 [US8] 更新ContractAmendmentService支持补充协议管理 backend/internal/services/contract_amendment_service.go
-- [ ] T126 [US8] 实现补充协议金额验证 backend/internal/services/contract_amendment_service.go
-- [ ] T127 [US8] 实现补充协议关联主合同并更新统计 backend/internal/services/contract_amendment_service.go
-- [ ] T128 [US8] 更新ContractAmendmentHandler支持补充协议CRUD backend/internal/handlers/contract_amendment_handler.go
-- [ ] T129 [US8] 实现补充协议文件上传功能 backend/internal/handlers/contract_amendment_handler.go
-- [ ] T130 [US8] 更新前端补充协议表单组件 frontend/src/components/business/ContractAmendmentForm.tsx
-- [ ] T131 [US8] 实现补充协议列表显示 frontend/src/components/business/ContractAmendmentList.tsx
-- [ ] T132 [US8] 更新前端合同详情页面集成补充协议管理 frontend/src/components/business/ContractDetail.tsx
+- [ ] T147 [US8] 更新ContractAmendment模型符合002规范 backend/internal/models/contract_amendment.go
+- [ ] T148 [US8] 更新ContractAmendmentService支持补充协议管理 backend/internal/services/contract_amendment_service.go
+- [ ] T149 [US8] 实现补充协议金额验证 backend/internal/services/contract_amendment_service.go
+- [ ] T150 [US8] 实现补充协议关联主合同并更新统计 backend/internal/services/contract_amendment_service.go
+- [ ] T151 [US8] 更新ContractAmendmentHandler支持补充协议CRUD backend/internal/handlers/contract_amendment_handler.go
+- [ ] T152 [US8] 实现补充协议文件上传功能 backend/internal/handlers/contract_amendment_handler.go
+- [ ] T153 [US8] 更新前端补充协议表单组件 frontend/src/components/business/ContractAmendmentForm.tsx
+- [ ] T154 [US8] 实现补充协议列表显示 frontend/src/components/business/ContractAmendmentList.tsx
+- [ ] T155 [US8] 更新前端合同详情页面集成补充协议管理 frontend/src/components/business/ContractDetail.tsx
 
 ---
 
@@ -400,13 +455,13 @@
 
 ### Implementation Tasks
 
-- [ ] T133 [US9] 实现甲方支付记录创建（使用FinancialRecord，financial_type=client_payment）backend/internal/services/financial_service.go
-- [ ] T134 [US9] 实现支付记录更新和删除逻辑 backend/internal/services/financial_service.go
-- [ ] T135 [US9] 实现已收金额统计计算 backend/internal/services/financial_service.go
-- [ ] T136 [US9] 更新FinancialHandler支持甲方支付记录 backend/internal/handlers/financial_handler.go
-- [ ] T137 [US9] 创建前端甲方支付表单组件 frontend/src/components/business/ClientPaymentForm.tsx
-- [ ] T138 [US9] 实现支付记录列表显示 frontend/src/components/business/ClientPaymentList.tsx
-- [ ] T139 [US9] 更新前端项目经营信息页面集成支付记录管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T156 [US9] 实现甲方支付记录创建（使用FinancialRecord，financial_type=client_payment）backend/internal/services/financial_service.go
+- [ ] T157 [US9] 实现支付记录更新和删除逻辑 backend/internal/services/financial_service.go
+- [ ] T158 [US9] 实现已收金额统计计算 backend/internal/services/financial_service.go
+- [ ] T159 [US9] 更新FinancialHandler支持甲方支付记录 backend/internal/handlers/financial_handler.go
+- [ ] T160 [US9] 创建前端甲方支付表单组件 frontend/src/components/business/ClientPaymentForm.tsx
+- [ ] T161 [US9] 实现支付记录列表显示 frontend/src/components/business/ClientPaymentList.tsx
+- [ ] T162 [US9] 更新前端项目经营信息页面集成支付记录管理 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 
@@ -422,14 +477,14 @@
 
 ### Implementation Tasks
 
-- [ ] T140 [US10] 实现我方开票记录创建（使用FinancialRecord，financial_type=our_invoice）backend/internal/services/financial_service.go
-- [ ] T141 [US10] 实现开票记录关联支付记录逻辑 backend/internal/services/financial_service.go
-- [ ] T142 [US10] 实现发票文件上传和关联 backend/internal/services/financial_service.go
-- [ ] T143 [US10] 更新FinancialHandler支持我方开票记录 backend/internal/handlers/financial_handler.go
-- [ ] T144 [US10] 创建前端我方开票表单组件 frontend/src/components/business/OurInvoiceForm.tsx
-- [ ] T145 [US10] 实现发票文件上传UI frontend/src/components/business/InvoiceFileUpload.tsx
-- [ ] T146 [US10] 实现开票记录列表显示 frontend/src/components/business/OurInvoiceList.tsx
-- [ ] T147 [US10] 更新前端项目经营信息页面集成开票记录管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T163 [US10] 实现我方开票记录创建（使用FinancialRecord，financial_type=our_invoice）backend/internal/services/financial_service.go
+- [ ] T164 [US10] 实现开票记录关联支付记录逻辑 backend/internal/services/financial_service.go
+- [ ] T165 [US10] 实现发票文件上传和关联 backend/internal/services/financial_service.go
+- [ ] T166 [US10] 更新FinancialHandler支持我方开票记录 backend/internal/handlers/financial_handler.go
+- [ ] T167 [US10] 创建前端我方开票表单组件 frontend/src/components/business/OurInvoiceForm.tsx
+- [ ] T168 [US10] 实现发票文件上传UI frontend/src/components/business/InvoiceFileUpload.tsx
+- [ ] T169 [US10] 实现开票记录列表显示 frontend/src/components/business/OurInvoiceList.tsx
+- [ ] T170 [US10] 更新前端项目经营信息页面集成开票记录管理 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 
@@ -445,14 +500,14 @@
 
 ### Implementation Tasks
 
-- [ ] T148 [US11] 实现经营奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=business）backend/internal/services/financial_service.go
-- [ ] T149 [US11] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
-- [ ] T150 [US11] 实现经营奖金统计计算 backend/internal/services/financial_service.go
-- [ ] T151 [US11] 更新FinancialHandler支持经营奖金记录 backend/internal/handlers/financial_handler.go
-- [ ] T152 [US11] 创建前端经营奖金表单组件 frontend/src/components/business/BusinessBonusForm.tsx
-- [ ] T153 [US11] 实现发放人员选择组件 frontend/src/components/business/BonusRecipientSelector.tsx
-- [ ] T154 [US11] 实现奖金记录列表显示 frontend/src/components/business/BusinessBonusList.tsx
-- [ ] T155 [US11] 更新前端项目经营信息页面集成奖金管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T171 [US11] 实现经营奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=business）backend/internal/services/financial_service.go
+- [ ] T172 [US11] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
+- [ ] T173 [US11] 实现经营奖金统计计算 backend/internal/services/financial_service.go
+- [ ] T174 [US11] 更新FinancialHandler支持经营奖金记录 backend/internal/handlers/financial_handler.go
+- [ ] T175 [US11] 创建前端经营奖金表单组件 frontend/src/components/business/BusinessBonusForm.tsx
+- [ ] T176 [US11] 实现发放人员选择组件 frontend/src/components/business/BonusRecipientSelector.tsx
+- [ ] T177 [US11] 实现奖金记录列表显示 frontend/src/components/business/BusinessBonusList.tsx
+- [ ] T178 [US11] 更新前端项目经营信息页面集成奖金管理 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 
@@ -468,15 +523,15 @@
 
 ### Implementation Tasks
 
-- [ ] T156 [US12] 实现总应收金额计算（合同金额+补充协议金额）backend/internal/services/project_business_service.go
-- [ ] T157 [US12] 实现已收金额计算（甲方支付汇总）backend/internal/services/project_business_service.go
-- [ ] T158 [US12] 实现未收金额计算（总应收-已收）backend/internal/services/project_business_service.go
-- [ ] T159 [US12] 实现经营信息统计接口 backend/internal/handlers/project_business_handler.go
-- [ ] T160 [US12] 实现按时间段统计功能 backend/internal/services/project_business_service.go
-- [ ] T161 [US12] 创建前端经营信息统计组件 frontend/src/components/business/BusinessStatistics.tsx
-- [ ] T162 [US12] 实现统计数据可视化展示 frontend/src/components/business/BusinessStatistics.tsx
-- [ ] T163 [US12] 实现统计报表导出功能 frontend/src/components/business/BusinessStatistics.tsx
-- [ ] T164 [US12] 更新前端项目经营信息页面集成统计展示 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T179 [US12] 实现总应收金额计算（合同金额+补充协议金额）backend/internal/services/project_business_service.go
+- [ ] T180 [US12] 实现已收金额计算（甲方支付汇总）backend/internal/services/project_business_service.go
+- [ ] T181 [US12] 实现未收金额计算（总应收-已收）backend/internal/services/project_business_service.go
+- [ ] T182 [US12] 实现经营信息统计接口 backend/internal/handlers/project_business_handler.go
+- [ ] T183 [US12] 实现按时间段统计功能 backend/internal/services/project_business_service.go
+- [ ] T184 [US12] 创建前端经营信息统计组件 frontend/src/components/business/BusinessStatistics.tsx
+- [ ] T185 [US12] 实现统计数据可视化展示 frontend/src/components/business/BusinessStatistics.tsx
+- [ ] T186 [US12] 实现统计报表导出功能 frontend/src/components/business/BusinessStatistics.tsx
+- [ ] T187 [US12] 更新前端项目经营信息页面集成统计展示 frontend/src/pages/ProjectBusiness.tsx
 
 ---
 

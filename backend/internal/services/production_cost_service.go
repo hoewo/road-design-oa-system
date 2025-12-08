@@ -19,20 +19,20 @@ func NewProductionCostService() *ProductionCostService {
 }
 
 type CreateProductionCostRequest struct {
-	ProjectID    uint
+	ProjectID    string // UUID string
 	CostType     models.ProductionCostType
 	Amount       float64
 	Description  string
 	IncurredAt   *time.Time
-	CommissionID *uint
-	CreatedByID  uint
+	CommissionID *string // UUID string
+	CreatedByID  string  // UUID string
 }
 
 func (s *ProductionCostService) CreateCost(req *CreateProductionCostRequest) (*models.ProductionCost, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
-	if req.ProjectID == 0 {
+	if req.ProjectID == "" {
 		return nil, errors.New("project_id is required")
 	}
 	if req.Amount <= 0 {
@@ -63,11 +63,11 @@ func (s *ProductionCostService) CreateCost(req *CreateProductionCostRequest) (*m
 		return nil, err
 	}
 
-	s.db.Preload("Commission").Preload("CreatedBy").First(cost, cost.ID)
+	s.db.Preload("Commission").Preload("CreatedBy").First(cost, "id = ?", cost.ID)
 	return cost, nil
 }
 
-func (s *ProductionCostService) ListCosts(projectID uint) ([]models.ProductionCost, error) {
+func (s *ProductionCostService) ListCosts(projectID string) ([]models.ProductionCost, error) {
 	var costs []models.ProductionCost
 	if err := s.db.
 		Where("project_id = ?", projectID).
@@ -81,9 +81,9 @@ func (s *ProductionCostService) ListCosts(projectID uint) ([]models.ProductionCo
 	return costs, nil
 }
 
-func (s *ProductionCostService) ensureProjectExists(projectID uint) error {
+func (s *ProductionCostService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}
@@ -92,9 +92,9 @@ func (s *ProductionCostService) ensureProjectExists(projectID uint) error {
 	return nil
 }
 
-func (s *ProductionCostService) ensureCommissionBelongsToProject(commissionID, projectID uint) error {
+func (s *ProductionCostService) ensureCommissionBelongsToProject(commissionID, projectID string) error {
 	var commission models.ExternalCommission
-	if err := s.db.First(&commission, commissionID).Error; err != nil {
+	if err := s.db.First(&commission, "id = ?", commissionID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("external commission not found")
 		}

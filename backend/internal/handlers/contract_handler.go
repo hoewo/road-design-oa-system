@@ -40,22 +40,22 @@ func NewContractHandler(cfg *config.Config, logger *zap.Logger) *ContractHandler
 // @Tags 合同管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Success 200 {array} models.Contract
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/contracts [get]
 func (h *ContractHandler) GetContractsByProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	contracts, err := h.contractService.ListContractsByProject(uint(id))
+	contracts, err := h.contractService.ListContractsByProject(id)
 	if err != nil {
 		h.logger.Error("Failed to get contracts",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to get contracts", err)
 		return
@@ -74,16 +74,16 @@ func (h *ContractHandler) GetContractsByProject(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Param request body services.CreateContractRequest true "Contract information"
 // @Success 201 {object} models.Contract
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/contracts [post]
 func (h *ContractHandler) CreateContract(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -93,11 +93,11 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 		return
 	}
 
-	contract, err := h.contractService.CreateContract(uint(id), &req)
+	contract, err := h.contractService.CreateContract(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to create contract",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create contract", err)
@@ -108,8 +108,8 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 	}
 
 	h.logger.Info("Contract created successfully",
-		zap.Uint("contract_id", contract.ID),
-		zap.Uint("project_id", uint(id)),
+		zap.String("contract_id", contract.ID),
+		zap.String("project_id", id),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -124,22 +124,22 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 // @Tags 合同管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Contract ID"
+// @Param id path string true "Contract ID (UUID)"
 // @Success 200 {object} models.Contract
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contracts/{id} [get]
 func (h *ContractHandler) GetContract(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid contract ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Contract ID is required", nil)
 		return
 	}
 
-	contract, err := h.contractService.GetContract(uint(id))
+	contract, err := h.contractService.GetContract(id)
 	if err != nil {
 		h.logger.Error("Failed to get contract",
 			zap.Error(err),
-			zap.Uint("contract_id", uint(id)),
+			zap.String("contract_id", id),
 		)
 		utils.HandleError(c, http.StatusNotFound, "Failed to get contract", err)
 		return
@@ -158,16 +158,16 @@ func (h *ContractHandler) GetContract(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Contract ID"
+// @Param id path string true "Contract ID (UUID)"
 // @Param request body services.UpdateContractRequest true "Contract information"
 // @Success 200 {object} models.Contract
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contracts/{id} [put]
 func (h *ContractHandler) UpdateContract(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid contract ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Contract ID is required", nil)
 		return
 	}
 
@@ -177,11 +177,11 @@ func (h *ContractHandler) UpdateContract(c *gin.Context) {
 		return
 	}
 
-	contract, err := h.contractService.UpdateContract(uint(id), &req)
+	contract, err := h.contractService.UpdateContract(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update contract",
 			zap.Error(err),
-			zap.Uint("contract_id", uint(id)),
+			zap.String("contract_id", id),
 		)
 		if err.Error() == "contract not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update contract", err)
@@ -192,7 +192,7 @@ func (h *ContractHandler) UpdateContract(c *gin.Context) {
 	}
 
 	h.logger.Info("Contract updated successfully",
-		zap.Uint("contract_id", uint(id)),
+		zap.String("contract_id", contract.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -206,22 +206,22 @@ func (h *ContractHandler) UpdateContract(c *gin.Context) {
 // @Description Delete an existing contract
 // @Tags 合同管理
 // @Security BearerAuth
-// @Param id path int true "Contract ID"
+// @Param id path string true "Contract ID (UUID)"
 // @Success 204 "No Content"
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 400 {object} utils.ErrorResponse
 // @Router /contracts/{id} [delete]
 func (h *ContractHandler) DeleteContract(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid contract ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Contract ID is required", nil)
 		return
 	}
 
-	if err := h.contractService.DeleteContract(uint(id)); err != nil {
+	if err := h.contractService.DeleteContract(id); err != nil {
 		h.logger.Error("Failed to delete contract",
 			zap.Error(err),
-			zap.Uint("contract_id", uint(id)),
+			zap.String("contract_id", id),
 		)
 		if err.Error() == "contract not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to delete contract", err)
@@ -232,7 +232,7 @@ func (h *ContractHandler) DeleteContract(c *gin.Context) {
 	}
 
 	h.logger.Info("Contract deleted successfully",
-		zap.Uint("contract_id", uint(id)),
+		zap.String("contract_id", id),
 	)
 
 	c.Status(http.StatusNoContent)
@@ -245,7 +245,7 @@ func (h *ContractHandler) DeleteContract(c *gin.Context) {
 // @Security BearerAuth
 // @Accept multipart/form-data
 // @Produce json
-// @Param id path int true "Contract ID"
+// @Param id path string true "Contract ID (UUID)"
 // @Param file formData file true "File to upload"
 // @Param description formData string false "File description"
 // @Success 201 {object} models.File
@@ -253,16 +253,16 @@ func (h *ContractHandler) DeleteContract(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contracts/{id}/files [post]
 func (h *ContractHandler) UploadContractFile(c *gin.Context) {
-	contractID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid contract ID", err)
+	contractID := c.Param("id")
+	if contractID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Contract ID is required", nil)
 		return
 	}
 
 	// Get contract to get project ID
-	contract, err := h.contractService.GetContract(uint(contractID))
+	contract, err := h.contractService.GetContract(contractID)
 	if err != nil {
-		h.logger.Error("Failed to get contract", zap.Error(err), zap.Uint("contract_id", uint(contractID)))
+		h.logger.Error("Failed to get contract", zap.Error(err), zap.String("contract_id", contractID))
 		utils.HandleError(c, http.StatusNotFound, "Contract not found", err)
 		return
 	}
@@ -283,21 +283,10 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 	defer file.Close()
 
 	// Get user ID from context
-	userID, exists := c.Get(string(middleware.UserIDKey))
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
-	}
-
-	userIDUint, ok := userID.(uint)
-	if !ok {
-		// Try to convert from float64 (JSON number)
-		if userIDFloat, ok := userID.(float64); ok {
-			userIDUint = uint(userIDFloat)
-		} else {
-			utils.HandleError(c, http.StatusUnauthorized, "Invalid user ID", nil)
-			return
-		}
 	}
 
 	// Get description
@@ -327,19 +316,19 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 
 	// Upload file
 	ctx := context.Background()
-	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userIDUint)
+	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID)
 	if err != nil {
 		h.logger.Error("Failed to upload contract file",
 			zap.Error(err),
-			zap.Uint("contract_id", uint(contractID)),
+			zap.String("contract_id", contractID),
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to upload file", err)
 		return
 	}
 
 	h.logger.Info("Contract file uploaded successfully",
-		zap.Uint("file_id", uploadedFile.ID),
-		zap.Uint("contract_id", uint(contractID)),
+		zap.String("file_id", uploadedFile.ID),
+		zap.String("contract_id", contractID),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -354,36 +343,26 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 // @Tags 合同管理
 // @Security BearerAuth
 // @Produce application/octet-stream
-// @Param fileId path int true "File ID"
+// @Param fileId path string true "File ID (UUID)"
 // @Success 200 "File content"
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /contracts/files/{fileId}/download [get]
 func (h *ContractHandler) DownloadContractFile(c *gin.Context) {
-	fileID, err := strconv.ParseUint(c.Param("fileId"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid file ID", err)
+	fileID := c.Param("fileId")
+	if fileID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "File ID is required", nil)
 		return
 	}
 
 	// Get user ID from context
-	userID, exists := c.Get(string(middleware.UserIDKey))
+	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
-	userIDUint, ok := userID.(uint)
-	if !ok {
-		if userIDFloat, ok := userID.(float64); ok {
-			userIDUint = uint(userIDFloat)
-		} else {
-			utils.HandleError(c, http.StatusUnauthorized, "Invalid user ID", nil)
-			return
-		}
-	}
-
 	// Check permission
-	hasPermission, err := h.fileService.CheckFilePermission(uint(fileID), userIDUint)
+	hasPermission, err := h.fileService.CheckFilePermission(fileID, userID)
 	if err != nil {
 		utils.HandleError(c, http.StatusNotFound, "File not found", err)
 		return
@@ -395,7 +374,7 @@ func (h *ContractHandler) DownloadContractFile(c *gin.Context) {
 
 	// Get file content
 	ctx := context.Background()
-	fileContent, file, err := h.fileService.GetFileContent(ctx, uint(fileID))
+	fileContent, file, err := h.fileService.GetFileContent(ctx, fileID)
 	if err != nil {
 		utils.HandleError(c, http.StatusNotFound, "File not found", err)
 		return
@@ -417,7 +396,7 @@ func (h *ContractHandler) DownloadContractFile(c *gin.Context) {
 // @Tags 合同管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Param category query string false "File category" Enums(contract, bidding)
 // @Param fileType query string false "File type"
 // @Param keyword query string false "Search keyword"
@@ -429,15 +408,15 @@ func (h *ContractHandler) DownloadContractFile(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Router /projects/{id}/contracts/files [get]
 func (h *ContractHandler) SearchContractFiles(c *gin.Context) {
-	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
 	// Parse query parameters
 	params := &services.SearchFilesParams{
-		ProjectID: func() *uint { id := uint(projectID); return &id }(),
+		ProjectID: &projectID,
 		Page:      1,
 		Size:      20,
 	}
@@ -487,7 +466,7 @@ func (h *ContractHandler) SearchContractFiles(c *gin.Context) {
 	if err != nil {
 		h.logger.Error("Failed to search contract files",
 			zap.Error(err),
-			zap.Uint("project_id", uint(projectID)),
+			zap.String("project_id", projectID),
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to search files", err)
 		return

@@ -20,21 +20,21 @@ func NewProductionFileService() *ProductionFileService {
 }
 
 type CreateProductionFileRequest struct {
-	ProjectID              uint
-	FileID                 uint
+	ProjectID              string // UUID string
+	FileID                 string // UUID string
 	FileType               models.ProductionFileType
 	Description            string
-	ReviewSheetFileID      *uint
+	ReviewSheetFileID      *string // UUID string
 	Score                  *int
 	DefaultAmountReference string
-	CreatedByID            uint
+	CreatedByID            string // UUID string
 }
 
 func (s *ProductionFileService) CreateProductionFile(req *CreateProductionFileRequest) (*models.ProductionFile, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
-	if req.ProjectID == 0 || req.FileID == 0 {
+	if req.ProjectID == "" || req.FileID == "" {
 		return nil, errors.New("project_id and file_id are required")
 	}
 
@@ -71,7 +71,7 @@ func (s *ProductionFileService) CreateProductionFile(req *CreateProductionFileRe
 		return nil, err
 	}
 
-	s.db.Preload("File").Preload("ReviewSheetFile").Preload("CreatedBy").First(file, file.ID)
+	s.db.Preload("File").Preload("ReviewSheetFile").Preload("CreatedBy").First(file, "id = ?", file.ID)
 	return file, nil
 }
 
@@ -84,7 +84,7 @@ type ListProductionFilesParams struct {
 	Size     int
 }
 
-func (s *ProductionFileService) ListProductionFiles(projectID uint, params *ListProductionFilesParams) ([]models.ProductionFile, int64, error) {
+func (s *ProductionFileService) ListProductionFiles(projectID string, params *ListProductionFilesParams) ([]models.ProductionFile, int64, error) {
 	query := s.db.Model(&models.ProductionFile{}).Where("project_id = ?", projectID)
 
 	if params != nil {
@@ -134,7 +134,7 @@ func (s *ProductionFileService) ListProductionFiles(projectID uint, params *List
 	return files, total, nil
 }
 
-func (s *ProductionFileService) validateProductionFileType(fileType models.ProductionFileType, score *int, reviewSheetID *uint) error {
+func (s *ProductionFileService) validateProductionFileType(fileType models.ProductionFileType, score *int, reviewSheetID *string) error {
 	mandatoryTypes := map[models.ProductionFileType]struct{}{
 		models.ProductionFileScheme:       {},
 		models.ProductionFilePreliminary:  {},
@@ -152,9 +152,9 @@ func (s *ProductionFileService) validateProductionFileType(fileType models.Produ
 	return nil
 }
 
-func (s *ProductionFileService) ensureProjectExists(projectID uint) error {
+func (s *ProductionFileService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}
@@ -163,9 +163,9 @@ func (s *ProductionFileService) ensureProjectExists(projectID uint) error {
 	return nil
 }
 
-func (s *ProductionFileService) ensureFileBelongsToProject(fileID uint, projectID uint) error {
+func (s *ProductionFileService) ensureFileBelongsToProject(fileID string, projectID string) error {
 	var file models.File
-	if err := s.db.First(&file, fileID).Error; err != nil {
+	if err := s.db.First(&file, "id = ?", fileID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("file not found")
 		}

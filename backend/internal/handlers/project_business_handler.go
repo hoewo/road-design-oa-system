@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -33,22 +32,22 @@ func NewProjectBusinessHandler(logger *zap.Logger) *ProjectBusinessHandler {
 // @Tags 项目经营信息
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Success 200 {object} services.ProjectBusiness
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/business [get]
 func (h *ProjectBusinessHandler) GetProjectBusiness(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	business, err := h.businessService.GetProjectBusiness(uint(id))
+	business, err := h.businessService.GetProjectBusiness(id)
 	if err != nil {
 		h.logger.Error("Failed to get project business",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		utils.HandleError(c, http.StatusNotFound, "Failed to get project business", err)
 		return
@@ -67,16 +66,16 @@ func (h *ProjectBusinessHandler) GetProjectBusiness(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Param request body services.UpdateProjectBusinessRequest true "Business information"
 // @Success 200 {object} services.ProjectBusiness
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id}/business [put]
 func (h *ProjectBusinessHandler) UpdateProjectBusiness(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -86,11 +85,11 @@ func (h *ProjectBusinessHandler) UpdateProjectBusiness(c *gin.Context) {
 		return
 	}
 
-	business, err := h.businessService.UpdateProjectBusiness(uint(id), &req)
+	business, err := h.businessService.UpdateProjectBusiness(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update project business",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		if err.Error() == "project not found" || err.Error() == "client not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update project business", err)
@@ -101,7 +100,7 @@ func (h *ProjectBusinessHandler) UpdateProjectBusiness(c *gin.Context) {
 	}
 
 	h.logger.Info("Project business updated successfully",
-		zap.Uint("project_id", uint(id)),
+		zap.String("project_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

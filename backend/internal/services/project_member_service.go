@@ -27,9 +27,9 @@ const (
 // MemberNotificationEvent captures the payload for notifications.
 type MemberNotificationEvent struct {
 	Action    MemberNotificationAction
-	ProjectID uint
-	MemberID  uint
-	UserID    uint
+	ProjectID string // UUID string
+	MemberID  string // UUID string
+	UserID    string // UUID string
 	Role      models.MemberRole
 }
 
@@ -64,7 +64,7 @@ func NewProjectMemberService(notifier MemberNotifier) *ProjectMemberService {
 
 // CreateProjectMemberRequest represents payload for creating members.
 type CreateProjectMemberRequest struct {
-	UserID    uint              `json:"user_id" binding:"required"`
+	UserID    string            `json:"user_id" binding:"required"` // UUID string
 	Role      models.MemberRole `json:"role" binding:"required"`
 	JoinDate  time.Time         `json:"join_date" binding:"required"`
 	LeaveDate *time.Time        `json:"leave_date"`
@@ -81,7 +81,7 @@ type UpdateProjectMemberRequest struct {
 
 // MemberUserBrief represents lightweight user information for members.
 type MemberUserBrief struct {
-	ID       uint   `json:"id"`
+	ID       string `json:"id"` // UUID string
 	Username string `json:"username"`
 	RealName string `json:"real_name"`
 	Role     string `json:"role"`
@@ -89,9 +89,9 @@ type MemberUserBrief struct {
 
 // ProjectMemberResponse represents the data returned to callers.
 type ProjectMemberResponse struct {
-	ID        uint              `json:"id"`
-	ProjectID uint              `json:"project_id"`
-	UserID    uint              `json:"user_id"`
+	ID        string            `json:"id"`         // UUID string
+	ProjectID string            `json:"project_id"` // UUID string
+	UserID    string            `json:"user_id"`    // UUID string
 	Role      models.MemberRole `json:"role"`
 	JoinDate  time.Time         `json:"join_date"`
 	LeaveDate *time.Time        `json:"leave_date,omitempty"`
@@ -101,8 +101,8 @@ type ProjectMemberResponse struct {
 	UpdatedAt time.Time         `json:"updated_at"`
 }
 
-// ListMembers returns members belonging to a project.
-func (s *ProjectMemberService) ListMembers(projectID uint) ([]*ProjectMemberResponse, error) {
+// ListMembers returns members belonging to a project (UUID string).
+func (s *ProjectMemberService) ListMembers(projectID string) ([]*ProjectMemberResponse, error) {
 	if err := s.ensureProjectExists(projectID); err != nil {
 		return nil, err
 	}
@@ -119,8 +119,8 @@ func (s *ProjectMemberService) ListMembers(projectID uint) ([]*ProjectMemberResp
 	return mapMembersToResponse(members), nil
 }
 
-// CreateMember adds a project member with validation.
-func (s *ProjectMemberService) CreateMember(projectID uint, req *CreateProjectMemberRequest) (*ProjectMemberResponse, error) {
+// CreateMember adds a project member with validation (UUID string).
+func (s *ProjectMemberService) CreateMember(projectID string, req *CreateProjectMemberRequest) (*ProjectMemberResponse, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
@@ -173,8 +173,8 @@ func (s *ProjectMemberService) CreateMember(projectID uint, req *CreateProjectMe
 	return response, nil
 }
 
-// UpdateMember updates fields for an existing project member.
-func (s *ProjectMemberService) UpdateMember(memberID uint, req *UpdateProjectMemberRequest) (*ProjectMemberResponse, error) {
+// UpdateMember updates fields for an existing project member (UUID string).
+func (s *ProjectMemberService) UpdateMember(memberID string, req *UpdateProjectMemberRequest) (*ProjectMemberResponse, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
@@ -231,14 +231,14 @@ func (s *ProjectMemberService) UpdateMember(memberID uint, req *UpdateProjectMem
 	return response, nil
 }
 
-// DeleteMember removes a project member.
-func (s *ProjectMemberService) DeleteMember(memberID uint) error {
+// DeleteMember removes a project member (UUID string).
+func (s *ProjectMemberService) DeleteMember(memberID string) error {
 	member, err := s.getMember(memberID)
 	if err != nil {
 		return err
 	}
 
-	if err := s.db.Delete(&models.ProjectMember{}, memberID).Error; err != nil {
+	if err := s.db.Delete(&models.ProjectMember{}, "id = ?", memberID).Error; err != nil {
 		return err
 	}
 
@@ -253,9 +253,9 @@ func (s *ProjectMemberService) DeleteMember(memberID uint) error {
 	return nil
 }
 
-func (s *ProjectMemberService) ensureProjectExists(projectID uint) error {
+func (s *ProjectMemberService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}
@@ -264,9 +264,9 @@ func (s *ProjectMemberService) ensureProjectExists(projectID uint) error {
 	return nil
 }
 
-func (s *ProjectMemberService) ensureUserExists(userID uint) (*models.User, error) {
+func (s *ProjectMemberService) ensureUserExists(userID string) (*models.User, error) {
 	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
@@ -282,7 +282,7 @@ func (s *ProjectMemberService) validateRole(role models.MemberRole) error {
 	return nil
 }
 
-func (s *ProjectMemberService) ensureRoleAvailable(projectID uint, role models.MemberRole) error {
+func (s *ProjectMemberService) ensureRoleAvailable(projectID string, role models.MemberRole) error {
 	var count int64
 	if err := s.db.Model(&models.ProjectMember{}).
 		Where("project_id = ? AND role = ?", projectID, role).
@@ -308,9 +308,9 @@ func (s *ProjectMemberService) validateDates(joinDate time.Time, leaveDate *time
 	return nil
 }
 
-func (s *ProjectMemberService) getMember(memberID uint) (*models.ProjectMember, error) {
+func (s *ProjectMemberService) getMember(memberID string) (*models.ProjectMember, error) {
 	var member models.ProjectMember
-	if err := s.db.Preload("User").First(&member, memberID).Error; err != nil {
+	if err := s.db.Preload("User").First(&member, "id = ?", memberID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project member not found")
 		}
@@ -329,7 +329,7 @@ func mapMembersToResponse(members []models.ProjectMember) []*ProjectMemberRespon
 
 func mapMemberToResponse(member *models.ProjectMember) *ProjectMemberResponse {
 	user := MemberUserBrief{}
-	if member.User.ID != 0 {
+	if member.User.ID != "" {
 		user = MemberUserBrief{
 			ID:       member.User.ID,
 			Username: member.User.Username,
@@ -371,9 +371,9 @@ func (l *loggingMemberNotifier) Notify(event MemberNotificationEvent) {
 	}
 	l.logger.Info("project member notification",
 		zap.String("action", string(event.Action)),
-		zap.Uint("project_id", event.ProjectID),
-		zap.Uint("member_id", event.MemberID),
-		zap.Uint("user_id", event.UserID),
+		zap.String("project_id", event.ProjectID),
+		zap.String("member_id", event.MemberID),
+		zap.String("user_id", event.UserID),
 		zap.String("role", string(event.Role)),
 	)
 }

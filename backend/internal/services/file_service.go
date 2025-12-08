@@ -33,7 +33,7 @@ func NewFileService(cfg *config.Config) *FileService {
 
 // UploadFileRequest represents the request to upload a file
 type UploadFileRequest struct {
-	ProjectID   uint                `json:"project_id" binding:"required"`
+	ProjectID   string              `json:"project_id" binding:"required"` // UUID string
 	Category    models.FileCategory `json:"category" binding:"required"`
 	Description string              `json:"description"`
 	FileName    string              `json:"file_name" binding:"required"`
@@ -45,7 +45,7 @@ type UploadFileRequest struct {
 
 // SearchFilesParams represents parameters for searching files
 type SearchFilesParams struct {
-	ProjectID *uint
+	ProjectID *string // UUID string
 	Category  *models.FileCategory
 	FileType  *string
 	StartDate *time.Time
@@ -55,8 +55,8 @@ type SearchFilesParams struct {
 	Size      int
 }
 
-// UploadFile uploads a file to storage and creates a file record
-func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, uploaderID uint) (*models.File, error) {
+// UploadFile uploads a file to storage and creates a file record (UUID string)
+func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, uploaderID string) (*models.File, error) {
 	// Validate file size (max 100MB)
 	const maxFileSize = 100 * 1024 * 1024 // 100MB
 	if req.FileSize > maxFileSize {
@@ -100,10 +100,10 @@ func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, up
 	return file, nil
 }
 
-// GetFile retrieves a file by ID
-func (s *FileService) GetFile(id uint) (*models.File, error) {
+// GetFile retrieves a file by ID (UUID string)
+func (s *FileService) GetFile(id string) (*models.File, error) {
 	var file models.File
-	if err := s.db.Preload("Project").Preload("Uploader").First(&file, id).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("Uploader").First(&file, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("file not found")
 		}
@@ -113,8 +113,8 @@ func (s *FileService) GetFile(id uint) (*models.File, error) {
 	return &file, nil
 }
 
-// GetFileContent retrieves file content from storage
-func (s *FileService) GetFileContent(ctx context.Context, fileID uint) (io.ReadCloser, *models.File, error) {
+// GetFileContent retrieves file content from storage (UUID string)
+func (s *FileService) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, *models.File, error) {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return nil, nil, err
@@ -128,8 +128,8 @@ func (s *FileService) GetFileContent(ctx context.Context, fileID uint) (io.ReadC
 	return object, file, nil
 }
 
-// DeleteFile deletes a file from storage and database
-func (s *FileService) DeleteFile(ctx context.Context, fileID uint) error {
+// DeleteFile deletes a file from storage and database (UUID string)
+func (s *FileService) DeleteFile(ctx context.Context, fileID string) error {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return err
@@ -212,8 +212,8 @@ func (s *FileService) SearchFiles(params *SearchFilesParams) ([]models.File, int
 	return files, total, nil
 }
 
-// GetPresignedURL generates a presigned URL for temporary file access
-func (s *FileService) GetPresignedURL(ctx context.Context, fileID uint, expiry time.Duration) (string, error) {
+// GetPresignedURL generates a presigned URL for temporary file access (UUID string)
+func (s *FileService) GetPresignedURL(ctx context.Context, fileID string, expiry time.Duration) (string, error) {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return "", err
@@ -227,8 +227,8 @@ func (s *FileService) GetPresignedURL(ctx context.Context, fileID uint, expiry t
 	return url, nil
 }
 
-// CheckFilePermission checks if a user has permission to access a file
-func (s *FileService) CheckFilePermission(fileID uint, userID uint) (bool, error) {
+// CheckFilePermission checks if a user has permission to access a file (UUID string)
+func (s *FileService) CheckFilePermission(fileID string, userID string) (bool, error) {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return false, err
@@ -246,15 +246,15 @@ func (s *FileService) CheckFilePermission(fileID uint, userID uint) (bool, error
 
 // Helper methods
 
-// generateFilePath generates a unique file path for storage
-func (s *FileService) generateFilePath(projectID uint, category models.FileCategory, fileName string) string {
+// generateFilePath generates a unique file path for storage (UUID string)
+func (s *FileService) generateFilePath(projectID string, category models.FileCategory, fileName string) string {
 	timestamp := time.Now().Format("20060102150405")
 	ext := filepath.Ext(fileName)
 	baseName := strings.TrimSuffix(fileName, ext)
 	safeBaseName := strings.ReplaceAll(baseName, " ", "_")
 	safeBaseName = strings.ReplaceAll(safeBaseName, "/", "_")
 
-	return fmt.Sprintf("projects/%d/%s/%s_%s%s", projectID, category, safeBaseName, timestamp, ext)
+	return fmt.Sprintf("projects/%s/%s/%s_%s%s", projectID, category, safeBaseName, timestamp, ext)
 }
 
 // validateFileType validates file type - only blocks dangerous file types

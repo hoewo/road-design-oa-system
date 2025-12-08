@@ -29,9 +29,9 @@ func NewProjectMemberHandler(logger *zap.Logger) *ProjectMemberHandler {
 
 // ListMembers lists members for a project.
 func (h *ProjectMemberHandler) ListMembers(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (h *ProjectMemberHandler) ListMembers(c *gin.Context) {
 
 // CreateMemberPayload represents incoming payload.
 type CreateMemberPayload struct {
-	UserID    uint              `json:"user_id" binding:"required"`
+	UserID    string            `json:"user_id" binding:"required"` // UUID string
 	Role      models.MemberRole `json:"role" binding:"required"`
 	JoinDate  string            `json:"join_date" binding:"required"`
 	LeaveDate *string           `json:"leave_date"`
@@ -58,9 +58,9 @@ type CreateMemberPayload struct {
 
 // CreateMember creates a new member.
 func (h *ProjectMemberHandler) CreateMember(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -116,9 +116,9 @@ type UpdateMemberPayload struct {
 
 // UpdateMember updates an existing member.
 func (h *ProjectMemberHandler) UpdateMember(c *gin.Context) {
-	memberID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid member ID", err)
+	memberID := c.Param("id")
+	if memberID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Member ID is required", nil)
 		return
 	}
 
@@ -165,9 +165,9 @@ func (h *ProjectMemberHandler) UpdateMember(c *gin.Context) {
 
 // DeleteMember removes a member.
 func (h *ProjectMemberHandler) DeleteMember(c *gin.Context) {
-	memberID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid member ID", err)
+	memberID := c.Param("id")
+	if memberID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Member ID is required", nil)
 		return
 	}
 

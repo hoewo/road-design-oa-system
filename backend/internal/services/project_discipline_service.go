@@ -18,11 +18,12 @@ type ProjectDisciplineService struct {
 }
 
 // DisciplineAssignmentInput represents the payload to configure assignments for a discipline.
+// Discipline can be either discipline name (string) or discipline_id (UUID string)
 type DisciplineAssignmentInput struct {
-	Discipline    string `json:"discipline" binding:"required"`
-	DesignerID    uint   `json:"designer_id" binding:"required"`
-	ParticipantID uint   `json:"participant_id" binding:"required"`
-	ReviewerID    uint   `json:"reviewer_id" binding:"required"`
+	Discipline    string `json:"discipline" binding:"required"`     // Discipline name or ID
+	DesignerID    string `json:"designer_id" binding:"required"`    // UUID string
+	ParticipantID string `json:"participant_id" binding:"required"` // UUID string
+	ReviewerID    string `json:"reviewer_id" binding:"required"`    // UUID string
 }
 
 // UpdateProjectDisciplineAssignmentsRequest wraps the assignment list.
@@ -32,15 +33,16 @@ type UpdateProjectDisciplineAssignmentsRequest struct {
 
 // DisciplineAssignmentResponse represents a discipline with its configured users.
 type DisciplineAssignmentResponse struct {
-	Discipline  string     `json:"discipline"`
-	Designer    *UserBrief `json:"designer,omitempty"`
-	Participant *UserBrief `json:"participant,omitempty"`
-	Reviewer    *UserBrief `json:"reviewer,omitempty"`
+	DisciplineID   string     `json:"discipline_id"` // UUID string
+	DisciplineName string     `json:"discipline_name"`
+	Designer       *UserBrief `json:"designer,omitempty"`
+	Participant    *UserBrief `json:"participant,omitempty"`
+	Reviewer       *UserBrief `json:"reviewer,omitempty"`
 }
 
 // UserBrief is a lightweight user payload for responses.
 type UserBrief struct {
-	ID       uint   `json:"id"`
+	ID       string `json:"id"` // UUID string
 	Username string `json:"username"`
 	RealName string `json:"real_name"`
 }
@@ -52,23 +54,29 @@ func NewProjectDisciplineService() *ProjectDisciplineService {
 	}
 }
 
-// ListAssignments returns structured assignments for a project.
-func (s *ProjectDisciplineService) ListAssignments(projectID uint) ([]*DisciplineAssignmentResponse, error) {
+// ListAssignments returns structured assignments for a project (UUID string).
+func (s *ProjectDisciplineService) ListAssignments(projectID string) ([]*DisciplineAssignmentResponse, error) {
 	var records []models.ProjectDisciplineAssignment
 	if err := s.db.
 		Preload("User").
+		Preload("Discipline").
 		Where("project_id = ?", projectID).
-		Order("discipline ASC").
+		Order("discipline_id ASC").
 		Find(&records).Error; err != nil {
 		return nil, err
 	}
 
 	assignments := map[string]*DisciplineAssignmentResponse{}
 	for _, record := range records {
-		key := record.Discipline
+		key := record.DisciplineID
 		if _, ok := assignments[key]; !ok {
+			disciplineName := ""
+			if record.Discipline != nil {
+				disciplineName = record.Discipline.Name
+			}
 			assignments[key] = &DisciplineAssignmentResponse{
-				Discipline: key,
+				DisciplineID:   key,
+				DisciplineName: disciplineName,
 			}
 		}
 
@@ -94,14 +102,14 @@ func (s *ProjectDisciplineService) ListAssignments(projectID uint) ([]*Disciplin
 	}
 
 	sort.Slice(result, func(i, j int) bool {
-		return result[i].Discipline < result[j].Discipline
+		return result[i].DisciplineName < result[j].DisciplineName
 	})
 
 	return result, nil
 }
 
-// ReplaceAssignments replaces all discipline assignments for a project.
-func (s *ProjectDisciplineService) ReplaceAssignments(projectID uint, req *UpdateProjectDisciplineAssignmentsRequest) ([]*DisciplineAssignmentResponse, error) {
+// ReplaceAssignments replaces all discipline assignments for a project (UUID string).
+func (s *ProjectDisciplineService) ReplaceAssignments(projectID string, req *UpdateProjectDisciplineAssignmentsRequest) ([]*DisciplineAssignmentResponse, error) {
 	if req == nil || len(req.Assignments) == 0 {
 		return nil, errors.New("assignments cannot be empty")
 	}
@@ -126,28 +134,28 @@ func (s *ProjectDisciplineService) ReplaceAssignments(projectID uint, req *Updat
 
 		for _, assignment := range normalized {
 			if err := tx.Create(&models.ProjectDisciplineAssignment{
-				ProjectID:  projectID,
-				Discipline: assignment.Discipline,
-				Role:       models.DisciplineRoleDesigner,
-				UserID:     assignment.DesignerID,
+				ProjectID:    projectID,
+				DisciplineID: assignment.DisciplineID,
+				Role:         models.DisciplineRoleDesigner,
+				UserID:       assignment.DesignerID,
 			}).Error; err != nil {
 				return err
 			}
 
 			if err := tx.Create(&models.ProjectDisciplineAssignment{
-				ProjectID:  projectID,
-				Discipline: assignment.Discipline,
-				Role:       models.DisciplineRoleParticipant,
-				UserID:     assignment.ParticipantID,
+				ProjectID:    projectID,
+				DisciplineID: assignment.DisciplineID,
+				Role:         models.DisciplineRoleParticipant,
+				UserID:       assignment.ParticipantID,
 			}).Error; err != nil {
 				return err
 			}
 
 			if err := tx.Create(&models.ProjectDisciplineAssignment{
-				ProjectID:  projectID,
-				Discipline: assignment.Discipline,
-				Role:       models.DisciplineRoleReviewer,
-				UserID:     assignment.ReviewerID,
+				ProjectID:    projectID,
+				DisciplineID: assignment.DisciplineID,
+				Role:         models.DisciplineRoleReviewer,
+				UserID:       assignment.ReviewerID,
 			}).Error; err != nil {
 				return err
 			}
@@ -161,9 +169,9 @@ func (s *ProjectDisciplineService) ReplaceAssignments(projectID uint, req *Updat
 	return s.ListAssignments(projectID)
 }
 
-func (s *ProjectDisciplineService) ensureProjectExists(projectID uint) error {
+func (s *ProjectDisciplineService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fmt.Errorf("project not found")
 		}
@@ -172,7 +180,7 @@ func (s *ProjectDisciplineService) ensureProjectExists(projectID uint) error {
 	return nil
 }
 
-func (s *ProjectDisciplineService) ensureUsersExist(userIDs []uint) error {
+func (s *ProjectDisciplineService) ensureUsersExist(userIDs []string) error {
 	if len(userIDs) == 0 {
 		return nil
 	}
@@ -190,52 +198,61 @@ func (s *ProjectDisciplineService) ensureUsersExist(userIDs []uint) error {
 }
 
 type normalizedAssignment struct {
-	Discipline    string
-	DesignerID    uint
-	ParticipantID uint
-	ReviewerID    uint
+	DisciplineID  string // UUID string
+	DesignerID    string // UUID string
+	ParticipantID string // UUID string
+	ReviewerID    string // UUID string
 }
 
-func normalizeAssignmentInputs(assignments []DisciplineAssignmentInput) ([]normalizedAssignment, []uint, error) {
+func normalizeAssignmentInputs(assignments []DisciplineAssignmentInput) ([]normalizedAssignment, []string, error) {
 	unique := map[string]struct{}{}
 	result := make([]normalizedAssignment, 0, len(assignments))
-	userSet := map[uint]struct{}{}
+	userSet := map[string]struct{}{}
 
 	for _, assignment := range assignments {
-		discipline := strings.TrimSpace(assignment.Discipline)
-		if discipline == "" {
-			return nil, nil, errors.New("discipline name cannot be empty")
+		disciplineInput := strings.TrimSpace(assignment.Discipline)
+		if disciplineInput == "" {
+			return nil, nil, errors.New("discipline name or ID cannot be empty")
 		}
 
-		key := strings.ToLower(discipline)
-		if _, exists := unique[key]; exists {
-			return nil, nil, fmt.Errorf("duplicate discipline: %s", discipline)
+		// Try to find discipline by name or ID
+		var discipline models.Discipline
+		if err := database.DB.Where("name = ? OR id = ?", disciplineInput, disciplineInput).First(&discipline).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, nil, fmt.Errorf("discipline not found: %s", disciplineInput)
+			}
+			return nil, nil, err
 		}
 
-		if assignment.DesignerID == 0 {
-			return nil, nil, fmt.Errorf("designer_id is required for discipline %s", discipline)
-		}
-		if assignment.ParticipantID == 0 {
-			return nil, nil, fmt.Errorf("participant_id is required for discipline %s", discipline)
-		}
-		if assignment.ReviewerID == 0 {
-			return nil, nil, fmt.Errorf("reviewer_id is required for discipline %s", discipline)
+		disciplineID := discipline.ID
+		if _, exists := unique[disciplineID]; exists {
+			return nil, nil, fmt.Errorf("duplicate discipline: %s", discipline.Name)
 		}
 
-		unique[key] = struct{}{}
+		if assignment.DesignerID == "" {
+			return nil, nil, fmt.Errorf("designer_id is required for discipline %s", discipline.Name)
+		}
+		if assignment.ParticipantID == "" {
+			return nil, nil, fmt.Errorf("participant_id is required for discipline %s", discipline.Name)
+		}
+		if assignment.ReviewerID == "" {
+			return nil, nil, fmt.Errorf("reviewer_id is required for discipline %s", discipline.Name)
+		}
+
+		unique[disciplineID] = struct{}{}
 		userSet[assignment.DesignerID] = struct{}{}
 		userSet[assignment.ParticipantID] = struct{}{}
 		userSet[assignment.ReviewerID] = struct{}{}
 
 		result = append(result, normalizedAssignment{
-			Discipline:    discipline,
+			DisciplineID:  disciplineID,
 			DesignerID:    assignment.DesignerID,
 			ParticipantID: assignment.ParticipantID,
 			ReviewerID:    assignment.ReviewerID,
 		})
 	}
 
-	userIDs := make([]uint, 0, len(userSet))
+	userIDs := make([]string, 0, len(userSet))
 	for id := range userSet {
 		userIDs = append(userIDs, id)
 	}

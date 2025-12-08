@@ -31,9 +31,9 @@ func NewProductionFileHandler(cfg *config.Config, logger *zap.Logger) *Productio
 }
 
 func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -63,12 +63,11 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 		score = &parsed
 	}
 
-	userID, ok := c.Get(string(middleware.UserIDKey))
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
-	createdBy := userID.(uint)
 
 	file, err := fileHeader.Open()
 	if err != nil {
@@ -87,13 +86,13 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 		FileType:    fileHeader.Filename,
 		MimeType:    fileHeader.Header.Get("Content-Type"),
 		Reader:      file,
-	}, createdBy)
+	}, userID)
 	if err != nil {
 		utils.HandleError(c, http.StatusInternalServerError, "上传生产文件失败", err)
 		return
 	}
 
-	var reviewSheetFileID *uint
+	var reviewSheetFileID *string
 	if reviewHeader, err := c.FormFile("review_sheet_file"); err == nil {
 		reviewFile, err := reviewHeader.Open()
 		if err != nil {
@@ -110,7 +109,7 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 			FileType:  reviewHeader.Filename,
 			MimeType:  reviewHeader.Header.Get("Content-Type"),
 			Reader:    reviewFile,
-		}, createdBy)
+		}, userID)
 		if err != nil {
 			utils.HandleError(c, http.StatusInternalServerError, "上传校审单失败", err)
 			return
@@ -126,7 +125,7 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 		ReviewSheetFileID:      reviewSheetFileID,
 		Score:                  score,
 		DefaultAmountReference: defaultAmountReference,
-		CreatedByID:            createdBy,
+		CreatedByID:            userID,
 	})
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "生产文件记录失败", err)
@@ -140,9 +139,9 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 }
 
 func (h *ProductionFileHandler) ListProductionFiles(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -184,9 +183,9 @@ func (h *ProductionFileHandler) ListProductionFiles(c *gin.Context) {
 }
 
 func (h *ProductionFileHandler) DownloadProductionFile(c *gin.Context) {
-	fileID, err := utils.ParseUintParam(c.Param("fileId"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid file ID", err)
+	fileID := c.Param("fileId")
+	if fileID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "File ID is required", nil)
 		return
 	}
 

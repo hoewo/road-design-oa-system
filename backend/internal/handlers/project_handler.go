@@ -54,7 +54,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	h.logger.Info("Project created successfully",
-		zap.Uint("project_id", project.ID),
+		zap.String("project_id", project.ID),
 		zap.String("project_number", project.ProjectNumber),
 	)
 
@@ -70,18 +70,18 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 // @Tags 项目管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Success 200 {object} models.Project
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id} [get]
 func (h *ProjectHandler) GetProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	project, err := h.projectService.GetProject(uint(id))
+	project, err := h.projectService.GetProject(id)
 	if err != nil {
 		utils.HandleError(c, http.StatusNotFound, "Project not found", err)
 		return
@@ -149,16 +149,16 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Param request body services.UpdateProjectRequest true "Project update information"
 // @Success 200 {object} models.Project
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id} [put]
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -168,18 +168,18 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		return
 	}
 
-	project, err := h.projectService.UpdateProject(uint(id), &req)
+	project, err := h.projectService.UpdateProject(id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update project",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		utils.HandleError(c, http.StatusBadRequest, "Failed to update project", err)
 		return
 	}
 
 	h.logger.Info("Project updated successfully",
-		zap.Uint("project_id", project.ID),
+		zap.String("project_id", project.ID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -194,29 +194,29 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 // @Tags 项目管理
 // @Security BearerAuth
 // @Produce json
-// @Param id path int true "Project ID"
+// @Param id path string true "Project ID (UUID)"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id} [delete]
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	if err := h.projectService.DeleteProject(uint(id)); err != nil {
+	if err := h.projectService.DeleteProject(id); err != nil {
 		h.logger.Error("Failed to delete project",
 			zap.Error(err),
-			zap.Uint("project_id", uint(id)),
+			zap.String("project_id", id),
 		)
 		utils.HandleError(c, http.StatusBadRequest, "Failed to delete project", err)
 		return
 	}
 
 	h.logger.Info("Project deleted successfully",
-		zap.Uint("project_id", uint(id)),
+		zap.String("project_id", id),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

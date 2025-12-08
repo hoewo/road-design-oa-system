@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -26,9 +25,9 @@ func NewExternalCommissionHandler(logger *zap.Logger) *ExternalCommissionHandler
 }
 
 func (h *ExternalCommissionHandler) ListCommissions(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -56,51 +55,47 @@ func (h *ExternalCommissionHandler) ListCommissions(c *gin.Context) {
 }
 
 func (h *ExternalCommissionHandler) CreateCommission(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
 	var payload struct {
-		VendorName     string  `json:"vendor_name" binding:"required"`
-		VendorType     string  `json:"vendor_type" binding:"required"`
-		Score          *int    `json:"score"`
-		ContractFileID *uint   `json:"contract_file_id"`
-		InvoiceFileID  *uint   `json:"invoice_file_id"`
-		PaymentAmount  float64 `json:"payment_amount"`
-		PaymentDate    *string `json:"payment_date"`
-		Notes          string  `json:"notes"`
+		VendorName     string   `json:"vendor_name" binding:"required"`
+		VendorType     string   `json:"vendor_type" binding:"required"`
+		Score          *float64 `json:"score"`            // 类型从 *int 改为 *float64
+		ContractFileID *string  `json:"contract_file_id"` // UUID string
+		// 注意：InvoiceFileID, PaymentAmount, PaymentDate 字段已移除，这些信息通过FinancialRecord管理
+		Notes string `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	userID, ok := c.Get(string(middleware.UserIDKey))
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
-	var paymentDate *time.Time
-	if payload.PaymentDate != nil && *payload.PaymentDate != "" {
-		if parsed, err := time.Parse("2006-01-02", *payload.PaymentDate); err == nil {
-			paymentDate = &parsed
-		}
+	// Convert Score from *float64 to *int for service (service expects *int but model uses *float64)
+	// Actually, service now expects *float64, so we can pass directly
+	var score *float64
+	if payload.Score != nil {
+		score = payload.Score
 	}
 
 	result, err := h.service.CreateCommission(&services.CreateExternalCommissionRequest{
 		ProjectID:      projectID,
 		VendorName:     payload.VendorName,
 		VendorType:     models.ExternalVendorType(payload.VendorType),
-		Score:          payload.Score,
+		Score:          score,
 		ContractFileID: payload.ContractFileID,
-		InvoiceFileID:  payload.InvoiceFileID,
-		PaymentAmount:  payload.PaymentAmount,
-		PaymentDate:    paymentDate,
-		Notes:          payload.Notes,
-		CreatedByID:    userID.(uint),
+		// 注意：InvoiceFileID, PaymentAmount, PaymentDate 字段已移除，这些信息通过FinancialRecord管理
+		Notes:       payload.Notes,
+		CreatedByID: userID,
 	})
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "创建外委记录失败", err)

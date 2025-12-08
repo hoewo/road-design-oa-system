@@ -7,16 +7,15 @@ import (
 )
 
 type Client struct {
-	ID           uint   `json:"id" gorm:"primaryKey"`
-	ClientName   string `json:"client_name" gorm:"uniqueIndex;not null"`
-	ContactName  string `json:"contact_name"`
-	ContactPhone string `json:"contact_phone"`
-	Email        string `json:"email"`
-	Address      string `json:"address"`
-	TaxNumber    string `json:"tax_number"`
-	BankAccount  string `json:"bank_account"`
-	BankName     string `json:"bank_name"`
-	IsActive     bool   `json:"is_active" gorm:"default:true"`
+	ID          string `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	ClientName  string `json:"client_name" gorm:"uniqueIndex;not null"`
+	Email       string `json:"email"`
+	Address     string `json:"address"`
+	TaxNumber   string `json:"tax_number"`
+	BankAccount string `json:"bank_account"`
+	BankName    string `json:"bank_name"`
+	IsActive    bool   `json:"is_active" gorm:"default:true"`
+	// 注意：ContactName和ContactPhone已移除，联系人信息通过ProjectContact实体管理
 
 	// 关联关系
 	Projects []Project `json:"projects" gorm:"foreignKey:ClientID"`

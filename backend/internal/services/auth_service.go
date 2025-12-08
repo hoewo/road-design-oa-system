@@ -76,10 +76,10 @@ func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
 	}, nil
 }
 
-// GetCurrentUser retrieves the current user by ID
-func (s *AuthService) GetCurrentUser(userID uint) (*models.User, error) {
+// GetCurrentUser retrieves the current user by ID (UUID string)
+func (s *AuthService) GetCurrentUser(userID string) (*models.User, error) {
 	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 		return nil, err
 	}
 
@@ -144,10 +144,10 @@ func (s *AuthService) Register(username, email, password, realName string, role 
 	return user, nil
 }
 
-// ValidatePassword validates a password against the user's stored password
-func (s *AuthService) ValidatePassword(userID uint, password string) error {
+// ValidatePassword validates a password against the user's stored password (UUID string)
+func (s *AuthService) ValidatePassword(userID string, password string) error {
 	var user models.User
-	if err := s.db.First(&user, userID).Error; err != nil {
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
 		return err
 	}
 
@@ -158,8 +158,8 @@ func (s *AuthService) ValidatePassword(userID uint, password string) error {
 	return nil
 }
 
-// ChangePassword changes a user's password
-func (s *AuthService) ChangePassword(userID uint, oldPassword, newPassword string) error {
+// ChangePassword changes a user's password (UUID string)
+func (s *AuthService) ChangePassword(userID string, oldPassword, newPassword string) error {
 	// Validate old password
 	if err := s.ValidatePassword(userID, oldPassword); err != nil {
 		return err

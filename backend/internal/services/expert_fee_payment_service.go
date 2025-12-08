@@ -37,11 +37,11 @@ type UpdateExpertFeePaymentRequest struct {
 	Description   *string               `json:"description"`
 }
 
-// CreateExpertFeePayment creates a new expert fee payment
-func (s *ExpertFeePaymentService) CreateExpertFeePayment(projectID uint, createdByID uint, req *CreateExpertFeePaymentRequest) (*models.ExpertFeePayment, error) {
+// CreateExpertFeePayment creates a new expert fee payment (UUID string)
+func (s *ExpertFeePaymentService) CreateExpertFeePayment(projectID string, createdByID string, req *CreateExpertFeePaymentRequest) (*models.ExpertFeePayment, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -79,15 +79,15 @@ func (s *ExpertFeePaymentService) CreateExpertFeePayment(projectID uint, created
 	}
 
 	// Load associations
-	s.db.Preload("Project").Preload("Expert").Preload("CreatedBy").First(payment, payment.ID)
+	s.db.Preload("Project").Preload("Expert").Preload("CreatedBy").First(payment, "id = ?", payment.ID)
 
 	return payment, nil
 }
 
-// GetExpertFeePayment retrieves an expert fee payment by ID
-func (s *ExpertFeePaymentService) GetExpertFeePayment(id uint) (*models.ExpertFeePayment, error) {
+// GetExpertFeePayment retrieves an expert fee payment by ID (UUID string)
+func (s *ExpertFeePaymentService) GetExpertFeePayment(id string) (*models.ExpertFeePayment, error) {
 	var payment models.ExpertFeePayment
-	if err := s.db.Preload("Project").Preload("Expert").Preload("CreatedBy").First(&payment, id).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("Expert").Preload("CreatedBy").First(&payment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("expert fee payment not found")
 		}
@@ -97,8 +97,8 @@ func (s *ExpertFeePaymentService) GetExpertFeePayment(id uint) (*models.ExpertFe
 	return &payment, nil
 }
 
-// ListExpertFeePaymentsByProject retrieves all expert fee payments for a project
-func (s *ExpertFeePaymentService) ListExpertFeePaymentsByProject(projectID uint) ([]models.ExpertFeePayment, error) {
+// ListExpertFeePaymentsByProject retrieves all expert fee payments for a project (UUID string)
+func (s *ExpertFeePaymentService) ListExpertFeePaymentsByProject(projectID string) ([]models.ExpertFeePayment, error) {
 	var payments []models.ExpertFeePayment
 	if err := s.db.Where("project_id = ?", projectID).
 		Preload("Expert").Preload("CreatedBy").
@@ -110,10 +110,10 @@ func (s *ExpertFeePaymentService) ListExpertFeePaymentsByProject(projectID uint)
 	return payments, nil
 }
 
-// UpdateExpertFeePayment updates an existing expert fee payment
-func (s *ExpertFeePaymentService) UpdateExpertFeePayment(id uint, req *UpdateExpertFeePaymentRequest) (*models.ExpertFeePayment, error) {
+// UpdateExpertFeePayment updates an existing expert fee payment (UUID string)
+func (s *ExpertFeePaymentService) UpdateExpertFeePayment(id string, req *UpdateExpertFeePaymentRequest) (*models.ExpertFeePayment, error) {
 	var payment models.ExpertFeePayment
-	if err := s.db.First(&payment, id).Error; err != nil {
+	if err := s.db.First(&payment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("expert fee payment not found")
 		}
@@ -161,15 +161,15 @@ func (s *ExpertFeePaymentService) UpdateExpertFeePayment(id uint, req *UpdateExp
 	}
 
 	// Reload with associations
-	s.db.Preload("Project").Preload("Expert").Preload("CreatedBy").First(&payment, id)
+	s.db.Preload("Project").Preload("Expert").Preload("CreatedBy").First(&payment, "id = ?", id)
 
 	return &payment, nil
 }
 
-// DeleteExpertFeePayment deletes an expert fee payment
-func (s *ExpertFeePaymentService) DeleteExpertFeePayment(id uint) error {
+// DeleteExpertFeePayment deletes an expert fee payment (UUID string)
+func (s *ExpertFeePaymentService) DeleteExpertFeePayment(id string) error {
 	var payment models.ExpertFeePayment
-	if err := s.db.First(&payment, id).Error; err != nil {
+	if err := s.db.First(&payment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("expert fee payment not found")
 		}

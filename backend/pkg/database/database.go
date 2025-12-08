@@ -16,6 +16,20 @@ import (
 var DB *gorm.DB
 
 func Connect(cfg *config.Config) error {
+	// 根据数据库类型选择连接方式
+	switch cfg.DBType {
+	case "postgresql":
+		return ConnectPostgreSQL(cfg)
+	case "rds":
+		return ConnectRDS(cfg)
+	default:
+		// 默认使用PostgreSQL
+		return ConnectPostgreSQL(cfg)
+	}
+}
+
+// ConnectPostgreSQL 连接到PostgreSQL数据库
+func ConnectPostgreSQL(cfg *config.Config) error {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode)
 
@@ -27,7 +41,7 @@ func Connect(cfg *config.Config) error {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	log.Println("Database connected successfully")
+	log.Println("PostgreSQL database connected successfully")
 	return nil
 }
 
@@ -44,6 +58,8 @@ func Migrate() error {
 		&models.User{},
 		&models.Project{},
 		&models.Client{},
+		&models.ProjectContact{}, // 项目联系人实体
+		&models.Discipline{},     // 专业字典实体
 		&models.Contract{},
 		&models.ContractAmendment{},
 		&models.ExpertFeePayment{},

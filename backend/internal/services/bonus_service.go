@@ -23,17 +23,17 @@ func NewBonusService() *BonusService {
 
 // CreateBonusRequest represents the request to create a bonus
 type CreateBonusRequest struct {
-	UserID      uint             `json:"user_id" binding:"required"`
+	UserID      string           `json:"user_id" binding:"required"` // UUID string
 	BonusType   models.BonusType `json:"bonus_type" binding:"required"`
 	Amount      float64          `json:"amount" binding:"required"`
 	Description string           `json:"description"`
 }
 
-// CreateBonus creates a new bonus
-func (s *BonusService) CreateBonus(projectID uint, createdByID uint, req *CreateBonusRequest) (*models.Bonus, error) {
+// CreateBonus creates a new bonus (UUID string)
+func (s *BonusService) CreateBonus(projectID string, createdByID string, req *CreateBonusRequest) (*models.Bonus, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -42,7 +42,7 @@ func (s *BonusService) CreateBonus(projectID uint, createdByID uint, req *Create
 
 	// Verify user exists
 	var user models.User
-	if err := s.db.First(&user, req.UserID).Error; err != nil {
+	if err := s.db.First(&user, "id = ?", req.UserID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("user not found")
 		}
@@ -83,18 +83,18 @@ func (s *BonusService) CreateBonus(projectID uint, createdByID uint, req *Create
 	}
 
 	// Load associations
-	if err := s.db.Preload("Project").Preload("User").Preload("CreatedBy").First(bonus, bonus.ID).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("User").Preload("CreatedBy").First(bonus, "id = ?", bonus.ID).Error; err != nil {
 		return nil, err
 	}
 
 	return bonus, nil
 }
 
-// ListBonusesByProject retrieves all bonuses for a project
-func (s *BonusService) ListBonusesByProject(projectID uint) ([]models.Bonus, error) {
+// ListBonusesByProject retrieves all bonuses for a project (UUID string)
+func (s *BonusService) ListBonusesByProject(projectID string) ([]models.Bonus, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -115,16 +115,16 @@ func (s *BonusService) ListBonusesByProject(projectID uint) ([]models.Bonus, err
 
 // UpdateBonusRequest represents the request to update a bonus
 type UpdateBonusRequest struct {
-	UserID      *uint             `json:"user_id"`
+	UserID      *string           `json:"user_id"` // UUID string
 	BonusType   *models.BonusType `json:"bonus_type"`
 	Amount      *float64          `json:"amount"`
 	Description *string           `json:"description"`
 }
 
-// UpdateBonus updates an existing bonus record (allows modification of business fields except system fields)
-func (s *BonusService) UpdateBonus(bonusID uint, req *UpdateBonusRequest) (*models.Bonus, error) {
+// UpdateBonus updates an existing bonus record (allows modification of business fields except system fields) (UUID string)
+func (s *BonusService) UpdateBonus(bonusID string, req *UpdateBonusRequest) (*models.Bonus, error) {
 	var bonus models.Bonus
-	if err := s.db.First(&bonus, bonusID).Error; err != nil {
+	if err := s.db.First(&bonus, "id = ?", bonusID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("bonus not found")
 		}
@@ -135,7 +135,7 @@ func (s *BonusService) UpdateBonus(bonusID uint, req *UpdateBonusRequest) (*mode
 	if req.UserID != nil {
 		// Verify user exists
 		var user models.User
-		if err := s.db.First(&user, *req.UserID).Error; err != nil {
+		if err := s.db.First(&user, "id = ?", *req.UserID).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, errors.New("user not found")
 			}
@@ -168,17 +168,17 @@ func (s *BonusService) UpdateBonus(bonusID uint, req *UpdateBonusRequest) (*mode
 	}
 
 	// Load associations
-	if err := s.db.Preload("Project").Preload("User").Preload("CreatedBy").First(&bonus, bonus.ID).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("User").Preload("CreatedBy").First(&bonus, "id = ?", bonus.ID).Error; err != nil {
 		return nil, err
 	}
 
 	return &bonus, nil
 }
 
-// DeleteBonus deletes a bonus record (statistics will be automatically updated when GetBonuses is called)
-func (s *BonusService) DeleteBonus(bonusID uint) error {
+// DeleteBonus deletes a bonus record (statistics will be automatically updated when GetBonuses is called) (UUID string)
+func (s *BonusService) DeleteBonus(bonusID string) error {
 	var bonus models.Bonus
-	if err := s.db.First(&bonus, bonusID).Error; err != nil {
+	if err := s.db.First(&bonus, "id = ?", bonusID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("bonus not found")
 		}

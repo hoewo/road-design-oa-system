@@ -16,10 +16,14 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	DBSSLMode  string
+	DBType     string // "postgresql" or "rds"
 
 	// JWT
 	JWTSecret      string
 	JWTExpireHours int
+
+	// Storage
+	StorageType string // "minio" or "oss"
 
 	// MinIO
 	MinIOEndpoint   string
@@ -27,6 +31,19 @@ type Config struct {
 	MinIOSecretKey  string
 	MinIOBucketName string
 	MinIOUseSSL     bool
+
+	// OSS (Aliyun)
+	OSSEndpoint        string
+	OSSAccessKeyID     string
+	OSSAccessKeySecret string
+	OSSBucketName      string
+
+	// Authentication
+	AuthMode      string // "self_validate" or "gateway"
+	NebulaAuthURL string // NebulaAuth服务地址（self_validate模式使用）
+	ServiceName   string // 服务名称（project-oa）
+	ServicePort   int    // 服务端口
+	ServiceHost   string // 云端服务器IP（生产环境用于服务注册）
 
 	// Server
 	ServerPort         int
@@ -52,10 +69,14 @@ func Load() *Config {
 		DBUser:     getEnv("DB_USER", "project_oa_user"),
 		DBPassword: getEnv("DB_PASSWORD", "project_oa_password"),
 		DBSSLMode:  getEnv("DB_SSL_MODE", "disable"),
+		DBType:     getEnv("DB_TYPE", "postgresql"), // "postgresql" or "rds"
 
 		// JWT
 		JWTSecret:      getEnv("JWT_SECRET", "your_jwt_secret_key_here"),
 		JWTExpireHours: getEnvAsInt("JWT_EXPIRE_HOURS", 24),
+
+		// Storage
+		StorageType: getEnv("STORAGE_TYPE", "minio"), // "minio" or "oss"
 
 		// MinIO
 		MinIOEndpoint:   getEnv("MINIO_ENDPOINT", "localhost:9000"),
@@ -63,6 +84,19 @@ func Load() *Config {
 		MinIOSecretKey:  getEnv("MINIO_SECRET_KEY", "minioadmin"),
 		MinIOBucketName: getEnv("MINIO_BUCKET_NAME", "project-files"),
 		MinIOUseSSL:     getEnvAsBool("MINIO_USE_SSL", false),
+
+		// OSS (Aliyun)
+		OSSEndpoint:        getEnv("OSS_ENDPOINT", ""),
+		OSSAccessKeyID:     getEnv("OSS_ACCESS_KEY_ID", ""),
+		OSSAccessKeySecret: getEnv("OSS_ACCESS_KEY_SECRET", ""),
+		OSSBucketName:      getEnv("OSS_BUCKET_NAME", ""),
+
+		// Authentication
+		AuthMode:      getEnv("AUTH_MODE", "self_validate"), // "self_validate" or "gateway"
+		NebulaAuthURL: getEnv("NEBULA_AUTH_URL", "http://localhost:8081"),
+		ServiceName:   getEnv("SERVICE_NAME", "project-oa"),
+		ServicePort:   getEnvAsInt("SERVICE_PORT", 8080),
+		ServiceHost:   getEnv("SERVICE_HOST", ""), // 生产环境需要设置
 
 		// Server
 		ServerPort:         getEnvAsInt("SERVER_PORT", 8080),

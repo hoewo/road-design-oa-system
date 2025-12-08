@@ -24,28 +24,26 @@ func NewClientService() *ClientService {
 }
 
 // CreateClientRequest represents the request to create a client
+// 注意：联系人信息已移除，通过ProjectContact实体管理
 type CreateClientRequest struct {
-	ClientName   string `json:"client_name" binding:"required"`
-	ContactName  string `json:"contact_name"`
-	ContactPhone string `json:"contact_phone"`
-	Email        string `json:"email"`
-	Address      string `json:"address"`
-	TaxNumber    string `json:"tax_number"`
-	BankAccount  string `json:"bank_account"`
-	BankName     string `json:"bank_name"`
+	ClientName  string `json:"client_name" binding:"required"`
+	Email       string `json:"email"`
+	Address     string `json:"address"`
+	TaxNumber   string `json:"tax_number"`
+	BankAccount string `json:"bank_account"`
+	BankName    string `json:"bank_name"`
 }
 
 // UpdateClientRequest represents the request to update a client
+// 注意：联系人信息已移除，通过ProjectContact实体管理
 type UpdateClientRequest struct {
-	ClientName   *string `json:"client_name"`
-	ContactName  *string `json:"contact_name"`
-	ContactPhone *string `json:"contact_phone"`
-	Email        *string `json:"email"`
-	Address      *string `json:"address"`
-	TaxNumber    *string `json:"tax_number"`
-	BankAccount  *string `json:"bank_account"`
-	BankName     *string `json:"bank_name"`
-	IsActive     *bool   `json:"is_active"`
+	ClientName  *string `json:"client_name"`
+	Email       *string `json:"email"`
+	Address     *string `json:"address"`
+	TaxNumber   *string `json:"tax_number"`
+	BankAccount *string `json:"bank_account"`
+	BankName    *string `json:"bank_name"`
+	IsActive    *bool   `json:"is_active"`
 }
 
 // ListClientsParams represents parameters for listing clients
@@ -65,15 +63,13 @@ func (s *ClientService) CreateClient(req *CreateClientRequest) (*models.Client, 
 
 	// Create client
 	client := &models.Client{
-		ClientName:   req.ClientName,
-		ContactName:  req.ContactName,
-		ContactPhone: req.ContactPhone,
-		Email:        req.Email,
-		Address:      req.Address,
-		TaxNumber:    req.TaxNumber,
-		BankAccount:  req.BankAccount,
-		BankName:     req.BankName,
-		IsActive:     true,
+		ClientName:  req.ClientName,
+		Email:       req.Email,
+		Address:     req.Address,
+		TaxNumber:   req.TaxNumber,
+		BankAccount: req.BankAccount,
+		BankName:    req.BankName,
+		IsActive:    true,
 	}
 
 	if err := s.db.Create(client).Error; err != nil {
@@ -89,10 +85,10 @@ func (s *ClientService) CreateClient(req *CreateClientRequest) (*models.Client, 
 	return client, nil
 }
 
-// GetClient retrieves a client by ID
-func (s *ClientService) GetClient(id uint) (*models.Client, error) {
+// GetClient retrieves a client by ID (UUID string)
+func (s *ClientService) GetClient(id string) (*models.Client, error) {
 	var client models.Client
-	if err := s.db.First(&client, id).Error; err != nil {
+	if err := s.db.First(&client, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("client not found")
 		}
@@ -112,7 +108,7 @@ func (s *ClientService) ListClients(params *ListClientsParams) ([]models.Client,
 	// Apply filters
 	if params.Keyword != "" {
 		keyword := fmt.Sprintf("%%%s%%", params.Keyword)
-		query = query.Where("client_name ILIKE ? OR contact_name ILIKE ? OR email ILIKE ?", keyword, keyword, keyword)
+		query = query.Where("client_name ILIKE ? OR email ILIKE ?", keyword, keyword)
 	}
 
 	// Count total
@@ -133,10 +129,10 @@ func (s *ClientService) ListClients(params *ListClientsParams) ([]models.Client,
 	return clients, total, nil
 }
 
-// UpdateClient updates an existing client
-func (s *ClientService) UpdateClient(id uint, req *UpdateClientRequest) (*models.Client, error) {
+// UpdateClient updates an existing client (UUID string)
+func (s *ClientService) UpdateClient(id string, req *UpdateClientRequest) (*models.Client, error) {
 	var client models.Client
-	if err := s.db.First(&client, id).Error; err != nil {
+	if err := s.db.First(&client, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("client not found")
 		}
@@ -155,12 +151,6 @@ func (s *ClientService) UpdateClient(id uint, req *UpdateClientRequest) (*models
 	updates := make(map[string]interface{})
 	if req.ClientName != nil {
 		updates["client_name"] = *req.ClientName
-	}
-	if req.ContactName != nil {
-		updates["contact_name"] = *req.ContactName
-	}
-	if req.ContactPhone != nil {
-		updates["contact_phone"] = *req.ContactPhone
 	}
 	if req.Email != nil {
 		updates["email"] = *req.Email
@@ -186,15 +176,15 @@ func (s *ClientService) UpdateClient(id uint, req *UpdateClientRequest) (*models
 	}
 
 	// Reload
-	s.db.First(&client, id)
+	s.db.First(&client, "id = ?", id)
 
 	return &client, nil
 }
 
-// DeleteClient deletes a client
-func (s *ClientService) DeleteClient(id uint) error {
+// DeleteClient deletes a client (UUID string)
+func (s *ClientService) DeleteClient(id string) error {
 	var client models.Client
-	if err := s.db.First(&client, id).Error; err != nil {
+	if err := s.db.First(&client, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("client not found")
 		}

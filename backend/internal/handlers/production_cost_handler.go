@@ -26,9 +26,9 @@ func NewProductionCostHandler(logger *zap.Logger) *ProductionCostHandler {
 }
 
 func (h *ProductionCostHandler) ListCosts(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -45,9 +45,9 @@ func (h *ProductionCostHandler) ListCosts(c *gin.Context) {
 }
 
 func (h *ProductionCostHandler) CreateCost(c *gin.Context) {
-	projectID, err := utils.ParseUintParam(c.Param("id"))
-	if err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid project ID", err)
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
@@ -56,14 +56,14 @@ func (h *ProductionCostHandler) CreateCost(c *gin.Context) {
 		Amount       float64 `json:"amount" binding:"required"`
 		Description  string  `json:"description"`
 		IncurredAt   *string `json:"incurred_at"`
-		CommissionID *uint   `json:"commission_id"`
+		CommissionID *string `json:"commission_id"` // UUID string
 	}
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	userID, ok := c.Get(string(middleware.UserIDKey))
+	userID, ok := middleware.GetUserID(c)
 	if !ok {
 		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
@@ -83,7 +83,7 @@ func (h *ProductionCostHandler) CreateCost(c *gin.Context) {
 		Description:  payload.Description,
 		IncurredAt:   incurredAt,
 		CommissionID: payload.CommissionID,
-		CreatedByID:  userID.(uint),
+		CreatedByID:  userID,
 	})
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "创建成本记录失败", err)

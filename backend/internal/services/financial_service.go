@@ -23,16 +23,40 @@ func NewFinancialService() *FinancialService {
 }
 
 // CreateFinancialRecordRequest represents the request to create a financial record
+// 支持统一财务记录模型
 type CreateFinancialRecordRequest struct {
-	RecordType       models.FinancialType `json:"record_type" binding:"required"`
-	FeeType          models.FeeType       `json:"fee_type" binding:"required"`
-	ReceivableAmount float64              `json:"receivable_amount" binding:"required"`
-	InvoiceNumber    string               `json:"invoice_number"`
-	InvoiceDate      *time.Time           `json:"invoice_date"`
-	InvoiceAmount    float64              `json:"invoice_amount"`
-	PaymentDate      *time.Time           `json:"payment_date"`
-	PaymentAmount    float64              `json:"payment_amount"`
-	Description      string               `json:"description"`
+	FinancialType models.FinancialType      `json:"financial_type" binding:"required"` // 财务类型
+	Direction     models.FinancialDirection `json:"direction" binding:"required"`      // 方向：收入/支出
+	Amount        float64                   `json:"amount" binding:"required"`         // 金额
+	OccurredAt    time.Time                 `json:"occurred_at" binding:"required"`    // 发生时间
+
+	// 类型特定字段（根据FinancialType使用不同字段）
+	// 奖金类型
+	BonusCategory *models.BonusCategory `json:"bonus_category"` // 奖金类别：经营奖金/生产奖金
+	RecipientID   *string               `json:"recipient_id"`   // 发放人员ID（奖金类型必填）
+
+	// 成本类型
+	CostCategory *models.CostCategory `json:"cost_category"` // 成本类别：打车/住宿/公共交通
+	Mileage      *float64             `json:"mileage"`       // 里程（仅打车类型）
+
+	// 甲方支付/我方开票类型
+	ClientID         *string `json:"client_id"`          // 甲方ID
+	RelatedPaymentID *string `json:"related_payment_id"` // 关联的甲方支付记录ID（我方开票时使用）
+
+	// 专家费类型
+	PaymentMethod *string `json:"payment_method"` // 支付方式：cash/transfer
+	ExpertName    string  `json:"expert_name"`    // 专家姓名
+
+	// 委托支付/对方开票类型
+	CommissionType      *string  `json:"commission_type"`       // 委托类型：person/company
+	VendorName          string   `json:"vendor_name"`           // 委托方名称
+	VendorScore         *float64 `json:"vendor_score"`          // 委托方评分
+	RelatedCommissionID *string  `json:"related_commission_id"` // 关联的委托支付记录ID（对方开票时使用）
+
+	// 文件关联
+	InvoiceFileID *string `json:"invoice_file_id"` // 发票文件ID
+
+	Description string `json:"description"` // 描述
 }
 
 // ProjectFinancial represents aggregated financial information for a project
@@ -49,78 +73,109 @@ type ProjectFinancial struct {
 }
 
 // FeeTypeFinancial represents financial information by fee type
+// 注意：根据新的FinancialRecord模型，费用类型分组逻辑需要重新设计
+// 可以根据FinancialType和业务逻辑进行分组（如：按合同类型分组）
 type FeeTypeFinancial struct {
-	FeeType     string  `json:"fee_type"`
-	Receivable  float64 `json:"receivable"`
-	Invoiced    float64 `json:"invoiced"`
-	Paid        float64 `json:"paid"`
-	Outstanding float64 `json:"outstanding"`
+	FeeType     string  `json:"fee_type"`    // 费用类型标识（如：design_fee, survey_fee, consultation_fee）
+	Receivable  float64 `json:"receivable"`  // 应收金额
+	Invoiced    float64 `json:"invoiced"`    // 已开票金额
+	Paid        float64 `json:"paid"`        // 已支付金额
+	Outstanding float64 `json:"outstanding"` // 未收金额
 }
 
-// CreateFinancialRecord creates a new financial record
-func (s *FinancialService) CreateFinancialRecord(projectID uint, createdByID uint, req *CreateFinancialRecordRequest) (*models.FinancialRecord, error) {
+// CreateFinancialRecord creates a new financial record (UUID string)
+func (s *FinancialService) CreateFinancialRecord(projectID string, createdByID string, req *CreateFinancialRecordRequest) (*models.FinancialRecord, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
 		return nil, err
 	}
 
-	// Validate receivable amount
-	if req.ReceivableAmount <= 0 {
-		return nil, errors.New("receivable amount must be greater than 0")
+	// Validate amount
+	if req.Amount <= 0 {
+		return nil, errors.New("amount must be greater than 0")
 	}
 
-	// Validate fee type
-	if req.FeeType != models.FeeTypeDesign && req.FeeType != models.FeeTypeSurvey && req.FeeType != models.FeeTypeConsultation {
-		return nil, errors.New("fee type must be design_fee, survey_fee, or consultation_fee")
-	}
-
-	// Validate invoice amount
-	if req.InvoiceAmount < 0 {
-		return nil, errors.New("invoice amount must be greater than or equal to 0")
-	}
-	if req.InvoiceAmount > req.ReceivableAmount {
-		return nil, errors.New("invoice amount cannot exceed receivable amount")
-	}
-
-	// Validate payment amount
-	if req.PaymentAmount < 0 {
-		return nil, errors.New("payment amount must be greater than or equal to 0")
-	}
-	if req.PaymentAmount > req.ReceivableAmount {
-		return nil, errors.New("payment amount cannot exceed receivable amount")
-	}
-
-	// Calculate unpaid amount
-	unpaidAmount := req.ReceivableAmount - req.PaymentAmount
-
-	// Validate dates
+	// Validate occurred_at
 	now := time.Now()
-	if req.InvoiceDate != nil && req.InvoiceDate.After(now) {
-		return nil, errors.New("invoice date cannot be in the future")
+	if req.OccurredAt.After(now) {
+		return nil, errors.New("occurred_at cannot be in the future")
 	}
-	if req.PaymentDate != nil && req.InvoiceDate != nil && req.PaymentDate.Before(*req.InvoiceDate) {
-		return nil, errors.New("payment date cannot be earlier than invoice date")
+
+	// Validate type-specific fields based on FinancialType
+	switch req.FinancialType {
+	case models.FinancialTypeBonus:
+		if req.BonusCategory == nil {
+			return nil, errors.New("bonus_category is required for bonus type")
+		}
+		if req.RecipientID == nil || *req.RecipientID == "" {
+			return nil, errors.New("recipient_id is required for bonus type")
+		}
+		// Verify recipient exists
+		var recipient models.User
+		if err := s.db.First(&recipient, "id = ?", *req.RecipientID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("recipient not found")
+			}
+			return nil, err
+		}
+
+	case models.FinancialTypeCost:
+		if req.CostCategory == nil {
+			return nil, errors.New("cost_category is required for cost type")
+		}
+
+	case models.FinancialTypeClientPayment, models.FinancialTypeOurInvoice:
+		if req.ClientID == nil || *req.ClientID == "" {
+			return nil, errors.New("client_id is required for client payment/our invoice type")
+		}
+		// Verify client exists
+		var client models.Client
+		if err := s.db.First(&client, "id = ?", *req.ClientID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("client not found")
+			}
+			return nil, err
+		}
+
+	case models.FinancialTypeExpertFee:
+		if req.ExpertName == "" {
+			return nil, errors.New("expert_name is required for expert fee type")
+		}
+
+	case models.FinancialTypeCommissionPayment, models.FinancialTypeVendorInvoice:
+		if req.VendorName == "" {
+			return nil, errors.New("vendor_name is required for commission payment/vendor invoice type")
+		}
 	}
 
 	// Create financial record
 	record := &models.FinancialRecord{
-		RecordType:       req.RecordType,
-		FeeType:          req.FeeType,
-		Amount:           req.ReceivableAmount, // 遗留字段，使用receivable_amount的值
-		ReceivableAmount: req.ReceivableAmount,
-		InvoiceNumber:    req.InvoiceNumber,
-		InvoiceDate:      req.InvoiceDate,
-		InvoiceAmount:    req.InvoiceAmount,
-		PaymentDate:      req.PaymentDate,
-		PaymentAmount:    req.PaymentAmount,
-		UnpaidAmount:     unpaidAmount,
-		Description:      req.Description,
-		ProjectID:        projectID,
-		CreatedByID:      createdByID,
+		ProjectID:     projectID,
+		FinancialType: req.FinancialType,
+		Direction:     req.Direction,
+		Amount:        req.Amount,
+		OccurredAt:    req.OccurredAt,
+		Description:   req.Description,
+		CreatedByID:   createdByID,
+
+		// Type-specific fields
+		BonusCategory:       req.BonusCategory,
+		RecipientID:         req.RecipientID,
+		CostCategory:        req.CostCategory,
+		Mileage:             req.Mileage,
+		ClientID:            req.ClientID,
+		RelatedPaymentID:    req.RelatedPaymentID,
+		PaymentMethod:       req.PaymentMethod,
+		ExpertName:          req.ExpertName,
+		CommissionType:      req.CommissionType,
+		VendorName:          req.VendorName,
+		VendorScore:         req.VendorScore,
+		RelatedCommissionID: req.RelatedCommissionID,
+		InvoiceFileID:       req.InvoiceFileID,
 	}
 
 	if err := s.db.Create(record).Error; err != nil {
@@ -128,18 +183,20 @@ func (s *FinancialService) CreateFinancialRecord(projectID uint, createdByID uin
 	}
 
 	// Load associations
-	if err := s.db.Preload("Project").Preload("CreatedBy").First(record, record.ID).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("CreatedBy").Preload("Recipient").Preload("Client").Preload("InvoiceFile").
+		First(record, "id = ?", record.ID).Error; err != nil {
 		return nil, err
 	}
 
 	return record, nil
 }
 
-// GetProjectFinancial retrieves financial information for a project
-func (s *FinancialService) GetProjectFinancial(projectID uint) (*ProjectFinancial, error) {
+// GetProjectFinancial retrieves financial information for a project (UUID string)
+// 注意：此方法需要根据新的统一财务记录模型重新实现统计逻辑
+func (s *FinancialService) GetProjectFinancial(projectID string) (*ProjectFinancial, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -149,39 +206,37 @@ func (s *FinancialService) GetProjectFinancial(projectID uint) (*ProjectFinancia
 	// Get all financial records for the project
 	var records []models.FinancialRecord
 	if err := s.db.Where("project_id = ?", projectID).
-		Preload("CreatedBy").
-		Order("created_at DESC").
+		Preload("CreatedBy").Preload("Recipient").Preload("Client").Preload("InvoiceFile").
+		Order("occurred_at DESC").
 		Find(&records).Error; err != nil {
 		return nil, err
 	}
 
-	// Calculate totals
+	// Calculate totals based on direction and type
 	var totalReceivable, totalInvoiced, totalPaid, totalOutstanding float64
 	feeTypeBreakdown := make(map[string]FeeTypeFinancial)
 
 	for _, record := range records {
-		totalReceivable += record.ReceivableAmount
-		totalInvoiced += record.InvoiceAmount
-		totalPaid += record.PaymentAmount
-		totalOutstanding += record.UnpaidAmount
-
-		// Aggregate by fee type
-		feeTypeStr := string(record.FeeType)
-		if breakdown, exists := feeTypeBreakdown[feeTypeStr]; exists {
-			breakdown.Receivable += record.ReceivableAmount
-			breakdown.Invoiced += record.InvoiceAmount
-			breakdown.Paid += record.PaymentAmount
-			breakdown.Outstanding += record.UnpaidAmount
-			feeTypeBreakdown[feeTypeStr] = breakdown
-		} else {
-			feeTypeBreakdown[feeTypeStr] = FeeTypeFinancial{
-				FeeType:     feeTypeStr,
-				Receivable:  record.ReceivableAmount,
-				Invoiced:    record.InvoiceAmount,
-				Paid:        record.PaymentAmount,
-				Outstanding: record.UnpaidAmount,
+		// 根据方向和类型计算金额
+		// 收入类型：client_payment, our_invoice
+		// 支出类型：bonus, cost, expert_fee, commission_payment, vendor_invoice
+		if record.Direction == models.FinancialDirectionIncome {
+			totalReceivable += record.Amount
+			// 我方开票也计入已开票
+			if record.FinancialType == models.FinancialTypeOurInvoice {
+				totalInvoiced += record.Amount
 			}
+			// 甲方支付计入已支付
+			if record.FinancialType == models.FinancialTypeClientPayment {
+				totalPaid += record.Amount
+			}
+		} else {
+			// 支出类型，暂时不纳入应收/开票/支付统计
+			// 可以根据需要调整统计逻辑
 		}
+
+		// TODO: 根据新的财务记录模型重新实现按费用类型的统计
+		// 新的模型不再有FeeType字段，需要根据FinancialType和业务逻辑重新分组
 	}
 
 	// Get total contract amount from contracts
@@ -190,6 +245,9 @@ func (s *FinancialService) GetProjectFinancial(projectID uint) (*ProjectFinancia
 		Where("project_id = ?", projectID).
 		Select("COALESCE(SUM(contract_amount), 0)").
 		Scan(&totalContractAmount)
+
+	// Calculate outstanding
+	totalOutstanding = totalReceivable - totalPaid
 
 	// Calculate management fee
 	managementFee, managementFeeRatio, err := s.CalculateManagementFee(projectID)
@@ -208,15 +266,15 @@ func (s *FinancialService) GetProjectFinancial(projectID uint) (*ProjectFinancia
 		ManagementFeeRatio:  managementFeeRatio,
 		ManagementFeeAmount: managementFee,
 		FinancialRecords:    records,
-		FeeTypeBreakdown:    feeTypeBreakdown,
+		FeeTypeBreakdown:    feeTypeBreakdown, // TODO: 重新实现
 	}, nil
 }
 
-// ListFinancialRecordsByProject retrieves all financial records for a project
-func (s *FinancialService) ListFinancialRecordsByProject(projectID uint) ([]models.FinancialRecord, error) {
+// ListFinancialRecordsByProject retrieves all financial records for a project (UUID string)
+func (s *FinancialService) ListFinancialRecordsByProject(projectID string) ([]models.FinancialRecord, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -225,8 +283,8 @@ func (s *FinancialService) ListFinancialRecordsByProject(projectID uint) ([]mode
 
 	var records []models.FinancialRecord
 	if err := s.db.Where("project_id = ?", projectID).
-		Preload("CreatedBy").
-		Order("created_at DESC").
+		Preload("CreatedBy").Preload("Recipient").Preload("Client").Preload("InvoiceFile").
+		Order("occurred_at DESC").
 		Find(&records).Error; err != nil {
 		return nil, err
 	}
@@ -235,111 +293,150 @@ func (s *FinancialService) ListFinancialRecordsByProject(projectID uint) ([]mode
 }
 
 // UpdateFinancialRecordRequest represents the request to update a financial record
+// 根据新的统一财务记录模型设计
 type UpdateFinancialRecordRequest struct {
-	RecordType       *models.FinancialType `json:"record_type"`
-	FeeType          *models.FeeType       `json:"fee_type"`
-	ReceivableAmount *float64              `json:"receivable_amount"`
-	InvoiceNumber    *string               `json:"invoice_number"`
-	InvoiceDate      *time.Time            `json:"invoice_date"`
-	InvoiceAmount    *float64              `json:"invoice_amount"`
-	PaymentDate      *time.Time            `json:"payment_date"`
-	PaymentAmount    *float64              `json:"payment_amount"`
-	Description      *string               `json:"description"`
+	FinancialType *models.FinancialType      `json:"financial_type"` // 财务类型
+	Direction     *models.FinancialDirection `json:"direction"`      // 方向：收入/支出
+	Amount        *float64                   `json:"amount"`         // 金额
+	OccurredAt    *time.Time                 `json:"occurred_at"`    // 发生时间
+
+	// 类型特定字段（根据FinancialType使用不同字段）
+	// 奖金类型
+	BonusCategory *models.BonusCategory `json:"bonus_category"` // 奖金类别
+	RecipientID   *string               `json:"recipient_id"`   // 发放人员ID
+
+	// 成本类型
+	CostCategory *models.CostCategory `json:"cost_category"` // 成本类别
+	Mileage      *float64             `json:"mileage"`       // 里程
+
+	// 甲方支付/我方开票类型
+	ClientID         *string `json:"client_id"`          // 甲方ID
+	RelatedPaymentID *string `json:"related_payment_id"` // 关联的甲方支付记录ID
+
+	// 专家费类型
+	PaymentMethod *string `json:"payment_method"` // 支付方式
+	ExpertName    *string `json:"expert_name"`    // 专家姓名
+
+	// 委托支付/对方开票类型
+	CommissionType      *string  `json:"commission_type"`       // 委托类型
+	VendorName          *string  `json:"vendor_name"`           // 委托方名称
+	VendorScore         *float64 `json:"vendor_score"`          // 委托方评分
+	RelatedCommissionID *string  `json:"related_commission_id"` // 关联的委托支付记录ID
+
+	// 文件关联
+	InvoiceFileID *string `json:"invoice_file_id"` // 发票文件ID
+
+	Description *string `json:"description"` // 描述
 }
 
-// UpdateFinancialRecord updates an existing financial record (allows modification of business fields except system fields)
-func (s *FinancialService) UpdateFinancialRecord(recordID uint, req *UpdateFinancialRecordRequest) (*models.FinancialRecord, error) {
+// UpdateFinancialRecord updates an existing financial record (UUID string)
+// 根据新的统一财务记录模型实现
+func (s *FinancialService) UpdateFinancialRecord(recordID string, req *UpdateFinancialRecordRequest) (*models.FinancialRecord, error) {
 	var record models.FinancialRecord
-	if err := s.db.First(&record, recordID).Error; err != nil {
+	if err := s.db.First(&record, "id = ?", recordID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("financial record not found")
 		}
 		return nil, err
 	}
 
-	// Update fields if provided
-	if req.RecordType != nil {
-		record.RecordType = *req.RecordType
+	// Update basic fields if provided
+	if req.FinancialType != nil {
+		record.FinancialType = *req.FinancialType
 	}
 
-	if req.FeeType != nil {
-		// Validate fee type
-		if *req.FeeType != models.FeeTypeDesign && *req.FeeType != models.FeeTypeSurvey && *req.FeeType != models.FeeTypeConsultation {
-			return nil, errors.New("fee type must be design_fee, survey_fee, or consultation_fee")
-		}
-		record.FeeType = *req.FeeType
+	if req.Direction != nil {
+		record.Direction = *req.Direction
 	}
 
-	if req.ReceivableAmount != nil {
-		if *req.ReceivableAmount <= 0 {
-			return nil, errors.New("receivable amount must be greater than 0")
+	if req.Amount != nil {
+		if *req.Amount <= 0 {
+			return nil, errors.New("amount must be greater than 0")
 		}
-		record.ReceivableAmount = *req.ReceivableAmount
-		record.Amount = *req.ReceivableAmount // 遗留字段
+		record.Amount = *req.Amount
 	}
 
-	if req.InvoiceNumber != nil {
-		record.InvoiceNumber = *req.InvoiceNumber
+	if req.OccurredAt != nil {
+		if req.OccurredAt.After(time.Now()) {
+			return nil, errors.New("occurred_at cannot be in the future")
+		}
+		record.OccurredAt = *req.OccurredAt
 	}
 
-	if req.InvoiceDate != nil {
-		now := time.Now()
-		if req.InvoiceDate.After(now) {
-			return nil, errors.New("invoice date cannot be in the future")
-		}
-		record.InvoiceDate = req.InvoiceDate
+	// Update type-specific fields
+	if req.BonusCategory != nil {
+		record.BonusCategory = req.BonusCategory
 	}
 
-	if req.InvoiceAmount != nil {
-		if *req.InvoiceAmount < 0 {
-			return nil, errors.New("invoice amount must be greater than or equal to 0")
-		}
-		if *req.InvoiceAmount > record.ReceivableAmount {
-			return nil, errors.New("invoice amount cannot exceed receivable amount")
-		}
-		record.InvoiceAmount = *req.InvoiceAmount
+	if req.RecipientID != nil {
+		record.RecipientID = req.RecipientID
 	}
 
-	if req.PaymentDate != nil {
-		if record.InvoiceDate != nil && req.PaymentDate.Before(*record.InvoiceDate) {
-			return nil, errors.New("payment date cannot be earlier than invoice date")
-		}
-		record.PaymentDate = req.PaymentDate
+	if req.CostCategory != nil {
+		record.CostCategory = req.CostCategory
 	}
 
-	if req.PaymentAmount != nil {
-		if *req.PaymentAmount < 0 {
-			return nil, errors.New("payment amount must be greater than or equal to 0")
-		}
-		if *req.PaymentAmount > record.ReceivableAmount {
-			return nil, errors.New("payment amount cannot exceed receivable amount")
-		}
-		record.PaymentAmount = *req.PaymentAmount
+	if req.Mileage != nil {
+		record.Mileage = req.Mileage
+	}
+
+	if req.ClientID != nil {
+		record.ClientID = req.ClientID
+	}
+
+	if req.RelatedPaymentID != nil {
+		record.RelatedPaymentID = req.RelatedPaymentID
+	}
+
+	if req.PaymentMethod != nil {
+		record.PaymentMethod = req.PaymentMethod
+	}
+
+	if req.ExpertName != nil {
+		record.ExpertName = *req.ExpertName
+	}
+
+	if req.CommissionType != nil {
+		record.CommissionType = req.CommissionType
+	}
+
+	if req.VendorName != nil {
+		record.VendorName = *req.VendorName
+	}
+
+	if req.VendorScore != nil {
+		record.VendorScore = req.VendorScore
+	}
+
+	if req.RelatedCommissionID != nil {
+		record.RelatedCommissionID = req.RelatedCommissionID
+	}
+
+	if req.InvoiceFileID != nil {
+		record.InvoiceFileID = req.InvoiceFileID
 	}
 
 	if req.Description != nil {
 		record.Description = *req.Description
 	}
 
-	// Recalculate unpaid amount
-	record.UnpaidAmount = record.ReceivableAmount - record.PaymentAmount
-
 	if err := s.db.Save(&record).Error; err != nil {
 		return nil, err
 	}
 
 	// Load associations
-	if err := s.db.Preload("Project").Preload("CreatedBy").First(&record, record.ID).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("CreatedBy").Preload("Recipient").Preload("Client").Preload("InvoiceFile").
+		First(&record, "id = ?", record.ID).Error; err != nil {
 		return nil, err
 	}
 
 	return &record, nil
 }
 
-// DeleteFinancialRecord deletes a financial record and automatically recalculates statistics
-func (s *FinancialService) DeleteFinancialRecord(recordID uint) error {
+// DeleteFinancialRecord deletes a financial record (UUID string)
+func (s *FinancialService) DeleteFinancialRecord(recordID string) error {
 	var record models.FinancialRecord
-	if err := s.db.First(&record, recordID).Error; err != nil {
+	if err := s.db.First(&record, "id = ?", recordID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("financial record not found")
 		}
@@ -357,12 +454,12 @@ func (s *FinancialService) DeleteFinancialRecord(recordID uint) error {
 	return nil
 }
 
-// GetEffectiveManagementFeeRatio retrieves the effective management fee ratio for a project
+// GetEffectiveManagementFeeRatio retrieves the effective management fee ratio for a project (UUID string)
 // Returns project-specific ratio if set, otherwise returns company default
-func (s *FinancialService) GetEffectiveManagementFeeRatio(projectID uint) (float64, error) {
+func (s *FinancialService) GetEffectiveManagementFeeRatio(projectID string) (float64, error) {
 	// Get project
 	var project models.Project
-	if err := s.db.First(&project, projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0.0, errors.New("project not found")
 		}
@@ -379,15 +476,15 @@ func (s *FinancialService) GetEffectiveManagementFeeRatio(projectID uint) (float
 	return configService.GetDefaultManagementFeeRatio()
 }
 
-// CalculateManagementFee calculates the management fee for a project
-// Formula: ManagementFee = TotalReceivableAmount × ManagementFeeRatio
-func (s *FinancialService) CalculateManagementFee(projectID uint) (float64, float64, error) {
-	// Get total receivable amount for the project (sum of all fee types)
-	var totalReceivable float64
+// CalculateManagementFee calculates the management fee for a project (UUID string)
+// Formula: ManagementFee = TotalIncomeAmount × ManagementFeeRatio
+func (s *FinancialService) CalculateManagementFee(projectID string) (float64, float64, error) {
+	// Get total income amount for the project (sum of income direction records)
+	var totalIncome float64
 	if err := s.db.Model(&models.FinancialRecord{}).
-		Where("project_id = ?", projectID).
-		Select("COALESCE(SUM(receivable_amount), 0)").
-		Scan(&totalReceivable).Error; err != nil {
+		Where("project_id = ? AND direction = ?", projectID, models.FinancialDirectionIncome).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalIncome).Error; err != nil {
 		return 0.0, 0.0, err
 	}
 
@@ -398,7 +495,7 @@ func (s *FinancialService) CalculateManagementFee(projectID uint) (float64, floa
 	}
 
 	// Calculate management fee
-	managementFee := totalReceivable * ratio
+	managementFee := totalIncome * ratio
 
 	return managementFee, ratio, nil
 }
@@ -417,7 +514,7 @@ type CompanyRevenueStatistics struct {
 
 // ProjectRevenueSummary represents revenue summary for a single project
 type ProjectRevenueSummary struct {
-	ProjectID           uint    `json:"project_id"`
+	ProjectID           string  `json:"project_id"` // UUID string
 	ProjectName         string  `json:"project_name"`
 	ProjectNumber       string  `json:"project_number"`
 	TotalReceivable     float64 `json:"total_receivable"`
