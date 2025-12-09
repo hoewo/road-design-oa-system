@@ -1,0 +1,97 @@
+description = "Create a new feature branch and directory structure from a natural language feature description."
+
+prompt = """
+---
+description: Create a new feature branch and directory structure from a natural language feature description.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Outline
+
+The text the user typed after `/speckit.feature` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{{args}}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+
+Given that feature description, do this:
+
+0. **Parse user input for optional base branch**:
+   - Check if the user input contains a base branch specification. Parse in this priority order:
+     1. **Explicit flag** (highest priority): Look for `--base-branch <branch>` or `-base-branch <branch>`
+        - Extract the branch name immediately following the flag
+        - Remove the flag and branch name from the feature description
+     2. **Natural language patterns**: Look for `from <branch>`, `based on <branch>`, or `on <branch>`
+        - Extract the branch name (single word, typically the branch name)
+        - Remove the pattern and branch name from the feature description
+        - Note: If the branch name might be multiple words, take only the first word after the pattern
+   - **Important parsing rules**:
+     - If multiple patterns are found, use the explicit flag pattern (priority 1)
+     - Branch names are typically single words (e.g., "main", "develop", "master")
+     - Remove the entire pattern including the branch name from the description
+     - Preserve the rest of the feature description intact
+   - Examples:
+     - "add user authentication --base-branch main" → base branch: "main", description: "add user authentication"
+     - "add user authentication from develop" → base branch: "develop", description: "add user authentication"
+     - "add user authentication based on main" → base branch: "main", description: "add user authentication"
+     - "add user authentication on main" → base branch: "main", description: "add user authentication"
+     - "add user authentication" → base branch: (none, use current branch), description: "add user authentication"
+     - "add user authentication --base-branch main from develop" → base branch: "main" (explicit flag takes priority), description: "add user authentication"
+   - Store the extracted base branch (if any) for use in step 2.d
+
+1. **Generate a concise short name** (2-4 words) for the branch:
+   - Analyze the feature description and extract the most meaningful keywords
+   - Create a 2-4 word short name that captures the essence of the feature
+   - Use action-noun format when possible (e.g., "add-user-auth", "fix-payment-bug")
+   - Preserve technical terms and acronyms (OAuth2, API, JWT, etc.)
+   - Keep it concise but descriptive enough to understand the feature at a glance
+   - Examples:
+     - "I want to add user authentication" → "user-auth"
+     - "Implement OAuth2 integration for the API" → "oauth2-api-integration"
+     - "Create a dashboard for analytics" → "analytics-dashboard"
+     - "Fix payment processing timeout bug" → "fix-payment-timeout"
+
+2. **Check for existing branches before creating new one**:
+   
+   a. First, fetch all remote branches to ensure we have the latest information:
+      ```bash
+      git fetch --all --prune
+      ```
+   
+   b. Find the highest feature number across all sources for the short-name:
+      - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
+      - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
+      - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
+   
+   c. Determine the next available number:
+      - Extract all numbers from all three sources
+      - Find the highest number N
+      - Use N+1 for the new branch number
+   
+   d. Run the script `.specify/scripts/bash/create-new-feature.sh --json "{{args}}"` with the calculated number and short-name:
+      - Pass `--number N+1` and `--short-name "your-short-name"` along with the cleaned feature description (without base branch specification)
+      - If a base branch was extracted in step 0, pass `--base-branch <branch>` (Bash) or `-BaseBranch <branch>` (PowerShell) to specify the base branch to create from. If not specified, the new branch will be created from the current branch.
+      - Bash example: `.specify/scripts/bash/create-new-feature.sh --json "{{args}}" --json --number 5 --short-name "user-auth" "Add user authentication"`
+      - Bash example with base branch: `.specify/scripts/bash/create-new-feature.sh --json "{{args}}" --json --number 5 --short-name "user-auth" --base-branch main "Add user authentication"`
+      - PowerShell example: `.specify/scripts/bash/create-new-feature.sh --json "{{args}}" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+      - PowerShell example with base branch: `.specify/scripts/bash/create-new-feature.sh --json "{{args}}" -Json -Number 5 -ShortName "user-auth" -BaseBranch main "Add user authentication"`
+   
+   **IMPORTANT**:
+   - Check all three sources (remote branches, local branches, specs directories) to find the highest number
+   - Only match branches/directories with the exact short-name pattern
+   - If no existing branches/directories found with this short-name, start with number 1
+   - You must only ever run this script once per feature
+   - The JSON is provided in the terminal as output - always refer to it to get the actual content you're looking for
+   - The JSON output will contain BRANCH_NAME, FEATURE_DIR, and FEATURE_NUM
+   - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\\''m Groot' (or double-quote if possible: "I'm Groot")
+
+3. **Report completion**: After the script runs successfully, report:
+   - Branch name created
+   - Feature directory path
+   - Next step: Run `/speckit.specify` to create the feature specification
+
+**NOTE:** This command only creates the branch and directory structure. It does NOT create the spec.md file. The input for this command should be a brief iteration expectation (e.g., "add user authentication"). When you run `/speckit.specify`, you will provide a detailed requirement specification that expands on this brief description.
+"""

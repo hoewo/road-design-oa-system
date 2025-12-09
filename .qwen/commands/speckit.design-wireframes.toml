@@ -1,0 +1,96 @@
+description = "Create or update wireframe documentation for user interfaces."
+
+prompt = """
+---
+description: Create or update wireframe documentation for user interfaces.
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Outline
+
+1. **Setup**: Run `.specify/scripts/bash/setup-wireframes.sh --json` from repo root and parse JSON for WIREFRAMES_DIR, OVERVIEW_FILE, FEATURE_SPEC, BRANCH. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\\''m Groot' (or double-quote if possible: "I'm Groot").
+
+2. **Load context**: Read FEATURE_SPEC to extract product name and feature context. Load wireframe templates from design-wireframes-template.md.
+
+3. **Execute wireframe workflow**:
+   - If `overview.md` doesn't exist, create it from template
+   - Extract product name from FEATURE_SPEC (from "Feature Specification: [FEATURE NAME]")
+   - Fill wireframe overview template with product context
+   - If user provided specific screen names in $ARGUMENTS, create individual screen wireframe files
+   - Update overview.md to reference created screen files
+
+4. **Stop and report**: Command ends after creating/updating wireframe files. Report branch, WIREFRAMES_DIR path, and generated files.
+
+## Wireframe Template Structure
+
+From `.specify/templates/design-wireframes-template.md`, extract sections:
+
+### Section 1: Wireframe Overview Template (`wireframes/overview.md`)
+
+The overview template includes:
+- Document description with product name placeholder
+- Interface list (to be filled based on spec.md user stories)
+- Key user flows (extracted from spec.md)
+- Navigation structure (iOS/macOS)
+- State coverage checklist
+
+### Section 2: Individual Screen Wireframe Template (`wireframes/{screen-name}.md`)
+
+The screen template includes:
+- Screen information (name, View name, platform, navigation level)
+- User flow description
+- Screen states (loading, error, empty, success, etc.)
+- Data requirements (input/output)
+- Performance requirements
+- Accessibility support
+- Implementation notes
+
+## Execution Steps
+
+1. **Parse setup script output**:
+   - Extract WIREFRAMES_DIR, OVERVIEW_FILE paths
+   - Extract FEATURE_SPEC path for context
+
+2. **Read feature specification**:
+   - Extract feature name from spec.md header
+   - Extract user stories to identify screens
+   - Extract user flows for navigation structure
+
+3. **Create/update overview.md**:
+   - If file doesn't exist, create from template (section 1 of design-wireframes-template.md)
+   - Replace `{产品名称}` with actual product/feature name
+   - Fill interface list based on user stories from spec.md
+   - Fill key user flows from spec.md user scenarios
+   - Add navigation structure based on platform (iOS/macOS)
+
+4. **Create individual screen wireframes** (if user specified screens in $ARGUMENTS):
+   - For each screen name provided:
+     - Create `{screen-name}.md` from template (section 2 of design-wireframes-template.md)
+     - Fill screen information based on spec.md context
+     - Add to overview.md interface list
+
+5. **Validate completeness**:
+   - Check that overview.md exists
+   - Verify all required sections are present
+   - Ensure state coverage checklist is included
+
+## Key Rules
+
+- Use absolute paths for all file operations
+- Product name comes from FEATURE_SPEC header: "Feature Specification: [FEATURE NAME]"
+- Screen names should follow View naming convention (PascalCase)
+- All wireframes must cover loading, error, empty, and success states
+- Wireframes are located at `specs/main/design/wireframes/` (shared across all features)
+
+## Output Files
+
+- `specs/main/design/wireframes/overview.md` - Wireframe overview (required)
+- `specs/main/design/wireframes/{screen-name}.md` - Individual screen wireframes (as needed)
+"""
