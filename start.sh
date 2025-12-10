@@ -97,9 +97,9 @@ start_postgresql() {
     fi
 
     # 检查端口是否被占用
-    if check_port 5432; then
-        echo -e "${YELLOW}  警告: 端口 5432 已被占用，PostgreSQL 可能已在运行${NC}"
-        local port_pid=$(find_pid_by_port 5432)
+    if check_port 5433; then
+        echo -e "${YELLOW}  警告: 端口 5433 已被占用，PostgreSQL 可能已在运行${NC}"
+        local port_pid=$(find_pid_by_port 5433)
         if [ -n "${port_pid}" ]; then
             echo -e "${YELLOW}  检测到进程 (PID: ${port_pid})，将使用现有服务${NC}"
             echo ${port_pid} > "${PID_DIR}/postgresql.pid"
@@ -130,6 +130,14 @@ start_postgresql() {
 
         echo -e "${GREEN}  ✓ PostgreSQL 数据目录初始化成功${NC}"
 
+        # 配置端口为 5433
+        if [ -f "${POSTGRESQL_DATA_DIR}/postgresql.conf" ]; then
+            # 更新端口配置
+            sed -i '' "s/^#port = .*/port = 5433/" "${POSTGRESQL_DATA_DIR}/postgresql.conf" 2>/dev/null || \
+            sed -i '' "s/^port = .*/port = 5433/" "${POSTGRESQL_DATA_DIR}/postgresql.conf" 2>/dev/null || \
+            echo "port = 5433" >> "${POSTGRESQL_DATA_DIR}/postgresql.conf"
+        fi
+
         # 配置允许本地连接（无密码）
         cat >> "${POSTGRESQL_DATA_DIR}/pg_hba.conf" << EOF
 
@@ -144,8 +152,10 @@ EOF
     echo -e "${BLUE}  启动 PostgreSQL 服务器...${NC}"
 
     # 使用 /tmp 作为 socket 目录，避免路径过长的问题
+    # 指定端口为 5433
     nohup postgres -D "${POSTGRESQL_DATA_DIR}" \
         -k /tmp \
+        -p 5433 \
         > "${PROJECT_ROOT}/postgresql.log" 2>&1 &
 
     local pg_pid=$!
@@ -153,7 +163,7 @@ EOF
     # 等待 PostgreSQL 启动
     echo -e "${BLUE}  等待 PostgreSQL 启动...${NC}"
     local count=0
-    while ! check_port 5432 && [ ${count} -lt 10 ]; do
+    while ! check_port 5433 && [ ${count} -lt 10 ]; do
         sleep 1
         count=$((count + 1))
     done
@@ -161,7 +171,7 @@ EOF
     # 验证进程是否存在
     if [ -z "${pg_pid}" ] || ! ps -p ${pg_pid} > /dev/null 2>&1; then
         # 尝试通过端口查找
-        pg_pid=$(find_pid_by_port 5432)
+        pg_pid=$(find_pid_by_port 5433)
     fi
 
     if [ -z "${pg_pid}" ] || ! ps -p ${pg_pid} > /dev/null 2>&1; then
@@ -175,9 +185,9 @@ EOF
     echo ${pg_pid} > "${PID_DIR}/postgresql.pid"
 
     # 验证启动成功
-    if check_port 5432 && ps -p ${pg_pid} > /dev/null 2>&1; then
+    if check_port 5433 && ps -p ${pg_pid} > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ PostgreSQL 启动成功 (PID: ${pg_pid})${NC}"
-        echo -e "${GREEN}  ✓ PostgreSQL 地址: localhost:5432${NC}"
+        echo -e "${GREEN}  ✓ PostgreSQL 地址: localhost:5433${NC}"
         echo -e "    数据目录: ${POSTGRESQL_DATA_DIR}"
         echo -e "    日志文件: ${PROJECT_ROOT}/postgresql.log"
         return 0
@@ -271,6 +281,8 @@ init_database() {
     local db_name="project_oa"
     local db_user="project_oa_user"
     local db_password="project_oa_password"
+    local db_host="localhost"
+    local db_port="5433"
 
     if [ -f "${BACKEND_DIR}/.env" ]; then
         # 从 .env 文件读取配置
@@ -278,12 +290,15 @@ init_database() {
         db_name="${DB_NAME:-${db_name}}"
         db_user="${DB_USER:-${db_user}}"
         db_password="${DB_PASSWORD:-${db_password}}"
+        db_host="${DB_HOST:-${db_host}}"
+        db_port="${DB_PORT:-${db_port}}"
     fi
 
     # 检查数据库初始化脚本是否存在
     if [ -f "${SCRIPTS_DIR}/init-db.sh" ]; then
         echo -e "${BLUE}  运行数据库初始化脚本...${NC}"
         DB_NAME="${db_name}" DB_USER="${db_user}" DB_PASSWORD="${db_password}" \
+            DB_HOST="${db_host}" DB_PORT="${db_port}" \
             "${SCRIPTS_DIR}/init-db.sh"
         return $?
     else
@@ -302,17 +317,17 @@ start_backend() {
         return 0
     fi
 
-    # 检查端口 8080 是否被占用
-    if check_port 8080; then
-        local port_pid=$(find_pid_by_port 8080)
+    # 检查端口 8082 是否被占用
+    if check_port 8082; then
+        local port_pid=$(find_pid_by_port 8082)
         if [ -n "${port_pid}" ]; then
-            echo -e "${YELLOW}  警告: 端口 8080 已被进程 ${port_pid} 占用${NC}"
+            echo -e "${YELLOW}  警告: 端口 8082 已被进程 ${port_pid} 占用${NC}"
             local process_args=$(ps -p ${port_pid} -o args= 2>/dev/null)
             # 检查是否是后端服务进程
             if echo "${process_args}" | grep -qE "go run.*server/main|cmd/server/main|project-oa-backend"; then
                 echo -e "${BLUE}  检测到旧的后端服务进程，尝试停止...${NC}"
                 stop_process_graceful ${port_pid} "旧后端进程"
-                if ! check_port 8080; then
+                if ! check_port 8082; then
                     echo -e "${GREEN}  ✓ 旧进程已停止${NC}"
                 else
                     echo -e "${RED}  ✗ 无法停止占用端口的进程${NC}"
@@ -320,7 +335,7 @@ start_backend() {
                     return 1
                 fi
             else
-                echo -e "${RED}  错误: 端口 8080 被其他进程占用 (PID: ${port_pid})${NC}"
+                echo -e "${RED}  错误: 端口 8082 被其他进程占用 (PID: ${port_pid})${NC}"
                 echo -e "${YELLOW}  进程信息: ${process_args}${NC}"
                 echo -e "${YELLOW}  请手动停止: kill ${port_pid} 或 kill -9 ${port_pid}${NC}"
                 return 1
@@ -411,7 +426,7 @@ start_backend() {
         fi
 
         # 尝试通过端口查找进程（优先）
-        backend_pid=$(find_pid_by_port 8080)
+        backend_pid=$(find_pid_by_port 8082)
         if [ -n "${backend_pid}" ] && ps -p ${backend_pid} > /dev/null 2>&1; then
             # 验证是否是实际的后端程序（不是 go run 进程）
             local process_args=$(ps -p ${backend_pid} -o args= 2>/dev/null)
@@ -420,10 +435,10 @@ start_backend() {
                 # 确认是后端程序进程
                 if echo "${process_args}" | grep -qE "cmd/server/main|project-oa-backend|/tmp/go-build"; then
                     # 找到进程后，立即尝试健康检查
-                    if check_port 8080; then
+                    if check_port 8082; then
                         # 使用健康检查端点确认服务真正可用
-                        if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
-                           curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                        if curl -s -f -m 2 "http://localhost:8082/api/v1/health" > /dev/null 2>&1 || \
+                           curl -s -f -m 2 "http://localhost:8082/health" > /dev/null 2>&1; then
                             # 健康检查通过，服务已就绪
                             break
                         fi
@@ -441,19 +456,19 @@ start_backend() {
                     if echo "${process_args}" | grep -qvE "^go run"; then
                         backend_pid=${pid}
                         # 找到进程后立即尝试健康检查
-                        if check_port 8080; then
-                            if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
-                               curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                        if check_port 8082; then
+                            if curl -s -f -m 2 "http://localhost:8082/api/v1/health" > /dev/null 2>&1 || \
+                               curl -s -f -m 2 "http://localhost:8082/health" > /dev/null 2>&1; then
                                 break
                             fi
                         fi
                     fi
                 fi
             done
-            if [ -n "${backend_pid}" ] && check_port 8080; then
+            if [ -n "${backend_pid}" ] && check_port 8082; then
                 # 再次确认健康检查
-                if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
-                   curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+                if curl -s -f -m 2 "http://localhost:8082/api/v1/health" > /dev/null 2>&1 || \
+                   curl -s -f -m 2 "http://localhost:8082/health" > /dev/null 2>&1; then
                     break
                 fi
             fi
@@ -483,16 +498,16 @@ start_backend() {
     fi
 
     # 最终健康检查确认
-    if ! curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 && \
-       ! curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+    if ! curl -s -f -m 2 "http://localhost:8082/api/v1/health" > /dev/null 2>&1 && \
+       ! curl -s -f -m 2 "http://localhost:8082/health" > /dev/null 2>&1; then
         echo -e "${YELLOW}  警告: 后端进程已启动，但健康检查未通过，继续等待...${NC}"
         # 再等待最多3秒进行健康检查
         local health_wait=0
         while [ ${health_wait} -lt 3 ]; do
             sleep 0.5
             health_wait=$((health_wait + 1))
-            if curl -s -f -m 2 "http://localhost:8080/api/v1/health" > /dev/null 2>&1 || \
-               curl -s -f -m 2 "http://localhost:8080/health" > /dev/null 2>&1; then
+            if curl -s -f -m 2 "http://localhost:8082/api/v1/health" > /dev/null 2>&1 || \
+               curl -s -f -m 2 "http://localhost:8082/health" > /dev/null 2>&1; then
                 break
             fi
         done
@@ -502,9 +517,9 @@ start_backend() {
     echo ${backend_pid} > "${PID_DIR}/backend.pid"
 
     # 最终验证
-    if check_port 8080 && ps -p ${backend_pid} > /dev/null 2>&1; then
+    if check_port 8082 && ps -p ${backend_pid} > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ 后端服务启动成功 (PID: ${backend_pid})${NC}"
-        echo -e "${GREEN}  ✓ 后端地址: http://localhost:8080${NC}"
+        echo -e "${GREEN}  ✓ 后端地址: http://localhost:8082${NC}"
         echo -e "    日志文件: ${PROJECT_ROOT}/backend.log"
         return 0
     else
@@ -630,7 +645,7 @@ main() {
     echo ""
     echo -e "访问地址:"
     echo -e "  前端应用: ${BLUE}http://localhost:3000${NC}"
-    echo -e "  后端API:  ${BLUE}http://localhost:8080${NC}"
+    echo -e "  后端API:  ${BLUE}http://localhost:8082${NC}"
     echo -e "  MinIO API: ${BLUE}http://localhost:9000${NC}"
     echo -e "  MinIO 控制台: ${BLUE}http://localhost:9001${NC}"
     echo ""

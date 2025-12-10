@@ -15,7 +15,7 @@ DB_NAME="${DB_NAME:-project_oa}"
 DB_USER="${DB_USER:-project_oa_user}"
 DB_PASSWORD="${DB_PASSWORD:-project_oa_password}"
 DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
+DB_PORT="${DB_PORT:-5433}"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  数据库初始化${NC}"
