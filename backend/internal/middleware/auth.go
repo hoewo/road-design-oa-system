@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"project-oa-backend/internal/config"
+	"project-oa-backend/pkg/utils"
 )
 
 // AuthContextKey is the key for storing auth info in context
@@ -42,7 +43,30 @@ const (
 	AuthLevelAdmin AuthLevel = "admin"
 )
 
-// NebulaAuthValidateResponse NebulaAuth验证响应
+// 标准错误码常量
+const (
+	ErrorCodeUnauthorized    = "UNAUTHORIZED"
+	ErrorCodeTokenMissing    = "TOKEN_MISSING"
+	ErrorCodeTokenInvalid    = "TOKEN_INVALID"
+	ErrorCodeValidationError = "VALIDATION_ERROR"
+	ErrorCodeForbidden       = "FORBIDDEN"
+)
+
+// ValidateTokenResponse NebulaAuth Token验证完整响应（包含success和data包装层）
+type ValidateTokenResponse struct {
+	Success bool `json:"success"`
+	Data    struct {
+		Valid     bool   `json:"valid"`
+		UserID    string `json:"user_id"`
+		Username  string `json:"username"`
+		IsAdmin   bool   `json:"is_admin"`
+		AppID     string `json:"app_id"`
+		SessionID string `json:"session_id"`
+		Error     string `json:"error,omitempty"`
+	} `json:"data"`
+}
+
+// NebulaAuthValidateResponse NebulaAuth验证响应（内部使用）
 type NebulaAuthValidateResponse struct {
 	Valid     bool   `json:"valid"`
 	UserID    string `json:"user_id"`
@@ -81,16 +105,40 @@ func validateTokenSelfValidate(cfg *config.Config, tokenString string) (*NebulaA
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
-	var validateResp NebulaAuthValidateResponse
-	if err := json.Unmarshal(body, &validateResp); err != nil {
+	// 先解析包装层（success 和 data）
+	var wrappedResp ValidateTokenResponse
+	if err := json.Unmarshal(body, &wrappedResp); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
 	}
 
-	if !validateResp.Valid {
-		return nil, fmt.Errorf("token is invalid")
+	// 检查响应是否成功
+	if !wrappedResp.Success {
+		errorMsg := wrappedResp.Data.Error
+		if errorMsg == "" {
+			errorMsg = "token validation failed"
+		}
+		return nil, fmt.Errorf(errorMsg)
 	}
 
-	return &validateResp, nil
+	// 检查Token是否有效
+	if !wrappedResp.Data.Valid {
+		errorMsg := wrappedResp.Data.Error
+		if errorMsg == "" {
+			errorMsg = "token is invalid"
+		}
+		return nil, fmt.Errorf(errorMsg)
+	}
+
+	// 提取data字段并转换为内部响应格式
+	return &NebulaAuthValidateResponse{
+		Valid:     wrappedResp.Data.Valid,
+		UserID:    wrappedResp.Data.UserID,
+		Username:  wrappedResp.Data.Username,
+		AppID:     wrappedResp.Data.AppID,
+		SessionID: wrappedResp.Data.SessionID,
+		Role:      "", // 业务角色通过业务逻辑判断
+		IsAdmin:   wrappedResp.Data.IsAdmin,
+	}, nil
 }
 
 // getUserFromGateway 在gateway模式下从Header读取用户信息
@@ -101,7 +149,7 @@ func getUserFromGateway(c *gin.Context) (*NebulaAuthValidateResponse, error) {
 	sessionID := c.GetHeader("X-User-SessionID")
 
 	if userID == "" {
-		return nil, fmt.Errorf("X-User-ID header is required")
+		return nil, fmt.Errorf("未认证")
 	}
 
 	// 注意：gateway模式下不会收到X-User-Role和X-User-IsAdmin（出于安全考虑）
@@ -137,20 +185,14 @@ func AuthMiddleware(cfg *config.Config, level AuthLevel) gin.HandlerFunc {
 			// Self_validate模式：调用NebulaAuth API验证Token
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "Authorization header required",
-				})
-				c.Abort()
+				utils.SendErrorResponse(c, http.StatusUnauthorized, ErrorCodeTokenMissing, "缺少 Token")
 				return
 			}
 
 			// Extract token from "Bearer <token>"
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || parts[0] != "Bearer" {
-				c.JSON(http.StatusUnauthorized, gin.H{
-					"error": "Invalid authorization header format",
-				})
-				c.Abort()
+				utils.SendErrorResponse(c, http.StatusUnauthorized, ErrorCodeTokenMissing, "缺少 Token")
 				return
 			}
 
@@ -159,10 +201,17 @@ func AuthMiddleware(cfg *config.Config, level AuthLevel) gin.HandlerFunc {
 		}
 
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Authentication failed: " + err.Error(),
-			})
-			c.Abort()
+			// 根据错误类型返回不同的错误码
+			errorCode := ErrorCodeValidationError
+			errorMsg := "验证 Token 失败: " + err.Error()
+			
+			// 判断是否为Token无效错误
+			if strings.Contains(err.Error(), "token is invalid") || strings.Contains(err.Error(), "token validation failed") {
+				errorCode = ErrorCodeTokenInvalid
+				errorMsg = err.Error()
+			}
+			
+			utils.SendErrorResponse(c, http.StatusUnauthorized, errorCode, errorMsg)
 			return
 		}
 
@@ -234,10 +283,7 @@ func RequireRole(requiredRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := GetUserRole(c)
 		if !exists || role != requiredRole {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Insufficient permissions",
-			})
-			c.Abort()
+			utils.SendErrorResponse(c, http.StatusForbidden, ErrorCodeForbidden, "权限不足")
 			return
 		}
 
@@ -250,10 +296,7 @@ func RequireAnyRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, exists := GetUserRole(c)
 		if !exists {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Insufficient permissions",
-			})
-			c.Abort()
+			utils.SendErrorResponse(c, http.StatusForbidden, ErrorCodeForbidden, "权限不足")
 			return
 		}
 
@@ -264,9 +307,6 @@ func RequireAnyRole(roles ...string) gin.HandlerFunc {
 			}
 		}
 
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": "Insufficient permissions",
-		})
-		c.Abort()
+		utils.SendErrorResponse(c, http.StatusForbidden, ErrorCodeForbidden, "权限不足")
 	}
 }

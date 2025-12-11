@@ -107,12 +107,53 @@ export interface CreateClientRequest {
 }
 
 // Auth types
+// 旧的登录请求类型（已废弃，保留用于向后兼容）
 export interface LoginRequest {
-  username: string
-  password: string
+  username?: string
+  password?: string
+  // 新的验证码登录字段
+  email?: string
+  phone?: string
+  code?: string
+  code_type?: 'email' | 'sms'
+  purpose?: 'login' | 'register'
 }
 
+// 新的验证码登录请求类型
+export interface VerificationCodeLoginRequest {
+  email?: string
+  phone?: string
+  code: string
+  code_type: 'email' | 'sms'
+  purpose: 'login'
+}
+
+// 发送验证码请求类型
+export interface SendVerificationRequest {
+  code_type: 'email' | 'sms'
+  target: string // 邮箱或手机号
+  purpose: 'login' | 'register'
+}
+
+// 刷新Token请求类型
+export interface RefreshTokenRequest {
+  refresh_token: string
+}
+
+// Token信息
+export interface TokenInfo {
+  access_token: string
+  refresh_token: string
+}
+
+// 登录响应类型（基于NebulaAuth）
 export interface LoginResponse {
+  tokens: TokenInfo
+  user: User
+}
+
+// 旧的登录响应类型（已废弃，保留用于向后兼容）
+export interface LegacyLoginResponse {
   token: string
   user: User
 }

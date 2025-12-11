@@ -44,6 +44,7 @@ type Config struct {
 	ServiceName   string // 服务名称（project-oa）
 	ServicePort   int    // 服务端口
 	ServiceHost   string // 云端服务器IP（生产环境用于服务注册）
+	APIBaseURL    string // 客户端访问地址（开发：localhost:8080，生产：网关地址）
 
 	// Server
 	ServerPort         int
@@ -56,9 +57,9 @@ type Config struct {
 }
 
 func Load() *Config {
-	// Load .env file if it exists
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+	// 加载 .env 配置文件
+	if err := godotenv.Load(".env"); err != nil {
+		log.Printf("Warning: .env not found, using environment variables only")
 	}
 
 	config := &Config{
@@ -93,10 +94,11 @@ func Load() *Config {
 
 		// Authentication
 		AuthMode:      getEnv("AUTH_MODE", "self_validate"), // "self_validate" or "gateway"
-		NebulaAuthURL: getEnv("NEBULA_AUTH_URL", "http://localhost:8081"),
+		NebulaAuthURL: getEnv("NEBULA_AUTH_URL", "http://localhost:8080"),
 		ServiceName:   getEnv("SERVICE_NAME", "project-oa"),
 		ServicePort:   getEnvAsInt("SERVICE_PORT", 8080),
 		ServiceHost:   getEnv("SERVICE_HOST", ""), // 生产环境需要设置
+		APIBaseURL:    getEnv("API_BASE_URL", "http://localhost:8080"), // 客户端访问地址
 
 		// Server
 		ServerPort:         getEnvAsInt("SERVER_PORT", 8080),

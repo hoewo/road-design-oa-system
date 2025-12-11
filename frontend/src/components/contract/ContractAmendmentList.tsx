@@ -8,10 +8,12 @@ import type { ContractAmendment } from '@/types'
 import dayjs from 'dayjs'
 
 interface ContractAmendmentListProps {
+  projectId: number
   contractId: number
 }
 
 export const ContractAmendmentList = ({
+  projectId,
   contractId,
 }: ContractAmendmentListProps) => {
   const [modalVisible, setModalVisible] = useState(false)
@@ -20,14 +22,14 @@ export const ContractAmendmentList = ({
   const queryClient = useQueryClient()
 
   const { data: amendments, isLoading } = useQuery({
-    queryKey: ['contractAmendments', contractId],
-    queryFn: () => businessService.getContractAmendments(contractId),
-    enabled: !!contractId,
+    queryKey: ['contractAmendments', projectId, contractId],
+    queryFn: () => businessService.getContractAmendments(projectId, contractId),
+    enabled: !!projectId && !!contractId,
   })
 
   const deleteMutation = useMutation({
     mutationFn: (amendmentId: number) =>
-      businessService.deleteContractAmendment(amendmentId),
+      businessService.deleteContractAmendment(projectId, contractId, amendmentId),
     onSuccess: () => {
       message.success('补充协议删除成功')
       queryClient.invalidateQueries({
@@ -146,6 +148,7 @@ export const ContractAmendmentList = ({
         destroyOnHidden
       >
         <ContractAmendmentForm
+          projectId={projectId}
           contractId={contractId}
           amendmentId={editingAmendment?.id}
           onSuccess={handleSuccess}

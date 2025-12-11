@@ -28,12 +28,8 @@ func ErrorHandlerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 					zap.String("method", c.Request.Method),
 				)
 
-				c.JSON(appErr.Code, gin.H{
-					"error": gin.H{
-						"code":    appErr.Code,
-						"message": appErr.Message,
-					},
-				})
+				// 使用统一错误格式
+				utils.SendErrorResponse(c, appErr.Code, "INTERNAL_ERROR", appErr.Message)
 				return
 			}
 
@@ -45,12 +41,7 @@ func ErrorHandlerMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			)
 
 			// Don't expose internal error details to client
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": gin.H{
-					"code":    http.StatusInternalServerError,
-					"message": "Internal server error",
-				},
-			})
+			utils.SendErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", "内部服务器错误")
 		}
 	}
 }
@@ -65,11 +56,6 @@ func RecoveryMiddleware(logger *zap.Logger) gin.HandlerFunc {
 			zap.String("ip", c.ClientIP()),
 		)
 
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": gin.H{
-				"code":    http.StatusInternalServerError,
-				"message": "Internal server error",
-			},
-		})
+		utils.SendErrorResponse(c, http.StatusInternalServerError, "INTERNAL_ERROR", "内部服务器错误")
 	})
 }

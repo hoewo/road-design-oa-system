@@ -16,26 +16,26 @@ export const projectService = {
     status?: string
     keyword?: string
   }): Promise<PaginatedResponse<Project>> => {
-    return getPaginated<Project>('/projects', params)
+    return getPaginated<Project>('/user/projects', params)
   },
 
   getProject: async (id: number): Promise<Project> => {
-    return get<Project>(`/projects/${id}`)
+    return get<Project>(`/user/projects/${id}`)
   },
 
   createProject: async (data: CreateProjectRequest): Promise<Project> => {
-    return post<Project>('/projects', data)
+    return post<Project>('/user/projects', data)
   },
 
   updateProject: async (
     id: number,
     data: UpdateProjectRequest
   ): Promise<Project> => {
-    return put<Project>(`/projects/${id}`, data)
+    return put<Project>(`/user/projects/${id}`, data)
   },
 
   deleteProject: async (id: number): Promise<void> => {
-    return del<void>(`/projects/${id}`)
+    return del<void>(`/user/projects/${id}`)
   },
 
   // Client CRUD operations
@@ -44,25 +44,25 @@ export const projectService = {
     size?: number
     keyword?: string
   }): Promise<PaginatedResponse<Client>> => {
-    return getPaginated<Client>('/clients', params)
+    return getPaginated<Client>('/user/clients', params)
   },
 
   getClient: async (id: number): Promise<Client> => {
-    return get<Client>(`/clients/${id}`)
+    return get<Client>(`/user/clients/${id}`)
   },
 
   createClient: async (data: CreateClientRequest): Promise<Client> => {
-    return post<Client>('/clients', data)
+    return post<Client>('/user/clients', data)
   },
 
   updateClient: async (
     id: number,
     data: Partial<CreateClientRequest>
   ): Promise<Client> => {
-    return put<Client>(`/clients/${id}`, data)
+    return put<Client>(`/user/clients/${id}`, data)
   },
 
   deleteClient: async (id: number): Promise<void> => {
-    return del<void>(`/clients/${id}`)
+    return del<void>(`/user/clients/${id}`)
   },
 }

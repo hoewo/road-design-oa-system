@@ -18,24 +18,24 @@ export interface UpdateProjectMemberPayload {
 
 export const projectMemberService = {
   list: async (projectId: number): Promise<ProjectMember[]> => {
-    return get<ProjectMember[]>(`/projects/${projectId}/members`)
+    return get<ProjectMember[]>(`/user/projects/${projectId}/members`)
   },
 
   create: async (
     projectId: number,
     data: CreateProjectMemberPayload
   ): Promise<ProjectMember> => {
-    return post<ProjectMember>(`/projects/${projectId}/members`, data)
+    return post<ProjectMember>(`/user/projects/${projectId}/members`, data)
   },
 
   update: async (
     memberId: number,
     data: UpdateProjectMemberPayload
   ): Promise<ProjectMember> => {
-    return put<ProjectMember>(`/project-members/${memberId}`, data)
+    return put<ProjectMember>(`/user/project-members/${memberId}`, data)
   },
 
   remove: async (memberId: number): Promise<void> => {
-    return del<void>(`/project-members/${memberId}`)
+    return del<void>(`/user/project-members/${memberId}`)
   },
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -98,10 +99,28 @@ func main() {
 	routerEngine.Use(middleware.LoggerMiddleware(logger))
 
 	// Add CORS middleware
-	routerEngine.Use(middleware.CORSMiddleware(cfg))
+	// Gateway模式：网关处理CORS，后端不设置CORS头
+	// Self_validate模式：直接访问后端，后端需要设置CORS头
+	if cfg.AuthMode == "gateway" {
+		logger.Info("CORS middleware disabled (gateway mode - gateway handles CORS)")
+	} else {
+		routerEngine.Use(middleware.CORSMiddleware(cfg))
+		logger.Info("CORS middleware enabled (self_validate mode - direct backend access)")
+	}
 
 	// Add error handler middleware (must be before routes)
 	routerEngine.Use(middleware.ErrorHandlerMiddleware(logger))
+
+	// Health check endpoint (符合规范: /{service_name}/health)
+	healthPath := "/" + cfg.ServiceName + "/health"
+	routerEngine.GET(healthPath, func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"status":    "ok",
+			"service":   cfg.ServiceName,
+			"auth_mode": cfg.AuthMode,
+			"timestamp": time.Now().Unix(),
+		})
+	})
 
 	// Legacy health check endpoint (backward compatibility)
 	routerEngine.GET("/health", func(c *gin.Context) {

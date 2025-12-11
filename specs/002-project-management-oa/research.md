@@ -290,6 +290,191 @@ func SetupRouter() *gin.Engine {
 - GORM AutoMigrate：不适合生产环境，无法回滚
 - 其他迁移工具：生态不如golang-migrate成熟
 
+### 9. 基于NebulaAuth实现登录功能
+
+**Task**: 研究如何基于NebulaAuth实现登录功能，包括客户端登录流程、Token管理、不同环境下的实现差异
+
+**Decision**: 客户端直接调用NebulaAuth网关的登录接口，获取Token后存储到localStorage，所有业务接口请求携带Token
+
+**Rationale**:
+- NebulaAuth作为统一认证网关，所有登录认证由网关处理
+- 客户端无需实现自己的登录逻辑，只需调用网关接口
+- Token由网关统一管理，业务服务无需处理Token生成和验证
+- 支持开发和生产环境的不同配置，通过API_BASE_URL切换
+
+**客户端登录流程**:
+
+1. **发送验证码**：
+   ```javascript
+   POST /auth-server/v1/public/send_verification
+   {
+     "code_type": "email",  // 或 "sms"
+     "target": "user@example.com",  // 邮箱或手机号
+     "purpose": "login"
+   }
+   ```
+
+2. **用户登录**：
+   ```javascript
+   POST /auth-server/v1/public/login
+   {
+     "email": "user@example.com",  // 或 "phone": "13800138000"
+     "code": "123456",  // 验证码
+     "code_type": "email",  // 或 "sms"
+     "purpose": "login"
+   }
+   // 响应：
+   {
+     "success": true,
+     "data": {
+       "tokens": {
+         "access_token": "eyJhbGc...",
+         "refresh_token": "eyJhbGc..."
+       },
+       "user": {
+         "user_id": "uuid",
+         "username": "string",
+         "email": "string"
+       }
+     }
+   }
+   ```
+
+3. **刷新Token**（Token过期时）：
+   ```javascript
+   POST /auth-server/v1/public/refresh_token
+   {
+     "refresh_token": "eyJhbGc..."
+   }
+   ```
+
+**前端实现要点**:
+
+1. **API配置**：
+   ```javascript
+   // config/api.js
+   const config = {
+     development: {
+       apiBaseURL: 'http://localhost:8080',  // 本地业务服务器
+       nebulaAuthURL: 'http://your-aliyun-ip:8080',  // NebulaAuth网关地址
+     },
+     production: {
+       apiBaseURL: 'http://your-aliyun-ip:8080',  // 网关地址（所有请求通过网关）
+       nebulaAuthURL: 'http://your-aliyun-ip:8080',  // 网关地址
+     }
+   };
+   ```
+
+2. **登录服务实现**：
+   ```javascript
+   // services/auth.ts
+   export const authService = {
+     // 发送验证码
+     sendVerification: async (target: string, codeType: 'email' | 'sms') => {
+       const response = await axios.post(
+         `${config.nebulaAuthURL}/auth-server/v1/public/send_verification`,
+         { code_type: codeType, target, purpose: 'login' }
+       );
+       return response.data;
+     },
+     
+     // 登录
+     login: async (credentials: LoginRequest) => {
+       const response = await axios.post(
+         `${config.nebulaAuthURL}/auth-server/v1/public/login`,
+         credentials
+       );
+       
+       if (response.data.success && response.data.data.tokens) {
+         // 存储Token
+         localStorage.setItem('access_token', response.data.data.tokens.access_token);
+         localStorage.setItem('refresh_token', response.data.data.tokens.refresh_token);
+         return response.data.data;
+       }
+       throw new Error('Login failed');
+     },
+     
+     // 刷新Token
+     refreshToken: async () => {
+       const refreshToken = localStorage.getItem('refresh_token');
+       if (!refreshToken) throw new Error('No refresh token');
+       
+       const response = await axios.post(
+         `${config.nebulaAuthURL}/auth-server/v1/public/refresh_token`,
+         { refresh_token: refreshToken }
+       );
+       
+       if (response.data.success && response.data.data.tokens) {
+         localStorage.setItem('access_token', response.data.data.tokens.access_token);
+         localStorage.setItem('refresh_token', response.data.data.tokens.refresh_token);
+         return response.data.data.tokens;
+       }
+       throw new Error('Token refresh failed');
+     }
+   };
+   ```
+
+3. **请求拦截器（自动添加Token）**：
+   ```javascript
+   // services/api.ts
+   axios.interceptors.request.use((config) => {
+     const token = localStorage.getItem('access_token');
+     if (token) {
+       config.headers.Authorization = `Bearer ${token}`;
+     }
+     return config;
+   });
+   
+   // Token过期自动刷新
+   axios.interceptors.response.use(
+     (response) => response,
+     async (error) => {
+       if (error.response?.status === 401) {
+         try {
+           await authService.refreshToken();
+           // 重试原请求
+           return axios.request(error.config);
+         } catch (refreshError) {
+           // 刷新失败，跳转登录页
+           window.location.href = '/login';
+         }
+       }
+       return Promise.reject(error);
+     }
+   );
+   ```
+
+**环境差异**:
+
+| 环境 | API_BASE_URL | 登录接口调用 | 业务接口调用 |
+|------|-------------|------------|------------|
+| **开发环境** | `http://localhost:8080` | 直接调用NebulaAuth网关 | 直接调用本地业务服务器 |
+| **生产环境** | `http://your-aliyun-ip:8080` | 调用NebulaAuth网关 | 通过网关调用业务服务 |
+
+**关键要点**:
+- 开发环境：登录接口调用网关，业务接口直接调用本地服务器
+- 生产环境：所有接口都通过网关，网关负责路由到业务服务
+- Token存储在localStorage，所有请求自动携带
+- Token过期时自动刷新，刷新失败跳转登录页
+
+**错误处理**:
+- 验证码发送失败：提示用户检查邮箱/手机号
+- 登录失败：提示验证码错误或账号不存在
+- Token过期：自动刷新，刷新失败跳转登录
+- 网络错误：提示用户检查网络连接
+
+**安全性考虑**:
+- Token存储在localStorage（前端），注意XSS攻击防护
+- 生产环境所有请求通过网关，网关已验证Token
+- 业务服务无需处理Token验证（gateway模式）或调用网关API验证（self_validate模式）
+
+**Alternatives considered**:
+- 业务服务自己实现登录：增加复杂度，不符合统一认证架构
+- 使用Session：无状态设计，不适合分布式部署
+- Token存储在Cookie：需要处理CSRF防护，增加复杂度
+
+**参考文档**: `specs/002-project-management-oa/guides/ai-quick-reference.md` 和 `developer-guide.md`
+
 ## Summary
 
 所有研究任务已完成，关键技术决策已确定：
@@ -302,6 +487,7 @@ func SetupRouter() *gin.Engine {
 6. ✅ **路由格式**：使用Gin路由组实现统一格式
 7. ✅ **文件路径**：统一的路径格式，兼容两种存储
 8. ✅ **数据库迁移**：使用golang-migrate工具
+9. ✅ **NebulaAuth登录**：客户端直接调用网关登录接口，Token存储在localStorage，支持自动刷新
 
 所有技术方案已明确，可以进入Phase 1设计阶段。
 

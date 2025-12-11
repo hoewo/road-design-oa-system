@@ -1,29 +1,15 @@
-import { useEffect, useState } from 'react'
-import { Avatar, Dropdown, Menu, message } from 'antd'
+import { Avatar, Dropdown, message } from 'antd'
 import { UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { authService } from '@/services/auth'
-import type { User } from '@/types'
+import { useAuth } from '@/contexts/AuthContext'
 
 const UserInfo = () => {
-  const [user, setUser] = useState<User | null>(null)
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
-
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const userInfo = await authService.getCurrentUser()
-        setUser(userInfo)
-      } catch (error) {
-        console.error('Failed to fetch user info:', error)
-      }
-    }
-    fetchUserInfo()
-  }, [])
 
   const handleLogout = async () => {
     try {
-      await authService.logout()
+      await logout()
       message.success('已退出登录')
       navigate('/login')
     } catch (error) {
@@ -31,19 +17,22 @@ const UserInfo = () => {
     }
   }
 
-  const menu = (
-    <Menu>
-      <Menu.Item key="user-info" disabled>
-        {user?.real_name || user?.username || '用户'}
-      </Menu.Item>
-      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
-        退出登录
-      </Menu.Item>
-    </Menu>
-  )
+  const menuItems = [
+    {
+      key: 'user-info',
+      disabled: true,
+      label: user?.real_name || user?.username || '用户',
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: '退出登录',
+      onClick: handleLogout,
+    },
+  ]
 
   return (
-    <Dropdown overlay={menu} placement="bottomRight">
+    <Dropdown menu={{ items: menuItems }} placement="bottomRight">
       <div
         style={{
           display: 'flex',

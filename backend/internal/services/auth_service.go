@@ -27,54 +27,9 @@ func NewAuthService(cfg *config.Config) *AuthService {
 	}
 }
 
-// LoginRequest represents login credentials
-type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
-// LoginResponse represents the response after successful login
-type LoginResponse struct {
-	Token string       `json:"token"`
-	User  *models.User `json:"user"`
-}
-
-// Login authenticates a user and returns a JWT token
-func (s *AuthService) Login(req *LoginRequest) (*LoginResponse, error) {
-	var user models.User
-
-	// Find user by username
-	if err := s.db.Where("username = ?", req.Username).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("invalid username or password")
-		}
-		return nil, err
-	}
-
-	// Check if user is active
-	if !user.IsActive {
-		return nil, errors.New("user account is inactive")
-	}
-
-	// Verify password
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, errors.New("invalid username or password")
-	}
-
-	// Generate JWT token
-	token, err := s.generateToken(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	// Clear password from response
-	user.Password = ""
-
-	return &LoginResponse{
-		Token: token,
-		User:  &user,
-	}, nil
-}
+// Login method removed - login is now handled by NebulaAuth gateway
+// Users authenticate directly with NebulaAuth gateway using verification codes
+// The gateway returns access_token and refresh_token, which are used for subsequent API calls
 
 // GetCurrentUser retrieves the current user by ID (UUID string)
 func (s *AuthService) GetCurrentUser(userID string) (*models.User, error) {

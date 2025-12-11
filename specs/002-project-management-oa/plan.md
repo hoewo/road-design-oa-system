@@ -1,6 +1,6 @@
 # Implementation Plan: 道路设计公司项目管理系统
 
-**Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-12-04 | **Spec**: [spec.md](./spec.md)
+**Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-01-28 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/002-project-management-oa/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
@@ -428,6 +428,77 @@ database:
 - 错误信息统一格式：`{"error": "错误描述", "code": "ERROR_CODE"}`
 - 支持分页、排序、筛选
 
+### 客户端登录功能设计（基于 NebulaAuth）
+
+**设计原则**：
+- 客户端直接调用 NebulaAuth 网关的登录接口，不通过业务服务
+- Token 由 NebulaAuth 网关统一管理，业务服务无需处理登录逻辑
+- 支持邮箱和手机号两种登录方式（验证码登录）
+- Token 存储在 localStorage，所有业务接口请求自动携带
+
+**登录流程**：
+
+1. **发送验证码**：
+   - 接口：`POST /auth-server/v1/public/send_verification`
+   - 参数：`{code_type: "email"|"sms", target: "邮箱或手机号", purpose: "login"}`
+   - 用途：向用户邮箱或手机发送验证码
+
+2. **用户登录**：
+   - 接口：`POST /auth-server/v1/public/login`
+   - 参数：`{email/phone: "邮箱或手机号", code: "验证码", code_type: "email"|"sms", purpose: "login"}`
+   - 响应：`{success: true, data: {tokens: {access_token, refresh_token}, user: {...}}}`
+   - 处理：将 `access_token` 和 `refresh_token` 存储到 localStorage
+
+3. **Token 刷新**（可选）：
+   - 接口：`POST /auth-server/v1/public/refresh_token`
+   - 参数：`{refresh_token: "..."}`
+   - 用途：Token 过期时自动刷新，无需重新登录
+
+**前端实现要点**：
+
+1. **API 配置**：
+   ```javascript
+   // 开发环境
+   API_BASE_URL = 'http://localhost:8080'  // 本地业务服务器
+   NEBULA_AUTH_URL = 'http://your-aliyun-ip:8080'  // NebulaAuth网关
+   
+   // 生产环境
+   API_BASE_URL = 'http://your-aliyun-ip:8080'  // 网关地址（所有请求通过网关）
+   NEBULA_AUTH_URL = 'http://your-aliyun-ip:8080'  // 网关地址
+   ```
+
+2. **请求拦截器**：
+   - 所有业务接口请求自动添加 `Authorization: Bearer <token>` Header
+   - Token 过期时（401错误）自动刷新，刷新失败跳转登录页
+
+3. **Token 管理**：
+   - 存储：localStorage（`access_token`, `refresh_token`）
+   - 验证：通过业务接口的响应状态判断（401表示Token无效）
+   - 刷新：自动刷新机制，无需用户手动操作
+
+**环境差异**：
+
+| 环境 | 登录接口 | 业务接口 | Token验证 |
+|------|---------|---------|----------|
+| **开发环境** | 调用NebulaAuth网关 | 直接调用本地业务服务器 | 业务服务器调用网关API验证 |
+| **生产环境** | 调用NebulaAuth网关 | 通过网关调用业务服务 | 网关已验证，业务服务器从Header读取 |
+
+**错误处理**：
+- 验证码发送失败：提示用户检查邮箱/手机号
+- 登录失败：提示验证码错误或账号不存在
+- Token过期：自动刷新，刷新失败跳转登录页
+- 网络错误：提示用户检查网络连接
+
+**安全性考虑**：
+- Token存储在localStorage，注意XSS攻击防护
+- 生产环境所有请求通过网关，网关已验证Token
+- 业务服务无需处理Token验证（gateway模式）或调用网关API验证（self_validate模式）
+
+**参考文档**：
+- `specs/002-project-management-oa/guides/ai-quick-reference.md` - 客户端认证流程
+- `specs/002-project-management-oa/guides/developer-guide.md` - 详细实现说明
+- `specs/002-project-management-oa/research.md` - 技术调研（第9节）
+
 ### 部署规范（基于 ai-quick-reference.md）
 
 **本地开发部署**：
@@ -451,6 +522,390 @@ database:
 2. 调用服务注册 API：`POST /service-registry/v1/admin/services`
 3. 如果服务名已存在，使用更新接口：`PUT /service-registry/v1/admin/services/{service_name}`
 4. 验证服务注册成功（通过健康检查接口）
+
+## Auth 服务对接规范检查与优化方案
+
+### 当前实现检查结果
+
+**检查时间**: 2025-01-28  
+**检查依据**: `specs/002-project-management-oa/ai-quick-reference.md`
+
+#### ✅ 已符合的要求
+
+1. **认证模式支持**：
+   - ✅ 支持 `self_validate` 和 `gateway` 两种认证模式
+   - ✅ 根据 `AUTH_MODE` 环境变量自动切换
+   - ✅ `self_validate` 模式正确调用 NebulaAuth API
+   - ✅ `gateway` 模式正确从 Header 读取用户信息
+
+2. **认证级别支持**：
+   - ✅ 支持 `public`、`user`、`admin` 三种认证级别
+   - ✅ 路由格式符合 `/{service}/{version}/{auth_level}/{path}` 规范
+
+3. **Header 读取**：
+   - ✅ 正确读取 `X-User-ID`、`X-User-Username`、`X-User-AppID`、`X-User-SessionID`
+   - ✅ 正确理解 gateway 模式下不会收到 `X-User-Role` 和 `X-User-IsAdmin`
+
+4. **环境配置**：
+   - ✅ 支持 `AUTH_MODE`、`NEBULA_AUTH_URL`、`SERVICE_NAME`、`SERVICE_PORT`、`SERVICE_HOST` 配置
+
+#### ❌ 不符合的要求
+
+1. **健康检查端点不符合规范**：
+   - **要求**：`/{service_name}/health`（例如：`/project-oa/health`）
+   - **当前实现**：`/{service_name}/v1/public/health` 和 `/health`（向后兼容）
+   - **问题**：健康检查端点应该直接位于服务根路径下，不需要版本号和认证级别
+   - **影响**：NebulaAuth 网关无法正确识别服务健康状态
+
+2. **Token验证API响应格式不匹配**：
+   - **要求**：响应格式为：
+     ```json
+     {
+       "success": true,
+       "data": {
+         "valid": true,
+         "user_id": "uuid",
+         "username": "string",
+         "is_admin": false,
+         "app_id": "string",
+         "session_id": "uuid",
+         "error": "string" // 可选，仅在失败时
+       }
+     }
+     ```
+   - **当前实现**：直接解析响应为 `NebulaAuthValidateResponse`，没有处理 `success` 和 `data` 包装层
+   - **问题**：如果 NebulaAuth API 返回包装格式，当前代码无法正确解析
+   - **影响**：`self_validate` 模式下 Token 验证可能失败
+
+3. **错误响应格式不统一**：
+   - **要求**：统一格式 `{"error": "错误描述", "code": "ERROR_CODE"}`
+   - **当前实现**：部分地方只返回 `{"error": "..."}`，缺少 `code` 字段
+   - **问题**：错误响应格式不一致，前端难以统一处理
+   - **影响**：错误处理体验不一致
+
+4. **错误码不规范**：
+   - **要求**：使用标准错误码：`UNAUTHORIZED`、`TOKEN_MISSING`、`TOKEN_INVALID`、`VALIDATION_ERROR`、`FORBIDDEN`
+   - **当前实现**：错误信息是英文，且没有统一的错误码常量
+   - **问题**：错误码不统一，难以维护和扩展
+   - **影响**：错误处理逻辑分散，难以统一管理
+
+5. **缺少 API_BASE_URL 配置**：
+   - **要求**：需要 `API_BASE_URL` 配置项（开发：localhost:8080，生产：网关地址）
+   - **当前实现**：配置中没有 `API_BASE_URL` 字段
+   - **问题**：无法明确区分客户端访问地址和服务内部地址
+   - **影响**：部署配置不够清晰
+
+6. **缺少环境配置文件**：
+   - **要求**：需要 `.env.development` 和 `.env.production` 环境配置文件（参考 ai-quick-reference.md）
+   - **当前实现**：只有 `env.example` 文件，`config.go` 只加载 `.env` 文件
+   - **问题**：缺少开发和生产环境的独立配置文件，环境切换不够清晰
+   - **影响**：不符合文档要求，环境管理不够规范
+
+### 优化方案
+
+#### 1. 修复健康检查端点
+
+**方案**：
+- 在 `main.go` 中添加符合规范的健康检查端点：`/{service_name}/health`
+- 保留 `/health` 作为向后兼容（可选）
+- 移除 `/{service_name}/v1/public/health` 端点（或保留作为备用）
+
+**实现位置**：
+- `backend/cmd/server/main.go`：添加 `/{service_name}/health` 端点
+- `backend/internal/router/router.go`：移除或保留 `/{service_name}/v1/public/health`（根据需求）
+
+**健康检查响应格式**（参考 ai-quick-reference.md）：
+```json
+{
+  "status": "ok",
+  "service": "project-oa",
+  "auth_mode": "self_validate",
+  "timestamp": 1234567890
+}
+```
+
+#### 2. 修复Token验证API响应格式
+
+**方案**：
+- 更新 `NebulaAuthValidateResponse` 结构体，支持包装格式
+- 添加 `ValidateTokenResponse` 结构体处理完整响应
+- 修改 `validateTokenSelfValidate` 函数，正确处理响应包装层
+
+**实现位置**：
+- `backend/internal/middleware/auth.go`：
+  - 添加 `ValidateTokenResponse` 结构体（包含 `success` 和 `data` 字段）
+  - 修改 `validateTokenSelfValidate` 函数，先解析包装层，再提取 `data` 字段
+
+**代码示例**：
+```go
+type ValidateTokenResponse struct {
+    Success bool `json:"success"`
+    Data    struct {
+        Valid     bool   `json:"valid"`
+        UserID    string `json:"user_id"`
+        Username  string `json:"username"`
+        IsAdmin   bool   `json:"is_admin"`
+        AppID     string `json:"app_id"`
+        SessionID string `json:"session_id"`
+        Error     string `json:"error,omitempty"`
+    } `json:"data"`
+}
+```
+
+#### 3. 统一错误响应格式
+
+**方案**：
+- 定义标准错误码常量
+- 创建统一的错误响应函数
+- 更新所有错误响应，使用统一格式
+
+**实现位置**：
+- `backend/internal/middleware/auth.go`：定义错误码常量，更新错误响应
+- `backend/pkg/utils/errors.go`（如不存在则创建）：定义统一错误响应函数
+
+**错误码常量**：
+```go
+const (
+    ErrorCodeUnauthorized    = "UNAUTHORIZED"
+    ErrorCodeTokenMissing    = "TOKEN_MISSING"
+    ErrorCodeTokenInvalid    = "TOKEN_INVALID"
+    ErrorCodeValidationError = "VALIDATION_ERROR"
+    ErrorCodeForbidden       = "FORBIDDEN"
+)
+```
+
+**统一错误响应函数**：
+```go
+func ErrorResponse(c *gin.Context, statusCode int, errorCode, errorMsg string) {
+    c.JSON(statusCode, gin.H{
+        "error": errorMsg,
+        "code":  errorCode,
+    })
+    c.Abort()
+}
+```
+
+#### 4. 添加 API_BASE_URL 配置
+
+**方案**：
+- 在 `config.Config` 结构体中添加 `APIBaseURL` 字段
+- 在 `env.example` 中添加 `API_BASE_URL` 配置项
+- 更新配置加载逻辑
+
+**实现位置**：
+- `backend/internal/config/config.go`：添加 `APIBaseURL` 字段和加载逻辑
+- `backend/env.example`：添加 `API_BASE_URL` 配置项
+
+**配置示例**：
+```go
+// config.go
+type Config struct {
+    // ... 其他字段
+    APIBaseURL string // 客户端访问地址（开发：localhost:8080，生产：网关地址）
+}
+
+// env.example
+API_BASE_URL=http://localhost:8080  # 开发环境
+# API_BASE_URL=http://your-aliyun-ip:8080  # 生产环境
+```
+
+#### 5. 优化环境配置文件管理（方案1）
+
+**方案**：
+- 创建 `.env.development` 和 `.env.production` 环境配置文件
+- 修改 `config.go` 支持根据 `ENV` 环境变量自动加载对应配置文件
+- 保留 `.env` 作为本地个人覆盖（可选，优先级最高）
+- 保留 `env.example` 作为完整配置模板
+
+**文件结构**：
+```
+backend/
+├── env.example              # 完整配置模板（提交到版本控制）
+├── .env.development         # 开发环境模板（提交到版本控制）
+├── .env.production          # 生产环境模板（提交到版本控制）
+└── .env                     # 本地个人覆盖（不提交，可选）
+```
+
+**实现位置**：
+- `backend/.env.development`：创建开发环境配置模板
+- `backend/.env.production`：创建生产环境配置模板
+- `backend/internal/config/config.go`：修改配置加载逻辑
+
+**配置加载逻辑优化**：
+```go
+func Load() *Config {
+    // 获取环境变量，默认为 development
+    env := os.Getenv("ENV")
+    if env == "" {
+        env = "development"
+    }
+    
+    // 根据环境加载对应配置文件
+    var envFile string
+    switch env {
+    case "production":
+        envFile = ".env.production"
+    case "development":
+        envFile = ".env.development"
+    default:
+        envFile = ".env"  // 默认或自定义环境
+    }
+    
+    // 加载环境配置文件
+    if err := godotenv.Load(envFile); err != nil {
+        log.Printf("Warning: %s not found, using environment variables only", envFile)
+    }
+    
+    // 可选：.env 作为本地覆盖（优先级最高，如果存在会覆盖上面的配置）
+    // 这样开发者可以在本地创建 .env 文件进行个人配置覆盖
+    if err := godotenv.Overload(".env"); err == nil {
+        log.Println("Loaded .env for local overrides")
+    }
+    
+    // ... 其余配置加载逻辑
+}
+```
+
+**`.env.development` 配置模板**：
+```bash
+# Database configuration
+DB_HOST=localhost
+DB_PORT=5433
+DB_NAME=project_oa
+DB_USER=project_oa_user
+DB_PASSWORD=project_oa_password
+DB_SSL_MODE=disable
+DB_TYPE=postgresql
+
+# JWT configuration
+JWT_SECRET=your_jwt_secret_key_here
+JWT_EXPIRE_HOURS=24
+
+# Storage configuration
+STORAGE_TYPE=minio
+
+# MinIO configuration
+MINIO_ENDPOINT=localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET_NAME=project-files
+MINIO_USE_SSL=false
+
+# Authentication configuration (开发环境)
+AUTH_MODE=self_validate
+NEBULA_AUTH_URL=http://your-aliyun-ip:8080
+API_BASE_URL=http://localhost:8080
+SERVICE_NAME=project-oa
+SERVICE_PORT=8082
+SERVICE_HOST=
+
+# Server configuration
+SERVER_PORT=8082
+SERVER_HOST=0.0.0.0
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+
+# Log configuration
+LOG_LEVEL=debug
+LOG_FORMAT=json
+```
+
+**`.env.production` 配置模板**：
+```bash
+# Database configuration
+DB_HOST=your-rds-endpoint
+DB_PORT=5432
+DB_NAME=project_oa
+DB_USER=project_oa_user
+DB_PASSWORD=your_production_password
+DB_SSL_MODE=require
+DB_TYPE=rds
+
+# JWT configuration
+JWT_SECRET=your_production_jwt_secret_key
+JWT_EXPIRE_HOURS=24
+
+# Storage configuration
+STORAGE_TYPE=oss
+
+# OSS configuration
+OSS_ENDPOINT=oss-cn-hangzhou.aliyuncs.com
+OSS_ACCESS_KEY_ID=your_oss_access_key_id
+OSS_ACCESS_KEY_SECRET=your_oss_access_key_secret
+OSS_BUCKET_NAME=project-oa-files
+
+# Authentication configuration (生产环境)
+AUTH_MODE=gateway
+NEBULA_AUTH_URL=http://your-aliyun-ip:8080
+API_BASE_URL=http://your-aliyun-ip:8080
+SERVICE_NAME=project-oa
+SERVICE_PORT=8080
+SERVICE_HOST=your-cloud-ip
+
+# Server configuration
+SERVER_PORT=8080
+SERVER_HOST=0.0.0.0
+CORS_ALLOWED_ORIGINS=http://your-frontend-domain
+
+# Log configuration
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+**使用方式**：
+1. **开发环境**：
+   ```bash
+   export ENV=development
+   go run cmd/server/main.go
+   # 或直接使用默认值（development）
+   go run cmd/server/main.go
+   ```
+
+2. **生产环境**：
+   ```bash
+   export ENV=production
+   ./server
+   ```
+
+3. **本地个人覆盖**：
+   - 创建 `.env` 文件（不提交到版本控制）
+   - 配置会覆盖 `.env.development` 或 `.env.production` 中的对应项
+   - 适合个人开发时的临时配置调整
+
+**优势**：
+- ✅ 符合 `ai-quick-reference.md` 文档要求
+- ✅ 支持自动加载，也支持手动导出（兼容文档中的 `export $(cat .env.development | xargs)` 方式）
+- ✅ `.env` 作为本地个人覆盖，灵活性高
+- ✅ 配置文件结构清晰，易于管理
+- ✅ 符合常见 Go 项目实践
+
+### 实施优先级
+
+1. **高优先级**（影响功能）：
+   - 修复健康检查端点（影响服务注册和网关识别）
+   - 修复Token验证API响应格式（影响认证功能）
+
+2. **中优先级**（影响体验）：
+   - 统一错误响应格式（影响错误处理一致性）
+   - 规范错误码（影响错误处理可维护性）
+
+3. **低优先级**（影响配置清晰度）：
+   - 添加 API_BASE_URL 配置（不影响功能，但提升配置清晰度）
+   - 优化环境配置文件管理（方案1）（提升配置管理规范性）
+
+### 实施计划
+
+1. **Phase 1：修复关键问题**
+   - 修复健康检查端点
+   - 修复Token验证API响应格式
+
+2. **Phase 2：优化错误处理**
+   - 统一错误响应格式
+   - 规范错误码
+
+3. **Phase 3：完善配置**
+   - 添加 API_BASE_URL 配置
+   - 优化环境配置文件管理（创建 `.env.development` 和 `.env.production`，修改 `config.go` 加载逻辑）
+   - 更新文档
 
 ## Complexity Tracking
 

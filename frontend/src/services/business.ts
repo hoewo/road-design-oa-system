@@ -25,7 +25,7 @@ export const businessService = {
   // Project Business Information
   getProjectBusiness: async (projectId: number): Promise<ProjectBusiness> => {
     const response = await get<ProjectBusiness>(
-      `/projects/${projectId}/business`
+      `/user/projects/${projectId}/business`
     )
     return response || ({} as ProjectBusiness)
   },
@@ -35,7 +35,7 @@ export const businessService = {
     data: UpdateProjectBusinessRequest
   ): Promise<ProjectBusiness> => {
     const response = await put<ProjectBusiness>(
-      `/projects/${projectId}/business`,
+      `/user/projects/${projectId}/business`,
       data
     )
     return response || ({} as ProjectBusiness)
@@ -43,7 +43,7 @@ export const businessService = {
 
   // Contracts
   getContracts: async (projectId: number): Promise<Contract[]> => {
-    const response = await get<Contract[]>(`/projects/${projectId}/contracts`)
+    const response = await get<Contract[]>(`/user/projects/${projectId}/contracts`)
     return response || []
   },
 
@@ -52,14 +52,14 @@ export const businessService = {
     data: CreateContractRequest
   ): Promise<Contract> => {
     const response = await post<Contract>(
-      `/projects/${projectId}/contracts`,
+      `/user/projects/${projectId}/contracts`,
       data
     )
     return response
   },
 
   getContract: async (contractId: number): Promise<Contract> => {
-    const response = await get<Contract>(`/contracts/${contractId}`)
+    const response = await get<Contract>(`/user/contracts/${contractId}`)
     return response
   },
 
@@ -67,69 +67,69 @@ export const businessService = {
     contractId: number,
     data: Partial<CreateContractRequest>
   ): Promise<Contract> => {
-    const response = await put<Contract>(`/contracts/${contractId}`, data)
+    const response = await put<Contract>(`/user/contracts/${contractId}`, data)
     return response
   },
 
   deleteContract: async (contractId: number): Promise<void> => {
-    await fetch(`/api/v1/contracts/${contractId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    })
+    await del<void>(`/user/contracts/${contractId}`)
   },
 
   // Contract Amendments
   getContractAmendments: async (
+    projectId: number,
     contractId: number
   ): Promise<ContractAmendment[]> => {
     const response = await get<ContractAmendment[]>(
-      `/contracts/${contractId}/amendments`
+      `/user/projects/${projectId}/contracts/${contractId}/amendments`
     )
     return response || []
   },
 
   createContractAmendment: async (
+    projectId: number,
     contractId: number,
     data: CreateContractAmendmentRequest
   ): Promise<ContractAmendment> => {
     const response = await post<ContractAmendment>(
-      `/contracts/${contractId}/amendments`,
+      `/user/projects/${projectId}/contracts/${contractId}/amendments`,
       data
     )
     return response
   },
 
   getContractAmendment: async (
+    projectId: number,
+    contractId: number,
     amendmentId: number
   ): Promise<ContractAmendment> => {
     const response = await get<ContractAmendment>(
-      `/contract-amendments/${amendmentId}`
+      `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`
     )
     return response
   },
 
   updateContractAmendment: async (
+    projectId: number,
+    contractId: number,
     amendmentId: number,
     data: Partial<CreateContractAmendmentRequest>
   ): Promise<ContractAmendment> => {
     const response = await put<ContractAmendment>(
-      `/contract-amendments/${amendmentId}`,
+      `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`,
       data
     )
     return response
   },
 
-  deleteContractAmendment: async (amendmentId: number): Promise<void> => {
-    await fetch(`/api/v1/contract-amendments/${amendmentId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    })
+  deleteContractAmendment: async (
+    projectId: number,
+    contractId: number,
+    amendmentId: number
+  ): Promise<void> => {
+    await del<void>(
+      `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`
+    )
   },
 
   // Expert Fee Payments
@@ -137,7 +137,7 @@ export const businessService = {
     projectId: number
   ): Promise<ExpertFeePayment[]> => {
     const response = await get<ExpertFeePayment[]>(
-      `/projects/${projectId}/expert-fee-payments`
+      `/user/projects/${projectId}/expert-fee-payments`
     )
     return response || []
   },
@@ -147,7 +147,7 @@ export const businessService = {
     data: CreateExpertFeePaymentRequest
   ): Promise<ExpertFeePayment> => {
     const response = await post<ExpertFeePayment>(
-      `/projects/${projectId}/expert-fee-payments`,
+      `/user/projects/${projectId}/expert-fee-payments`,
       data
     )
     return response
@@ -155,7 +155,7 @@ export const businessService = {
 
   getExpertFeePayment: async (paymentId: number): Promise<ExpertFeePayment> => {
     const response = await get<ExpertFeePayment>(
-      `/expert-fee-payments/${paymentId}`
+      `/user/expert-fee-payments/${paymentId}`
     )
     return response
   },
@@ -165,20 +165,14 @@ export const businessService = {
     data: Partial<CreateExpertFeePaymentRequest>
   ): Promise<ExpertFeePayment> => {
     const response = await put<ExpertFeePayment>(
-      `/expert-fee-payments/${paymentId}`,
+      `/user/expert-fee-payments/${paymentId}`,
       data
     )
     return response
   },
 
   deleteExpertFeePayment: async (paymentId: number): Promise<void> => {
-    await fetch(`/api/v1/expert-fee-payments/${paymentId}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-    })
+    await del<void>(`/user/expert-fee-payments/${paymentId}`)
   },
 
   // Contract Files
@@ -195,7 +189,7 @@ export const businessService = {
 
     // Don't set Content-Type header - let browser set it automatically with boundary
     const response = await api.post<ApiResponse<File>>(
-      `/contracts/${contractId}/files`,
+      `/user/contracts/${contractId}/files`,
       formData
     )
 
@@ -206,9 +200,9 @@ export const businessService = {
   },
 
   downloadContractFile: async (fileId: number): Promise<void> => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('access_token')
     const response = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'}/contracts/files/${fileId}/download`,
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/project-oa/v1'}/user/contracts/files/${fileId}/download`,
       {
         method: 'GET',
         headers: {
@@ -241,7 +235,7 @@ export const businessService = {
       projectId: undefined, // Remove projectId from params as it's in the path
     }
     const response = await getPaginated<File>(
-      `/projects/${projectId}/contracts/files`,
+      `/user/projects/${projectId}/contracts/files`,
       queryParams
     )
     return {
@@ -255,7 +249,7 @@ export const businessService = {
   // Financial Records
   getProjectFinancial: async (projectId: number): Promise<ProjectFinancial> => {
     const response = await get<ProjectFinancial>(
-      `/projects/${projectId}/financial`
+      `/user/projects/${projectId}/financial`
     )
     return response || ({} as ProjectFinancial)
   },
@@ -265,30 +259,34 @@ export const businessService = {
     data: CreateFinancialRecordRequest
   ): Promise<FinancialRecord> => {
     const response = await post<FinancialRecord>(
-      `/projects/${projectId}/financial`,
+      `/user/projects/${projectId}/financial`,
       data
     )
     return response
   },
 
   updateFinancialRecord: async (
+    projectId: number,
     recordId: number,
     data: Partial<CreateFinancialRecordRequest>
   ): Promise<FinancialRecord> => {
     const response = await put<FinancialRecord>(
-      `/financial-records/${recordId}`,
+      `/user/projects/${projectId}/financial-records/${recordId}`,
       data
     )
     return response
   },
 
-  deleteFinancialRecord: async (recordId: number): Promise<void> => {
-    await del(`/financial-records/${recordId}`)
+  deleteFinancialRecord: async (
+    projectId: number,
+    recordId: number
+  ): Promise<void> => {
+    await del(`/user/projects/${projectId}/financial-records/${recordId}`)
   },
 
   // Bonuses
   getBonuses: async (projectId: number): Promise<Bonus[]> => {
-    const response = await get<Bonus[]>(`/projects/${projectId}/bonuses`)
+    const response = await get<Bonus[]>(`/user/projects/${projectId}/bonuses`)
     return response || []
   },
 
@@ -296,7 +294,7 @@ export const businessService = {
     projectId: number,
     data: CreateBonusRequest
   ): Promise<Bonus> => {
-    const response = await post<Bonus>(`/projects/${projectId}/bonuses`, data)
+    const response = await post<Bonus>(`/user/projects/${projectId}/bonuses`, data)
     return response
   },
 
@@ -304,18 +302,18 @@ export const businessService = {
     bonusId: number,
     data: Partial<CreateBonusRequest>
   ): Promise<Bonus> => {
-    const response = await put<Bonus>(`/bonuses/${bonusId}`, data)
+    const response = await put<Bonus>(`/user/bonuses/${bonusId}`, data)
     return response
   },
 
   deleteBonus: async (bonusId: number): Promise<void> => {
-    await del(`/bonuses/${bonusId}`)
+    await del(`/user/bonuses/${bonusId}`)
   },
 
   // Company revenue statistics
   getCompanyRevenueStatistics: async (): Promise<CompanyRevenueStatistics> => {
     const response = await get<CompanyRevenueStatistics>(
-      '/company-revenue-statistics'
+      '/user/company/revenue'
     )
     return response
   },

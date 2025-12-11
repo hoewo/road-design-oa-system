@@ -3,7 +3,7 @@
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
 **Status**: In Progress  
-**Total Tasks**: 346
+**Total Tasks**: 343
 
 ## Summary
 
@@ -11,7 +11,7 @@
 
 **任务组织**:
 - **Phase 1**: Setup（项目初始化）
-- **Phase 2**: Foundational（现有代码改造 - 路由、认证、数据模型）
+- **Phase 2**: Foundational（现有代码改造 - 路由、认证、数据模型、Auth优化）
 - **Phase 3-8**: User Stories（部分实现，US1-US6）
 
 **关键改造点**:
@@ -23,6 +23,7 @@
 4. 数据模型：统一财务记录、新增项目联系人实体
 5. 存储方案：支持MinIO和OSS切换
 6. 服务注册：生产环境需注册服务到NebulaAuth网关
+7. **Auth优化**（新增）：修复健康检查端点、Token验证响应格式、统一错误响应、规范错误码、添加API_BASE_URL配置、优化环境配置文件管理
 
 ---
 
@@ -200,16 +201,48 @@
 - [X] T091 验证代码编译：运行 `go build` 确保所有编译错误已修复 backend/
 - [X] T092 验证代码运行：运行 `go run cmd/server/main.go` 确保应用可以正常启动 backend/
 
+#### 2.7 Auth 服务对接规范优化
+
+**目标**：根据 `ai-quick-reference.md` 规范，修复 Auth 服务对接中的不符合项，确保完全符合 NebulaAuth 对接要求。
+
+**高优先级任务（影响功能）**：
+
+- [X] T314 修复健康检查端点：在 main.go 中添加符合规范的健康检查端点 `/{service_name}/health`，返回格式包含 status、service、auth_mode、timestamp backend/cmd/server/main.go
+- [X] T315 [P] 修复Token验证API响应格式：添加 ValidateTokenResponse 结构体处理 success 和 data 包装层 backend/internal/middleware/auth.go
+- [X] T316 更新 validateTokenSelfValidate 函数：正确处理响应包装层，先解析包装层再提取 data 字段 backend/internal/middleware/auth.go
+
+**中优先级任务（影响体验）**：
+
+- [X] T317 定义标准错误码常量：在 middleware/auth.go 中定义 UNAUTHORIZED、TOKEN_MISSING、TOKEN_INVALID、VALIDATION_ERROR、FORBIDDEN 常量 backend/internal/middleware/auth.go
+- [X] T318 创建统一错误响应函数：在 pkg/utils/errors.go 中创建 ErrorResponse 函数，返回统一格式 {"error": "错误描述", "code": "ERROR_CODE"} backend/pkg/utils/errors.go
+- [X] T319 更新认证中间件错误响应：将所有错误响应改为使用统一格式和错误码 backend/internal/middleware/auth.go
+- [X] T320 [P] 更新其他中间件错误响应：更新 CORS、错误处理等中间件使用统一错误格式 backend/internal/middleware/*.go
+
+**低优先级任务（影响配置清晰度）**：
+
+- [X] T321 添加 API_BASE_URL 配置：在 config.Config 结构体中添加 APIBaseURL 字段 backend/internal/config/config.go
+- [X] T322 更新配置加载逻辑：在 config.Load() 函数中加载 API_BASE_URL 环境变量 backend/internal/config/config.go
+- [X] T323 更新 env.example：添加 API_BASE_URL 配置项及注释说明 backend/env.example
+- [X] T324 创建 .env.development 文件：创建开发环境配置模板，包含所有必需配置项（AUTH_MODE=self_validate, API_BASE_URL=http://localhost:8080等）backend/.env.development
+- [X] T325 创建 .env.production 文件：创建生产环境配置模板，包含所有必需配置项（AUTH_MODE=gateway, API_BASE_URL=http://your-aliyun-ip:8080等）backend/.env.production
+- [X] T326 优化配置加载逻辑：修改 config.Load() 函数支持根据 ENV 环境变量自动加载对应配置文件（.env.development 或 .env.production）backend/internal/config/config.go
+- [X] T327 实现 .env 本地覆盖支持：在配置加载逻辑中添加 .env 文件覆盖功能（使用 godotenv.Overload）backend/internal/config/config.go
+- [X] T328 更新 .gitignore：确保 .env 文件被忽略，但 .env.development 和 .env.production 可以提交 .gitignore
+
 ---
 
 ## Phase 3: User Story 1 - 账号管理 (P1)
 
 ### Story Goal
-用户可以使用系统管理员线下预设的账号登录系统。系统不提供公开注册功能，所有账号由系统管理员通过直接操作数据库预先创建。
+用户可以使用系统管理员线下预设的账号登录系统。系统采用基于NebulaAuth的验证码登录方式（支持邮箱和手机号），前端直接调用NebulaAuth网关接口，不通过业务服务。系统不提供公开注册功能，所有账号由系统管理员通过直接操作数据库预先创建。
 
 ### Independent Test Criteria
-- 用户可以使用管理员预设的账号凭证登录系统
-- 用户可以通过Header中的用户信息访问系统
+- 用户可以使用邮箱或手机号+验证码登录系统（通过NebulaAuth网关）
+- 验证码发送功能正常工作（邮箱和手机号两种方式）
+- Token（access_token和refresh_token）正确存储到localStorage
+- 所有业务接口请求自动携带Token
+- Token过期时自动刷新，刷新失败跳转登录页
+- 用户可以通过Header中的用户信息访问系统（gateway模式）
 - 系统能够正确识别用户身份
 - 权限控制正常工作
 - 系统不提供注册功能，用户无法自行注册账号
@@ -223,6 +256,39 @@
 - [X] T097 [US1] 更新前端登录页面适配新认证方式，移除注册入口 frontend/src/pages/Login.tsx
 - [X] T098 [US1] 实现前端登录页面提示（如需账号请联系管理员）frontend/src/pages/Login.tsx
 - [X] T099 [US1] 更新前端用户信息显示组件 frontend/src/components/auth/UserInfo.tsx
+
+#### 登录页面改造（基于NebulaAuth验证码登录）
+
+**目标**：将登录页面从用户名+密码方式改造为基于NebulaAuth的验证码登录方式（支持邮箱和手机号），前后端分离，前端直接调用NebulaAuth网关接口。
+
+**执行顺序**：
+1. 配置和类型定义（T329, T344-T347）：必须先完成，为后续任务提供基础
+2. Auth服务改造（T330-T336）：改造authService和API拦截器，支持NebulaAuth接口调用
+3. UI组件实现（T338-T341）：实现验证码输入、倒计时、登录方式选择、错误提示等组件
+4. 登录页面重写（T337）：使用新组件完全重写Login页面
+5. 旧代码清理（T342-T343）：移除旧的用户名密码登录代码和后端登录接口
+
+**注意**：所有任务必须按顺序执行，确保最终功能完整可执行。不需要保留旧代码。
+
+- [X] T329 [US1] [P] 创建前端API配置模块，添加NEBULA_AUTH_URL环境变量支持 frontend/src/config/api.ts
+- [X] T330 [US1] 改造authService.sendVerification方法：调用NebulaAuth网关发送验证码接口（POST /auth-server/v1/public/send_verification）frontend/src/services/auth.ts
+- [X] T331 [US1] 改造authService.login方法：调用NebulaAuth网关登录接口（POST /auth-server/v1/public/login），处理响应格式并存储access_token和refresh_token到localStorage frontend/src/services/auth.ts
+- [X] T332 [US1] 实现authService.refreshToken方法：调用NebulaAuth网关刷新Token接口（POST /auth-server/v1/public/refresh_token）frontend/src/services/auth.ts
+- [X] T333 [US1] 更新authService.getToken方法：从localStorage读取access_token（替换旧的token）frontend/src/services/auth.ts
+- [X] T334 [US1] 更新authService.isAuthenticated方法：检查access_token是否存在 frontend/src/services/auth.ts
+- [X] T335 [US1] 更新API拦截器：从localStorage读取access_token并添加到Authorization Header（替换旧的token）frontend/src/services/api.ts
+- [X] T336 [US1] 实现API响应拦截器：Token过期（401）时自动调用refreshToken刷新，刷新失败跳转登录页 frontend/src/services/api.ts
+- [X] T337 [US1] 完全重写Login页面组件：实现验证码登录流程（选择登录方式、发送验证码、输入验证码、登录），支持邮箱和手机号两种方式，包含所有状态（初始、发送中、已发送、登录中、成功、错误）frontend/src/pages/Login.tsx
+- [X] T338 [US1] 实现验证码输入组件：6位数字输入框，自动聚焦，实时验证格式 frontend/src/components/auth/VerificationCodeInput.tsx
+- [X] T339 [US1] 实现验证码倒计时组件：60秒倒计时，倒计时结束后可重新发送 frontend/src/components/auth/ResendCodeButton.tsx
+- [X] T340 [US1] 实现登录方式选择组件：邮箱登录/手机号登录单选按钮组 frontend/src/components/auth/LoginMethodSelector.tsx
+- [X] T341 [US1] 实现错误提示组件：显示验证码发送失败、验证码错误、账号不存在、网络错误等错误信息 frontend/src/components/auth/LoginErrorAlert.tsx
+- [X] T342 [US1] 移除旧的用户名密码登录相关代码：删除Login页面中的username和password输入框及相关逻辑 frontend/src/pages/Login.tsx
+- [X] T343 [US1] 移除后端登录接口：删除backend中的登录相关handler和service（auth_handler.go中的Login方法，auth_service.go中的Login方法），因为登录完全由NebulaAuth网关处理 backend/internal/handlers/auth_handler.go 和 backend/internal/services/auth_service.go
+- [X] T344 [US1] 更新前端环境变量配置：添加VITE_NEBULA_AUTH_URL配置项 frontend/.env.example
+- [X] T345 [US1] 创建前端开发环境配置：添加NEBULA_AUTH_URL配置 frontend/.env.development
+- [X] T346 [US1] 创建前端生产环境配置：添加NEBULA_AUTH_URL配置 frontend/.env.production
+- [X] T347 [US1] 更新前端类型定义：添加LoginRequest类型（支持email/phone、code、code_type字段），更新LoginResponse类型（包含tokens.access_token和tokens.refresh_token）frontend/src/types/index.ts
 
 ---
 
@@ -345,7 +411,7 @@
 
 1. **Phase 1 (Setup)** → 必须首先完成
 2. **Phase 2 (Foundational)** → 必须在所有用户故事之前完成
-3. **Phase 3 (US1)** → 可以与其他P1故事并行
+3. **Phase 3 (US1)** → 可以与其他P1故事并行，但登录页面改造任务（T329-T347）必须按顺序执行，确保功能完整可执行
 4. **Phase 4 (US2)** → 依赖Phase 2完成
 5. **Phase 5 (US3)** → 依赖Phase 4完成
 6. **Phase 6 (US4)** → 依赖Phase 4和Phase 2完成
@@ -1044,11 +1110,12 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 302/302 (100%) ✅
+**任务进度**: 317/343 (92%)
 
 **任务统计**:
-- Phase 1-2: 59个任务（Setup和Foundational改造）
-- Phase 3-8: 44个任务（US1-US6）
+- Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
+- Phase 3: 28个任务（US1 - 账号管理，包含19个登录页面改造任务）
+- Phase 4-8: 44个任务（US2-US6）
 - Phase 9-14: 50个任务（US7-US12）
 - Phase 15-22: 64个任务（US13-US20）
 - Phase 23-24: 22个任务（US21-US22）
@@ -1056,5 +1123,5 @@
 - Phase 26: 19个任务（US24）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 313个任务
+**总计**: 343个任务（新增15个登录页面改造任务）
 

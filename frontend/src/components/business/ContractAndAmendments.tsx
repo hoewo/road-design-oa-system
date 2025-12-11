@@ -46,7 +46,7 @@ export const ContractAndAmendments = ({
       for (const contract of contracts) {
         try {
           const contractAmendments =
-            await businessService.getContractAmendments(contract.id)
+            await businessService.getContractAmendments(projectId, contract.id)
           amendments.push(
             ...contractAmendments.map((a) => ({
               ...a,
@@ -83,8 +83,16 @@ export const ContractAndAmendments = ({
 
   // 删除补充协议
   const deleteAmendmentMutation = useMutation({
-    mutationFn: (amendmentId: number) =>
-      businessService.deleteContractAmendment(amendmentId),
+    mutationFn: ({
+      projectId,
+      contractId,
+      amendmentId,
+    }: {
+      projectId: number
+      contractId: number
+      amendmentId: number
+    }) =>
+      businessService.deleteContractAmendment(projectId, contractId, amendmentId),
     onSuccess: () => {
       message.success('补充协议删除成功')
       queryClient.invalidateQueries({
@@ -137,8 +145,12 @@ export const ContractAndAmendments = ({
     setAmendmentModalVisible(true)
   }
 
-  const handleDeleteAmendment = (amendment: ContractAmendment) => {
-    deleteAmendmentMutation.mutate(amendment.id)
+  const handleDeleteAmendment = (amendment: ContractAmendment & { contract_id: number }) => {
+    deleteAmendmentMutation.mutate({
+      projectId,
+      contractId: amendment.contract_id,
+      amendmentId: amendment.id,
+    })
   }
 
   const handleContractModalClose = () => {
@@ -380,6 +392,7 @@ export const ContractAndAmendments = ({
       >
         {contractId && (
           <ContractAmendmentForm
+            projectId={projectId}
             contractId={contractId}
             amendmentId={editingAmendment?.id}
             onSuccess={handleAmendmentSuccess}

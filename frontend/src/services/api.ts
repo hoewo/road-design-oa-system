@@ -1,36 +1,9 @@
 import axios from 'axios'
 import type { PaginatedResponse } from '@/types'
+import { apiConfig } from '@/config/api'
+import { authService } from './auth'
 
-const resolveApiBaseUrl = () => {
-  const globalWindow = typeof window !== 'undefined' ? window : undefined
-  if (globalWindow && (globalWindow as any).__APP_API_BASE_URL__) {
-    return (globalWindow as any).__APP_API_BASE_URL__
-  }
-
-  const viteValue = (() => {
-    try {
-      // Use Function to avoid syntax issues in non-Vite environments (e.g., Jest)
-      return Function(
-        'return (typeof import !== "undefined" && import.meta && import.meta.env && import.meta.env.VITE_API_BASE_URL) || undefined'
-      )()
-    } catch {
-      return undefined
-    }
-  })()
-
-  if (viteValue) {
-    return viteValue
-  }
-
-  const nodeProcess = (globalThis as any).process
-  if (nodeProcess?.env?.VITE_API_BASE_URL) {
-    return nodeProcess.env.VITE_API_BASE_URL
-  }
-
-  return 'http://localhost:8080/project-oa/v1'
-}
-
-const API_BASE_URL = resolveApiBaseUrl()
+const API_BASE_URL = apiConfig.apiBaseURL
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -43,7 +16,8 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    // 从localStorage读取access_token（替换旧的token）
+    const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -58,16 +32,45 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor to handle errors
+// Response interceptor to handle errors and token refresh
 api.interceptors.response.use(
   (response) => {
     return response
   },
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+  async (error) => {
+    const originalRequest = error.config
+
+    // Token过期（401错误）时自动刷新
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+
+      try {
+        // 尝试刷新Token
+        await authService.refreshToken()
+
+        // 刷新成功，使用新的token重试原请求
+        const newToken = localStorage.getItem('access_token')
+        if (newToken) {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+        }
+        return api(originalRequest)
+      } catch (refreshError) {
+        // 刷新失败，清除所有token并跳转登录页
+        console.error('[API Interceptor] Token refresh failed:', refreshError)
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('token') // 清除旧的token（如果存在）
+        
+        // 触发自定义事件，通知认证状态已改变
+        window.dispatchEvent(new Event('auth-state-change'))
+        
+        // 跳转到登录页
+        window.location.href = '/login'
+        
+        return Promise.reject(refreshError)
+      }
     }
+
     return Promise.reject(error)
   }
 )

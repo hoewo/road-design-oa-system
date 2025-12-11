@@ -275,13 +275,18 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000
 ### 前端环境变量
 
 ```env
-# API配置
-REACT_APP_API_BASE_URL=http://localhost:8080/api/v1
-REACT_APP_API_TIMEOUT=10000
+# API配置（Vite项目，必须使用VITE_前缀）
+VITE_API_BASE_URL=http://localhost:8082/project-oa/v1
+VITE_NEBULA_AUTH_URL=http://localhost:8080
+VITE_API_TIMEOUT=10000
+
+# 文件上传配置
+VITE_MAX_FILE_SIZE=104857600
+VITE_ALLOWED_FILE_TYPES=.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png
 
 # 应用配置
-REACT_APP_APP_NAME=项目管理OA系统
-REACT_APP_VERSION=1.0.0
+VITE_APP_NAME=道路设计公司项目管理系统
+VITE_VERSION=1.0.0
 ```
 
 ## 贡献指南

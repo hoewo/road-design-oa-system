@@ -80,7 +80,9 @@ const ContractDetail = () => {
       </Card>
 
       <Card title="补充协议" style={{ marginTop: 16 }}>
-        <ContractAmendmentList contractId={contractId} />
+        {contract.project_id && (
+          <ContractAmendmentList projectId={contract.project_id} contractId={contractId} />
+        )}
       </Card>
 
       <Card title="合同文件管理" style={{ marginTop: 16 }}>

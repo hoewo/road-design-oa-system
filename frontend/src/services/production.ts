@@ -18,7 +18,7 @@ export const productionService = {
     projectId: number,
     data: FormData
   ): Promise<ProductionFile> => {
-    return post<ProductionFile>(`/projects/${projectId}/production/files`, data)
+    return post<ProductionFile>(`/user/projects/${projectId}/production/files`, data)
   },
 
   listProductionFiles: async (
@@ -33,7 +33,7 @@ export const productionService = {
     }
   ): Promise<PaginatedResponse<ProductionFile>> => {
     return getPaginated<ProductionFile>(
-      `/projects/${projectId}/production/files`,
+      `/user/projects/${projectId}/production/files`,
       params
     )
   },
@@ -43,10 +43,10 @@ export const productionService = {
     fileId: number
   ): Promise<Blob> => {
     const response = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'}/projects/${projectId}/production/files/${fileId}/download`,
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/project-oa/v1'}/user/projects/${projectId}/production/files/${fileId}/download`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
         },
       }
     )
@@ -61,7 +61,7 @@ export const productionService = {
     projectId: number
   ): Promise<DisciplineAssignmentResponse[]> => {
     return get<DisciplineAssignmentResponse[]>(
-      `/projects/${projectId}/production/discipline-assignments`
+      `/user/projects/${projectId}/production/discipline-assignments`
     )
   },
 
@@ -70,7 +70,7 @@ export const productionService = {
     data: ReplaceDisciplineAssignmentsRequest
   ): Promise<DisciplineAssignmentResponse[]> => {
     return put<DisciplineAssignmentResponse[]>(
-      `/projects/${projectId}/production/discipline-assignments`,
+      `/user/projects/${projectId}/production/discipline-assignments`,
       data
     )
   },
@@ -86,7 +86,7 @@ export const productionService = {
     }
   ): Promise<PaginatedResponse<ProductionApprovalRecord>> => {
     return getPaginated<ProductionApprovalRecord>(
-      `/projects/${projectId}/production/approvals`,
+      `/user/projects/${projectId}/production/approvals`,
       params
     )
   },
@@ -96,7 +96,7 @@ export const productionService = {
     data: CreateProductionApprovalRequest
   ): Promise<ProductionApprovalRecord> => {
     return post<ProductionApprovalRecord>(
-      `/projects/${projectId}/production/approvals`,
+      `/user/projects/${projectId}/production/approvals`,
       data
     )
   },
@@ -111,7 +111,7 @@ export const productionService = {
     }
   ): Promise<PaginatedResponse<ExternalCommission>> => {
     return getPaginated<ExternalCommission>(
-      `/projects/${projectId}/production/external-commissions`,
+      `/user/projects/${projectId}/production/external-commissions`,
       params
     )
   },
@@ -121,20 +121,20 @@ export const productionService = {
     data: CreateExternalCommissionRequest
   ): Promise<ExternalCommission> => {
     return post<ExternalCommission>(
-      `/projects/${projectId}/production/external-commissions`,
+      `/user/projects/${projectId}/production/external-commissions`,
       data
     )
   },
 
   // Production Cost operations
   listCosts: async (projectId: number): Promise<ProductionCost[]> => {
-    return get<ProductionCost[]>(`/projects/${projectId}/production/costs`)
+    return get<ProductionCost[]>(`/user/projects/${projectId}/production/costs`)
   },
 
   createCost: async (
     projectId: number,
     data: CreateProductionCostRequest
   ): Promise<ProductionCost> => {
-    return post<ProductionCost>(`/projects/${projectId}/production/costs`, data)
+    return post<ProductionCost>(`/user/projects/${projectId}/production/costs`, data)
   },
 }

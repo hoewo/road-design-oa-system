@@ -17,6 +17,7 @@ import dayjs from 'dayjs'
 const { TextArea } = Input
 
 interface ContractAmendmentFormProps {
+  projectId: number
   contractId: number
   amendmentId?: number
   onSuccess?: () => void
@@ -24,6 +25,7 @@ interface ContractAmendmentFormProps {
 }
 
 export const ContractAmendmentForm = ({
+  projectId,
   contractId,
   amendmentId,
   onSuccess,
@@ -34,11 +36,11 @@ export const ContractAmendmentForm = ({
 
   const createMutation = useMutation({
     mutationFn: (data: CreateContractAmendmentRequest) =>
-      businessService.createContractAmendment(contractId, data),
+      businessService.createContractAmendment(projectId, contractId, data),
     onSuccess: () => {
       message.success('补充协议创建成功')
       queryClient.invalidateQueries({
-        queryKey: ['contractAmendments', contractId],
+        queryKey: ['contractAmendments', projectId, contractId],
       })
       form.resetFields()
       onSuccess?.()

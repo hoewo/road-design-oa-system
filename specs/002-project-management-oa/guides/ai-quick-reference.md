@@ -6,29 +6,14 @@
 
 ## 📋 系统概述
 
-### 架构图
-
-```
-客户端 → API Gateway (8080) → 业务服务器
-```
-
 NebulaAuth 作为统一的认证网关，业务服务器作为外部服务接入。
 
-### 核心概念
+### 认证模式对比
 
-#### 认证模式对比
-
-| 模式 | 环境 | 工作原理 | 性能 | 使用场景 |
-|------|------|---------|------|---------|
-| `self_validate` | 开发 | 业务服务器调用 NebulaAuth API 验证 Token | 较慢（网络调用，10-50ms） | 本地开发测试 |
-| `gateway` | 生产 | 从网关注入的 Header 读取用户信息 | 快（直接读取，<1ms） | 生产环境部署 |
-
-#### 架构流程
-
-```
-开发环境: 客户端 → 本地服务器 → NebulaAuth API (验证)
-生产环境: 客户端 → NebulaAuth 网关 → 业务服务器 (Header)
-```
+| 模式 | 环境 | 工作原理 | 使用场景 |
+|------|------|---------|---------|
+| `self_validate` | 开发 | 业务服务器调用 NebulaAuth API 验证 Token | 本地开发测试 |
+| `gateway` | 生产 | 从网关注入的 Header 读取用户信息 | 生产环境部署 |
 
 ## 🎯 开发规范
 
@@ -58,12 +43,25 @@ GET  /your-service/health                  # 健康检查（例外）
 
 ### 认证级别
 
+**选择规则**：业务服务根据实际需求选择认证级别，不是所有服务都需要支持所有四种级别。
+
 | 认证级别 | 说明 | 认证要求 | 适用场景 |
 |---------|------|---------|---------|
 | `public` | 公开接口 | 无需认证 | 健康检查、登录注册、验证码发送 |
 | `user` | 用户接口 | JWT Token 认证 | 用户信息管理、个人设置 |
 | `apikey` | API密钥接口 | API密钥认证 | 服务间调用、第三方集成 |
 | `admin` | 管理接口 | 管理员权限 | 系统管理、用户管理 |
+
+#### 认证级别选择表
+
+| 服务类型 | 需要的认证级别 | 路由示例 |
+|---------|--------------|---------|
+| 简单用户服务 | `public` + `user` | `/{service}/v1/public/*`, `/{service}/v1/user/*` |
+| 需要第三方集成 | `public` + `user` + `apikey` | `/{service}/v1/public/*`, `/{service}/v1/user/*`, `/{service}/v1/apikey/*` |
+| 需要管理功能 | `public` + `user` + `admin` | `/{service}/v1/public/*`, `/{service}/v1/user/*`, `/{service}/v1/admin/*` |
+| 完整平台服务 | 所有四种级别 | `/{service}/v1/public/*`, `/{service}/v1/user/*`, `/{service}/v1/apikey/*`, `/{service}/v1/admin/*` |
+
+**注意**：所有服务必须实现 `public` 级别的健康检查接口 `/{service}/health`
 
 ### Header 规范
 
@@ -77,7 +75,7 @@ X-User-AppID: <string>         # 应用ID
 X-User-SessionID: <uuid>       # 会话ID（UUID格式）
 ```
 
-**注意**: 外部服务不会收到 `X-User-Role` 和 `X-User-IsAdmin` header（出于安全考虑）。
+**注意**: 外部服务不会收到 `X-User-Role` 和 `X-User-IsAdmin` header。
 
 **apikey 级别**：
 ```
@@ -88,7 +86,7 @@ X-User-Allowed-Services: <json_array>   # 允许访问的服务列表
 X-Auth-Type: apikey
 ```
 
-**重要**: `X-User-Permissions` 和 `X-User-Allowed-Services` 是 JSON 字符串，需要解析。
+**注意**: `X-User-Permissions` 和 `X-User-Allowed-Services` 是 JSON 字符串，需要解析。
 
 #### 客户端请求 Header
 
@@ -96,6 +94,83 @@ X-Auth-Type: apikey
 Authorization: Bearer <jwt_token>        # JWT token认证
 Authorization: Bearer ak_<api_key>       # API密钥认证
 ```
+
+### 客户端调用方式
+
+#### 客户端配置规则
+
+| 环境 | API_BASE_URL | 用途 |
+|------|-------------|------|
+| **开发环境** | `http://localhost:8080` | 直接调用本地业务服务器 |
+| **生产环境** | `http://your-aliyun-ip:8080` | 通过 NebulaAuth 网关调用 |
+
+#### 客户端代码模板
+
+```javascript
+// config/api.js
+const config = {
+  development: {
+    apiBaseURL: 'http://localhost:8080',
+    nebulaAuthURL: 'http://your-aliyun-ip:8080',
+  },
+  production: {
+    apiBaseURL: 'http://your-aliyun-ip:8080',  // 网关地址
+    nebulaAuthURL: 'http://your-aliyun-ip:8080',  // 网关地址
+  }
+};
+
+// 登录获取 Token（详细接口参数见 API 文档）
+async function login(email, code) {
+  const response = await fetch(`${config[env].nebulaAuthURL}/auth-server/v1/public/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, code_type: 'email', purpose: 'login' })
+  });
+  const data = await response.json();
+  return data.data.tokens.access_token;
+}
+// 详细接口文档：api/auth-server.md
+
+// 调用业务接口
+async function getUserProfile(token) {
+  const response = await fetch(`${config[env].apiBaseURL}/your-service/v1/user/profile`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return await response.json();
+}
+```
+
+#### AI 开发检查清单
+
+- [ ] 开发环境：客户端 `API_BASE_URL = http://localhost:8080`
+- [ ] 生产环境：客户端 `API_BASE_URL = http://your-aliyun-ip:8080`（网关地址）
+- [ ] 所有业务接口请求发送到 `API_BASE_URL`，添加 `Authorization: Bearer <token>` Header
+- [ ] 不要直接调用业务服务器域名
+
+### 多应用管理
+
+**AppID 机制**：通过 `X-App-ID` Header 区分不同应用，业务服务从 `X-User-AppID` Header 获取。
+
+**使用方式**：
+- 客户端登录时添加 `X-App-ID: <your-app-id>` Header
+- 如果不提供，默认使用 `"default"`
+- 业务服务从 `X-User-AppID` Header 读取应用ID
+
+### 客户端认证流程
+
+**认证流程**：
+1. 发送验证码：`POST /auth-server/v1/public/send_verification`
+2. 用户登录：`POST /auth-server/v1/public/login` → 获取 `access_token` 和 `refresh_token`
+3. 刷新 Token：`POST /auth-server/v1/public/refresh_token`（Token 过期时使用）
+
+**可选功能**：
+- 用户注册：`POST /auth-server/v1/public/register`（如需禁用，应在网关层拦截）
+
+**详细接口文档**：参见 [auth-server API 文档](api/auth-server.md)
+
+**注意**：如需禁用注册功能，应在网关层拦截注册接口。
 
 ### 错误处理规范
 
@@ -126,38 +201,96 @@ Authorization: Bearer ak_<api_key>       # API密钥认证
 
 ```
 your-service/
-├── .env.development      # 开发环境配置
-├── .env.production       # 生产环境配置
+├── env.example              # 完整配置模板（提交到 Git）
+├── .env                     # 本地个人配置（不提交，可选）
 ├── config/
-│   └── env.go           # 环境配置
+│   └── env.go              # 环境配置加载逻辑
 ├── middleware/
-│   └── auth.go          # 统一认证中间件
+│   └── auth.go             # 统一认证中间件
 ├── handlers/
-│   └── user.go          # 业务处理器
-└── main.go              # 主程序
+│   └── user.go             # 业务处理器
+└── main.go                 # 主程序
 ```
 
-#### 2. 环境配置
+#### 2. 环境配置文件说明
 
-**`.env.development`**:
+**文件用途**：
+
+| 文件 | 用途 | 是否提交 | 说明 |
+|------|------|---------|------|
+| `env.example` | 完整配置模板 | ✅ 提交 | 包含所有配置项和说明，供参考 |
+| `.env` | 本地个人配置 | ❌ 不提交 | 用于本地开发配置，从 env.example 复制并修改 |
+
+**配置加载优先级**（从高到低）：
+1. 系统环境变量（优先级最高）
+2. `.env`（如果存在，用于本地开发）
+3. `env.example`（仅作为参考，不会被加载）
+
+#### 3. 环境配置文件内容
+
+**`env.example`**（完整配置模板）:
 ```bash
+# ============================================
+# NebulaAuth 业务服务环境配置模板
+# ============================================
+# 复制此文件为 .env 并根据实际情况修改配置值
+
+# 环境标识
+NODE_ENV=development                    # development | production
+
+# 认证模式
+AUTH_MODE=self_validate                 # self_validate | gateway
+                                        # self_validate: 开发环境，自己验证 Token
+                                        # gateway: 生产环境，从 Header 读取用户信息
+
+# NebulaAuth 服务地址
+NEBULA_AUTH_URL=http://your-aliyun-ip:8080
+
+# API 基础地址
+API_BASE_URL=http://localhost:8080     # 开发环境: localhost:8080
+                                        # 生产环境: 网关地址 (your-aliyun-ip:8080)
+
+# 服务配置
+SERVICE_NAME=your-service               # 服务名称（用于路由）
+SERVICE_PORT=8080                      # 服务端口
+SERVICE_HOST=localhost                  # 服务主机（生产环境填写实际 IP）
+```
+
+**`.env`**（本地开发配置，从 env.example 复制）:
+```bash
+# 本地开发环境配置
+# 从 env.example 复制后，根据实际情况修改以下配置
+
+# 环境标识
 NODE_ENV=development
-AUTH_MODE=self_validate          # 自己验证 Token
+
+# 认证模式（开发环境使用 self_validate）
+AUTH_MODE=self_validate
+
+# NebulaAuth 服务地址（根据实际情况修改）
 NEBULA_AUTH_URL=http://your-aliyun-ip:8080
+
+# API 基础地址（开发环境使用本地地址）
 API_BASE_URL=http://localhost:8080
+
+# 服务配置
 SERVICE_NAME=your-service
 SERVICE_PORT=8080
+SERVICE_HOST=localhost
 ```
 
-**`.env.production`**:
-```bash
-NODE_ENV=production
-AUTH_MODE=gateway                # 通过网关（从 Header 读取）
-NEBULA_AUTH_URL=http://your-aliyun-ip:8080
-API_BASE_URL=http://your-aliyun-ip:8080
-SERVICE_NAME=your-service
-SERVICE_PORT=8080
-SERVICE_HOST=your-cloud-ip      # 云端服务器 IP
+**注意**：
+- `.env` 文件仅用于**本地开发**，不要提交到 Git
+- **生产环境必须使用系统环境变量**，不要使用 `.env` 文件
+
+**`.gitignore`** 配置:
+```gitignore
+# 环境配置文件
+.env                    # 本地个人配置，不提交
+.env.local              # 本地配置，不提交
+
+# 注意：以下文件应该提交到 Git
+# env.example
 ```
 
 #### 3. 统一认证中间件实现
@@ -308,6 +441,7 @@ func selfValidateAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
     }
 }
 
+// validateTokenWithNebulaAuth 验证 Token（详细接口参数见 api/auth-server.md）
 func validateTokenWithNebulaAuth(baseURL, token string) (*ValidateTokenResponse, error) {
     reqBody := map[string]string{"token": token}
     jsonData, _ := json.Marshal(reqBody)
@@ -383,6 +517,7 @@ async function selfValidateAuth(req, res, next) {
   const token = authHeader.substring(7);
   
   try {
+    // 详细接口参数见 api/auth-server.md
     const response = await axios.post(
       `${config.nebulaAuthURL}/auth-server/v1/public/auth/validate`,
       { token }
@@ -415,23 +550,20 @@ module.exports = authMiddleware;
 #### 4. 本地开发测试流程
 
 ```bash
-# 1. 加载开发环境变量
-export $(cat .env.development | xargs)
+# 1. 加载环境变量
+export $(cat .env | xargs)
 
 # 2. 启动本地服务
 go run main.go
 # 或
 npm start
 
-# 3. 获取 Token
+# 3. 获取 Token（详细接口参数见 API 文档）
 TOKEN=$(curl -s -X POST http://your-aliyun-ip:8080/auth-server/v1/public/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "code": "123456",
-    "code_type": "email",
-    "purpose": "login"
-  }' | jq -r '.data.tokens.access_token')
+  -d '{"email": "test@example.com", "code": "123456", "code_type": "email", "purpose": "login"}' \
+  | jq -r '.data.tokens.access_token')
+# 详细接口文档：api/auth-server.md
 
 # 4. 测试本地接口（直接访问，不通过网关）
 curl -H "Authorization: Bearer $TOKEN" \
@@ -458,18 +590,83 @@ r.GET("/your-service/health", func(c *gin.Context) {
 
 #### 2. 注册服务到 NebulaAuth
 
+**重要说明：服务注册是手动操作，不是自动的**
+
+**注册时机**：
+- **首次部署**：服务部署完成后，在启动前或启动后手动注册一次
+- **服务地址变更**：当服务 IP、端口或 URL 变更时，需要更新注册信息
+- **不需要每次启动都注册**：注册信息会持久化存储，服务重启不需要重新注册
+
+**注册方式**：通过 API 手动调用（可以使用脚本自动化，但不是服务启动时自动执行）
+
+##### 方式一：使用注册脚本（推荐，最简单）
+
+使用 `scripts/register-service.sh` 脚本可以快速注册服务，自动处理登录、获取Token和注册流程：
+
 ```bash
-# 1. 获取管理员 Token
+# 基本用法（使用邮箱登录）
+./scripts/register-service.sh \
+  -n your-service \
+  -h your-cloud-ip \
+  -p 8080 \
+  -e admin@example.com
+
+# 使用手机号登录
+./scripts/register-service.sh \
+  -n your-service \
+  -h your-cloud-ip \
+  -p 8080 \
+  -P 13800138000 \
+  -t sms
+
+# 使用已有Token（跳过登录）
+./scripts/register-service.sh \
+  -n your-service \
+  -h your-cloud-ip \
+  -p 8080 \
+  --token "eyJhbGc..." \
+  --user-id "uuid-here"
+
+# 使用环境变量配置
+export SERVICE_NAME=your-service
+export ADMIN_EMAIL=admin@example.com
+export SERVICE_HOST=your-cloud-ip
+export SERVICE_PORT=8080
+export API_GATEWAY_URL=http://your-aliyun-ip:8080
+./scripts/register-service.sh
+```
+
+**脚本参数说明**：
+- `-n, --service-name`: 业务服务名称（必填）
+- `-h, --service-host`: 业务服务主机地址
+- `-p, --service-port`: 业务服务端口
+- `-e, --admin-email`: 管理员邮箱（用于登录）
+- `-P, --admin-phone`: 管理员手机号（用于登录）
+- `-c, --code`: 验证码（不提供会提示输入）
+- `-g, --gateway-url`: API网关地址（默认: http://localhost:8080）
+- `--token`: 直接使用管理员Token（跳过登录）
+- `--user-id`: 直接使用管理员用户ID
+
+**完整帮助**: 运行 `./scripts/register-service.sh --help` 查看所有选项
+
+##### 方式二：手动调用 API
+
+如果不想使用脚本，也可以手动调用 API：
+
+```bash
+# 1. 发送验证码
+curl -X POST http://your-aliyun-ip:8080/auth-server/v1/public/send_verification \
+  -H "Content-Type: application/json" \
+  -d '{"code_type": "email", "target": "admin@example.com", "purpose": "login"}'
+
+# 2. 获取管理员 Token（详细接口参数见 API 文档）
 ADMIN_TOKEN=$(curl -s -X POST http://your-aliyun-ip:8080/auth-server/v1/public/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@example.com",
-    "code": "123456",
-    "code_type": "email",
-    "purpose": "login"
-  }' | jq -r '.data.tokens.access_token')
+  -d '{"email": "admin@example.com", "code": "123456", "code_type": "email", "purpose": "login"}' \
+  | jq -r '.data.tokens.access_token')
+# 详细接口文档：api/auth-server.md
 
-# 2. 注册服务
+# 3. 注册服务（首次部署时执行）
 curl -X POST http://your-aliyun-ip:8080/service-registry/v1/admin/services \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
@@ -477,13 +674,14 @@ curl -X POST http://your-aliyun-ip:8080/service-registry/v1/admin/services \
     "server_name": "your-service",
     "host": "your-cloud-ip",
     "port": 8080,
-    "url": "http://your-cloud-ip:8080"
+    "url": "http://your-cloud-ip:8080",
+    "user_id": "admin-user-uuid"
   }'
 ```
 
-**服务名重复处理**:
+**服务名重复处理**（服务地址变更时使用）:
 ```bash
-# 如果服务名已存在，使用更新接口
+# 如果服务名已存在，使用更新接口更新地址
 curl -X PUT http://your-aliyun-ip:8080/service-registry/v1/admin/services/your-service \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
@@ -494,16 +692,49 @@ curl -X PUT http://your-aliyun-ip:8080/service-registry/v1/admin/services/your-s
   }'
 ```
 
+**自动化建议**（可选）：
+- 可以在部署脚本中集成服务注册步骤（使用 `register-service.sh` 脚本）
+- 可以在 CI/CD 流程中添加服务注册步骤
+- 但不建议在业务服务器启动代码中自动注册（避免循环依赖和启动失败风险）
+
 #### 3. 生产环境部署步骤
+
+**重要**：生产环境**必须使用系统环境变量**，不要使用 `.env` 文件。
 
 ```bash
 # 1. 部署代码到服务器
 scp -r your-service user@server:/opt/
 
-# 2. 加载生产环境变量
-export $(cat .env.production | xargs)
+# 2. 设置系统环境变量（推荐方式）
+# 方式一：使用 systemd service 文件（推荐）
+# 编辑 /etc/systemd/system/your-service.service
+# [Service]
+# Environment="NODE_ENV=production"
+# Environment="AUTH_MODE=gateway"
+# Environment="NEBULA_AUTH_URL=http://your-aliyun-ip:8080"
+# Environment="API_BASE_URL=http://your-aliyun-ip:8080"
+# Environment="SERVICE_NAME=your-service"
+# Environment="SERVICE_PORT=8080"
+# Environment="SERVICE_HOST=your-cloud-ip"
+
+# 方式二：使用 Docker Compose（推荐）
+# 在 docker-compose.yml 中使用 environment 或 env_file
+# environment:
+#   - NODE_ENV=production
+#   - AUTH_MODE=gateway
+#   # ... 其他配置
+
+# 方式三：临时设置（仅用于测试，不推荐生产使用）
+# export NODE_ENV=production
+# export AUTH_MODE=gateway
+# export NEBULA_AUTH_URL=http://your-aliyun-ip:8080
+# export API_BASE_URL=http://your-aliyun-ip:8080
+# export SERVICE_NAME=your-service
+# export SERVICE_PORT=8080
+# export SERVICE_HOST=your-cloud-ip
 
 # 3. 启动服务
+systemctl daemon-reload
 systemctl start your-service
 # 或使用 Docker
 docker-compose up -d
@@ -528,6 +759,10 @@ curl -H "Authorization: Bearer $ADMIN_TOKEN" \
 ```
 
 ## 🛠️ 业务开发指南
+
+### 认证级别选择
+
+根据服务类型选择认证级别（参考上方的认证级别选择表）。示例代码展示了所有级别，实际开发时只实现需要的级别。
 
 ### 完整服务示例（Go）
 
@@ -587,7 +822,7 @@ func main() {
         permissionsJSON := c.GetHeader("X-User-Permissions")
         var permissions []string
         if permissionsJSON != "" {
-            json.Unmarshal([]byte(permissionsJSON), &permissions)
+        json.Unmarshal([]byte(permissionsJSON), &permissions)
         }
         c.JSON(200, gin.H{"permissions": permissions})
     })
@@ -601,267 +836,98 @@ func main() {
 }
 ```
 
-### 完整服务示例（Node.js）
-
-```javascript
-const express = require('express');
-const authMiddleware = require('./middleware/auth');
-const config = require('./config/env');
-
-const app = express();
-app.use(express.json());
-
-// 健康检查
-app.get(`/${config.serviceName}/health`, (req, res) => {
-  res.json({
-    status: 'ok',
-    service: config.serviceName,
-    auth_mode: config.authMode,
-  });
-});
-
-// 公开接口
-app.get(`/${config.serviceName}/v1/public/info`, (req, res) => {
-  res.json({ message: '这是公开接口' });
-});
-
-// 需要认证的接口
-app.use(`/${config.serviceName}/v1`, authMiddleware);
-
-app.get(`/${config.serviceName}/v1/user/profile`, (req, res) => {
-  res.json({
-    user_id: req.user.id,
-    username: req.user.username,
-    is_admin: req.user.isAdmin,
-    message: '用户信息获取成功',
-  });
-});
-
-app.listen(config.servicePort, () => {
-  console.log(`服务启动在端口 ${config.servicePort}，认证模式: ${config.authMode}`);
-});
-```
-
-### 完整服务示例（Python/Flask）
-
-```python
-from flask import Flask, request, jsonify
-import time
-
-app = Flask(__name__)
-
-# 健康检查
-@app.route('/your-service/health', methods=['GET'])
-def health():
-    return jsonify({
-        'status': 'ok',
-        'service': 'your-service',
-        'timestamp': int(time.time())
-    })
-
-# 公开接口
-@app.route('/your-service/v1/public/info', methods=['GET'])
-def public_info():
-    return jsonify({'message': '这是公开接口，无需认证'})
-
-# 用户接口
-@app.route('/your-service/v1/user/profile', methods=['GET'])
-def user_profile():
-    user_id = request.headers.get('X-User-ID')
-    username = request.headers.get('X-User-Username')
-    
-    if not user_id:
-        return jsonify({'error': '未获取到用户信息'}), 401
-    
-    return jsonify({
-        'message': '用户信息获取成功',
-        'user': {
-            'id': user_id,
-            'username': username,
-        }
-    })
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
-```
 
 ## 🔍 调试指南
 
-### 本地调试方法
-
-#### 1. 查看当前认证模式
+### 关键调试命令
 
 ```bash
-# 健康检查接口会返回当前认证模式
+# 查看当前认证模式
 curl http://localhost:8080/your-service/health
 
-# 响应示例：
-# {
-#   "status": "ok",
-#   "service": "your-service",
-#   "auth_mode": "self_validate"  # 或 "gateway"
-# }
-```
-
-#### 2. 测试 Token 验证
-
-```bash
-# 直接调用 NebulaAuth 验证 API
+# 测试 Token 验证（详细接口参数见 API 文档）
 curl -X POST http://your-aliyun-ip:8080/auth-server/v1/public/auth/validate \
-  -H "Content-Type: application/json" \
-  -d '{"token": "your-token-here"}'
-```
+  -H "Content-Type: application/json" -d '{"token": "your-token"}'
+# 详细接口文档：api/auth-server.md
 
-#### 3. 日志记录
-
-在中间件中添加日志：
-
-```go
-func selfValidateAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        log.Printf("[AUTH] 使用自己验证模式，调用 NebulaAuth API: %s", cfg.NebulaAuthURL)
-        // ...
-    }
-}
-```
-
-### 生产环境调试
-
-#### 1. 检查服务注册状态
-
-```bash
-curl -H "Authorization: Bearer $ADMIN_TOKEN" \
-  http://your-aliyun-ip:8080/service-registry/v1/admin/services/your-service
-```
-
-#### 2. 查看网关日志
-
-```bash
-docker-compose logs api-gateway
-```
-
-#### 3. 测试网关路由
-
-```bash
-# 测试路由是否正确转发
-curl -v http://your-aliyun-ip:8080/your-service/v1/user/profile \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-### 常见问题排查
-
-#### 问题 1: 本地开发时 Token 验证失败
-
-**症状**: `验证 Token 失败: connection refused`
-
-**解决方案**:
-```bash
-# 1. 检查配置
-echo $NEBULA_AUTH_URL
-
-# 2. 测试连接
-curl http://your-aliyun-ip:8080/health
-
-# 3. 检查网络
-ping your-aliyun-ip
-```
-
-#### 问题 2: 生产环境无法获取用户信息
-
-**症状**: `未认证: X-User-ID header 为空`
-
-**解决方案**:
-```bash
-# 1. 检查服务注册
+# 检查服务注册状态（生产环境）
 curl -H "Authorization: Bearer $ADMIN_TOKEN" \
   http://your-aliyun-ip:8080/service-registry/v1/admin/services/your-service
 
-# 2. 检查路由
-curl -v http://your-aliyun-ip:8080/your-service/v1/user/profile
-
-# 3. 查看网关日志
+# 查看网关日志（生产环境）
 docker-compose logs api-gateway
 ```
 
-#### 问题 3: 环境切换后功能异常
+## 🚀 快速部署
 
-**症状**: `切换环境后，认证失败`
-
-**解决方案**:
-```bash
-# 1. 确认环境变量
-env | grep AUTH_MODE
-
-# 2. 重启服务
-systemctl restart your-service
-
-# 3. 检查健康检查接口
-curl http://localhost:8080/your-service/health
-```
-
-## 🚀 部署流程
-
-### 本地开发环境设置
+### 本地开发
 
 ```bash
-# 1. 创建项目目录
-mkdir your-service
-cd your-service
+# 1. 从模板创建配置文件
+cp env.example .env
+# 编辑 .env，修改配置值
 
-# 2. 创建环境配置文件
-cat > .env.development << EOF
-NODE_ENV=development
-AUTH_MODE=self_validate
-NEBULA_AUTH_URL=http://your-aliyun-ip:8080
-API_BASE_URL=http://localhost:8080
-SERVICE_NAME=your-service
-SERVICE_PORT=8080
-EOF
-
-# 3. 加载环境变量
-export $(cat .env.development | xargs)
-
-# 4. 启动服务
+# 2. 加载环境变量并启动
+export $(cat .env | xargs)
 go run main.go
 ```
 
-### 生产环境部署步骤
+### 生产部署
+
+**重要**：生产环境**必须使用系统环境变量**，不要使用 `.env` 文件。
 
 ```bash
-# 1. 在云端服务器上创建项目目录
-mkdir -p /opt/your-service
-cd /opt/your-service
+# 1. 设置系统环境变量（选择一种方式）
 
-# 2. 上传代码（使用 git、scp 等）
+# 方式一：使用 systemd service 文件（推荐）
+# 编辑 /etc/systemd/system/your-service.service
+# [Service]
+# Environment="NODE_ENV=production"
+# Environment="AUTH_MODE=gateway"
+# Environment="NEBULA_AUTH_URL=http://your-aliyun-ip:8080"
+# Environment="API_BASE_URL=http://your-aliyun-ip:8080"
+# Environment="SERVICE_NAME=your-service"
+# Environment="SERVICE_PORT=8080"
+# Environment="SERVICE_HOST=your-cloud-ip"
 
-# 3. 创建生产环境配置
-cat > .env.production << EOF
-NODE_ENV=production
-AUTH_MODE=gateway
-NEBULA_AUTH_URL=http://your-aliyun-ip:8080
-API_BASE_URL=http://your-aliyun-ip:8080
-SERVICE_NAME=your-service
-SERVICE_PORT=8080
-SERVICE_HOST=your-cloud-ip
-EOF
+# 方式二：使用 Docker Compose（推荐）
+# 在 docker-compose.yml 中：
+# environment:
+#   - NODE_ENV=production
+#   - AUTH_MODE=gateway
+#   - NEBULA_AUTH_URL=http://your-aliyun-ip:8080
+#   - API_BASE_URL=http://your-aliyun-ip:8080
+#   - SERVICE_NAME=your-service
+#   - SERVICE_PORT=8080
+#   - SERVICE_HOST=your-cloud-ip
 
-# 4. 加载环境变量
-export $(cat .env.production | xargs)
+# 方式三：Kubernetes ConfigMap/Secret（推荐用于 K8s 环境）
+# 创建 ConfigMap 和 Secret，在 Deployment 中引用
 
-# 5. 注册服务到 NebulaAuth
-# （见"生产部署模式"章节）
-
-# 6. 启动服务
+# 2. 启动服务
+systemctl daemon-reload
 systemctl start your-service
+# 或使用 Docker
+docker-compose up -d
+
+# 3. 注册服务到 NebulaAuth（首次部署时执行一次）
+# 详细步骤见"生产部署模式"章节
 ```
 
 ### 环境切换检查清单
 
 #### 本地开发 → 生产部署
 
-- [ ] 修改环境变量：`AUTH_MODE=gateway`
-- [ ] 修改 `API_BASE_URL` 为网关地址
-- [ ] 在 NebulaAuth 注册服务
+- [ ] **配置系统环境变量**（不要使用 `.env` 文件）：
+  - [ ] `NODE_ENV=production`
+  - [ ] `AUTH_MODE=gateway`
+  - [ ] `API_BASE_URL` 设置为网关地址（`http://your-aliyun-ip:8080`）
+  - [ ] `NEBULA_AUTH_URL` 设置为网关地址
+  - [ ] `SERVICE_HOST` 设置为生产服务器 IP
+  - [ ] 其他必要的配置项
+- [ ] 部署服务到生产服务器
+- [ ] 启动服务并验证健康检查
+- [ ] **手动注册服务到 NebulaAuth**（首次部署时执行一次，不是自动的）
 - [ ] 确保服务端口可访问
 - [ ] 更新前端配置指向网关
 - [ ] 测试所有接口功能
@@ -869,49 +935,33 @@ systemctl start your-service
 
 #### 生产部署 → 本地开发
 
-- [ ] 修改环境变量：`AUTH_MODE=self_validate`
-- [ ] 修改 `API_BASE_URL` 为本地地址
+- [ ] 从 `env.example` 创建 `.env` 文件：`cp env.example .env`
+- [ ] 编辑 `.env` 文件，设置：
+  - [ ] `NODE_ENV=development`
+  - [ ] `AUTH_MODE=self_validate`
+  - [ ] `API_BASE_URL=http://localhost:8080`
+  - [ ] 其他本地开发需要的配置
+- [ ] 加载环境变量：`export $(cat .env | xargs)`
 - [ ] 前端配置指向本地服务器
 - [ ] 测试认证流程
 
 ## 📡 API 参考
 
-### Token 验证 API
+### Auth Server API
 
-**端点**: `POST /auth-server/v1/public/auth/validate`
+**Token 验证**：`POST /auth-server/v1/public/auth/validate`
+- 用途：开发环境（self_validate 模式）验证 Token
+- 请求：`{token: "jwt_token"}`
+- 响应：`{valid: true/false, user_id, username, ...}`
 
-**请求**:
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
+**详细接口文档**：参见 [auth-server API 文档](api/auth-server.md)
 
-**响应（成功）**:
-```json
-{
-  "success": true,
-  "data": {
-    "valid": true,
-    "user_id": "uuid",
-    "username": "string",
-    "is_admin": false,
-    "app_id": "string",
-    "session_id": "uuid"
-  }
-}
-```
-
-**响应（失败）**:
-```json
-{
-  "success": true,
-  "data": {
-    "valid": false,
-    "error": "token expired"
-  }
-}
-```
+**主要接口**：
+- 登录：`POST /auth-server/v1/public/login`
+- 注册：`POST /auth-server/v1/public/register`
+- 刷新 Token：`POST /auth-server/v1/public/refresh_token`
+- 发送验证码：`POST /auth-server/v1/public/send_verification`
+- Token 验证：`POST /auth-server/v1/public/auth/validate`（内部接口）
 
 ### 服务注册 API
 
@@ -920,9 +970,9 @@ systemctl start your-service
 **请求**:
 ```json
 {
-  "server_name": "your-service",
+    "server_name": "your-service",
   "host": "192.168.31.189",
-  "port": 8080,
+    "port": 8080,
   "url": "http://192.168.31.189:8080"
 }
 ```
@@ -950,7 +1000,7 @@ systemctl start your-service
 ```json
 {
   "host": "new-ip",
-  "port": 8080,
+    "port": 8080,
   "url": "http://new-ip:8080"
 }
 ```
@@ -959,26 +1009,32 @@ systemctl start your-service
 
 ### 服务准备
 
-- [ ] 实现健康检查端点 `/{service}/health`
+- [ ] 实现健康检查端点 `/{service}/health`（必须）
+- [ ] 根据业务需求选择合适的认证级别（不是所有服务都需要支持所有四种级别）
 - [ ] 实现业务接口，遵循路由规范 `/{service}/{version}/{auth_level}/{path}`
 - [ ] 处理网关注入的 Header（X-User-ID 等）
 - [ ] 实现错误处理（统一格式）
-- [ ] 支持四种认证级别（public, user, apikey, admin）
 
-### 服务注册
+### 服务注册（手动操作，在服务部署后执行）
 
-- [ ] 获取管理员 Token
+**注意**：服务注册是手动操作，不是业务服务器启动时自动执行的。
+
+- [ ] 服务已部署并启动（或准备启动）
+- [ ] 获取管理员 Token（或使用注册脚本自动获取）
 - [ ] 检查服务名是否已存在
-- [ ] 注册服务到 NebulaAuth（或更新现有服务）
-- [ ] 验证服务注册成功
-- [ ] 测试健康检查（通过网关）
+- [ ] 首次部署：注册服务到 NebulaAuth
+  - **推荐方式**：使用 `./scripts/register-service.sh -n your-service -h host -p port -e admin@example.com`
+  - **手动方式**：调用 API 注册服务
+- [ ] 地址变更：更新现有服务信息（使用 PUT 接口）
+- [ ] 验证服务注册成功（查询服务信息确认）
+- [ ] 测试健康检查（通过网关访问 `/{service}/health`）
 
 ### 功能测试
 
-- [ ] 测试 public 级别接口（无需认证）
-- [ ] 测试 user 级别接口（JWT Token）
-- [ ] 测试 apikey 级别接口（API Key）
-- [ ] 测试 admin 级别接口（管理员 Token）
+- [ ] 测试 public 级别接口（健康检查必须测试）
+- [ ] 如果实现了 user 级别，测试 user 级别接口（JWT Token）
+- [ ] 如果实现了 apikey 级别，测试 apikey 级别接口（API Key）
+- [ ] 如果实现了 admin 级别，测试 admin 级别接口（管理员 Token）
 - [ ] 验证 Header 注入正常
 - [ ] 验证错误处理正常
 
@@ -988,12 +1044,12 @@ systemctl start your-service
 需要本地开发？
 ├─ 是 → AUTH_MODE=self_validate
 │      → API_BASE_URL=localhost:8080
-│      → 客户端直接访问本地服务器
+│      → 客户端直接调用本地业务服务器
 │
 └─ 否 → AUTH_MODE=gateway
        → API_BASE_URL=网关地址
        → 注册服务到 NebulaAuth
-       → 客户端通过网关访问
+       → 客户端通过网关调用
 ```
 
 ## 📌 关键配置项

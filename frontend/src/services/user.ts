@@ -33,21 +33,21 @@ export const userService = {
   listUsers: async (
     params?: ListUsersParams
   ): Promise<PaginatedResponse<User>> => {
-    return getPaginated<User>('/users', params)
+    return getPaginated<User>('/user/users', params)
   },
 
   // Get user by ID
   getUser: async (id: number): Promise<User> => {
-    return get<User>(`/users/${id}`)
+    return get<User>(`/user/users/${id}`)
   },
 
   // Create new user
   createUser: async (data: CreateUserRequest): Promise<User> => {
-    return post<User>('/users', data)
+    return post<User>('/user/users', data)
   },
 
   // Update user
   updateUser: async (id: number, data: UpdateUserRequest): Promise<User> => {
-    return put<User>(`/users/${id}`, data)
+    return put<User>(`/user/users/${id}`, data)
   },
 }

@@ -86,3 +86,13 @@ func HandleError(c *gin.Context, statusCode int, message string, err error) {
 	})
 	c.Abort()
 }
+
+// SendErrorResponse 统一错误响应函数（符合 ai-quick-reference.md 规范）
+// 返回格式：{"error": "错误描述", "code": "ERROR_CODE"}
+func SendErrorResponse(c *gin.Context, statusCode int, errorCode, errorMsg string) {
+	c.JSON(statusCode, gin.H{
+		"error": errorMsg,
+		"code":  errorCode,
+	})
+	c.Abort()
+}

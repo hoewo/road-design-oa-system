@@ -73,11 +73,8 @@ func (r *Router) SetupRoutes(
 			})
 		})
 
-		// 认证路由
-		auth := public.Group("/auth")
-		{
-			auth.POST("/login", authHandler.Login)
-		}
+		// 认证路由已移除 - 登录功能现在由NebulaAuth网关处理
+		// 客户端直接调用NebulaAuth网关的登录接口，不通过业务服务
 	}
 
 	// User路由（需要JWT Token认证）
