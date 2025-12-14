@@ -4,7 +4,7 @@
 **Date**: 2025-01-28  
 **Last Updated**: 2025-01-28  
 **Status**: In Progress  
-**Total Tasks**: 370
+**Total Tasks**: 376
 
 ## Summary
 
@@ -19,6 +19,8 @@
 - **Token刷新机制增强**（T360-T361）：解决超过2小时后重新打开网页错误跳转登录页的问题，在页面加载时先刷新Token再获取用户信息
 - **管理员判断机制**（T362-T365）：实现后端管理员判断逻辑，支持self_validate和gateway两种模式
 - **管理员预设用户功能**（T366-T370）：实现管理员通过业务系统调用NebulaAuth API创建用户的功能
+- **用户创建流程优化**（T378-T382）：支持邮箱和手机号二选一，实现完整的查询流程（本地DB → NebulaAuth → 创建）
+- **管理员编辑用户功能**（T383-T388）：实现管理员编辑用户信息功能，支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库
 
 **关键改造点**:
 1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
@@ -259,7 +261,7 @@
 ## Phase 3: User Story 1 - 账号管理 (P1)
 
 ### Story Goal
-用户可以使用系统管理员线下预设的账号登录系统。系统采用基于NebulaAuth的验证码登录方式（支持邮箱和手机号），前端直接调用NebulaAuth网关接口，不通过业务服务。系统不提供公开注册功能，所有账号由系统管理员通过直接操作数据库预先创建。
+用户可以使用系统管理员预设的账号登录系统。系统采用基于NebulaAuth的验证码登录方式（支持邮箱和手机号），前端直接调用NebulaAuth网关接口，不通过业务服务。系统不提供公开注册功能，所有账号由系统管理员预先创建和管理。系统管理员可以编辑用户信息（包括用户名、真实姓名、邮箱、手机号、部门、角色、激活状态等所有信息），系统不存储密码，登录通过NebulaAuth的验证码方式。
 
 ### Independent Test Criteria
 - 用户可以使用邮箱或手机号+验证码登录系统（通过NebulaAuth网关）
@@ -271,6 +273,8 @@
 - 系统能够正确识别用户身份
 - 权限控制正常工作
 - 系统不提供注册功能，用户无法自行注册账号
+- 系统管理员可以编辑用户信息（所有字段），编辑后同步更新NebulaAuth和OA本地数据库
+- 非管理员用户无法编辑其他用户信息
 
 ### Implementation Tasks
 
@@ -416,6 +420,29 @@
 
 - [X] T371 [US1] 在 ProjectList 页面添加"用户管理"按钮：检查当前用户是否为管理员，如果是则显示"用户管理"按钮，点击跳转到 /users 页面 frontend/src/pages/ProjectList.tsx
 - [X] T372 [US1] 在 UserInfo 组件添加"用户管理"菜单项：检查当前用户是否为管理员，如果是则在下拉菜单中添加"用户管理"选项，点击跳转到 /users 页面 frontend/src/components/auth/UserInfo.tsx
+
+#### 管理员编辑用户功能实现
+
+**问题说明**：
+管理员需要能够编辑已创建的用户信息，现在只有创建功能，没有编辑能力。需要支持编辑所有用户信息（用户名、真实姓名、邮箱、手机号、部门、角色、激活状态等），同时同步更新NebulaAuth和OA本地数据库。
+
+**解决方案**：
+1. 实现UpdateNebulaAuthUser方法，调用NebulaAuth API更新用户信息
+2. 实现UpdateUser Handler，处理编辑用户请求，先更新NebulaAuth再同步本地数据库
+3. 添加编辑用户路由（PUT /project-oa/v1/admin/users/{user_id}）
+4. 创建前端编辑用户表单组件
+5. 更新前端用户管理页面，添加编辑功能
+
+**执行顺序**：
+1. 后端实现（T383-T386）：实现调用NebulaAuth API更新用户的逻辑和Handler
+2. 前端实现（T387-T388）：实现管理员编辑用户界面
+
+- [X] T383 [US1] 实现UpdateNebulaAuthUser方法：在UserService中实现调用NebulaAuth User Service API更新用户的方法（PUT /user-service/v1/admin/users/{user_id}），支持编辑所有字段（邮箱、手机号、用户名、激活状态等），邮箱和手机号二选一 backend/internal/services/user_service.go
+- [X] T384 [US1] 实现UpdateNebulaAuthUserRequest结构体：在UserService中定义UpdateNebulaAuthUserRequest结构体，包含所有可编辑字段（email, phone, username, real_name, role, department, is_active），添加Validate方法验证邮箱和手机号格式 backend/internal/services/user_service.go
+- [X] T385 [US1] 实现管理员编辑用户Handler：在UserHandler中实现UpdateUserAdmin方法，验证管理员权限后调用UpdateNebulaAuthUser更新NebulaAuth，然后同步更新OA本地数据库 backend/internal/handlers/user_handler.go
+- [X] T386 [US1] 更新管理员编辑用户路由：在admin路由组中更新PUT /project-oa/v1/admin/users/{id}路由，使用UpdateUserAdmin方法 backend/internal/router/router.go
+- [X] T387 [US1] 创建前端编辑用户表单组件：实现用户编辑表单（支持编辑所有字段：用户名、真实姓名、邮箱、手机号、部门、角色、激活状态），复用CreateUserForm或创建独立的EditUserForm组件 frontend/src/components/admin/EditUserForm.tsx
+- [X] T388 [US1] 更新前端用户管理页面：集成编辑用户功能，在用户列表中添加编辑按钮，点击后打开编辑表单弹窗 frontend/src/pages/UserManagement.tsx
 
 ---
 
@@ -1241,12 +1268,12 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 357/370 (96%)
+**任务进度**: 357/376 (95%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
 - Phase 2.9: 8个任务（负责人配置改造，确保符合User Story 3要求）
-- Phase 3: 43个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务）
+- Phase 3: 49个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务，新增6个管理员编辑用户任务）
 - Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）
 - Phase 9-14: 50个任务（US7-US12）
 - Phase 15-22: 64个任务（US13-US20）
@@ -1255,5 +1282,5 @@
 - Phase 26: 19个任务（US24）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 370个任务（新增5个任务：用户创建流程优化，支持邮箱和手机号二选一，实现NebulaAuth用户查询）
+**总计**: 376个任务（新增6个任务：管理员编辑用户功能，支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库）
 

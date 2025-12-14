@@ -376,3 +376,108 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		"data":    user,
 	})
 }
+
+// UpdateUserAdmin handles admin user update (updates NebulaAuth and syncs to local DB)
+// @Summary Update user information (Admin - updates NebulaAuth)
+// @Description Admin updates user information in NebulaAuth and syncs to local database
+// @Tags 用户管理
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID (UUID)"
+// @Param request body services.UpdateNebulaAuthUserRequest true "User information to update"
+// @Success 200 {object} models.User
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /admin/users/{id} [put]
+func (h *UserHandler) UpdateUserAdmin(c *gin.Context) {
+	// 验证管理员权限（路由层面已通过AuthLevelAdmin验证，这里再次确认）
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "User ID is required", nil)
+		return
+	}
+
+	// 解析请求体
+	var req services.UpdateNebulaAuthUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	// 验证请求（如果提供了邮箱或手机号，验证格式）
+	if err := req.Validate(); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+
+	// 从Authorization Header提取Token
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		utils.HandleError(c, http.StatusUnauthorized, "Missing authorization token", nil)
+		return
+	}
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		utils.HandleError(c, http.StatusUnauthorized, "Invalid authorization header format", nil)
+		return
+	}
+	token := parts[1]
+
+	// 先更新NebulaAuth用户信息
+	nebulaUser, err := h.userService.UpdateNebulaAuthUser(id, &req, token)
+	if err != nil {
+		h.logger.Error("Failed to update NebulaAuth user",
+			zap.Error(err),
+			zap.String("user_id", id),
+		)
+		errorMsg := err.Error()
+		if strings.Contains(errorMsg, "404") || strings.Contains(errorMsg, "not found") {
+			utils.HandleError(c, http.StatusNotFound, "User not found in NebulaAuth", err)
+		} else if strings.Contains(errorMsg, "400") {
+			utils.HandleError(c, http.StatusBadRequest, "Invalid request to NebulaAuth", err)
+		} else {
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to update user in NebulaAuth", err)
+		}
+		return
+	}
+
+	h.logger.Info("NebulaAuth user updated successfully",
+		zap.String("user_id", nebulaUser.Data.ID),
+		zap.String("email", nebulaUser.Data.Email),
+		zap.String("phone", nebulaUser.Data.Phone),
+		zap.String("username", nebulaUser.Data.Username),
+	)
+
+	// 同步更新后的用户信息到OA本地数据库
+	updatedLocalUser, syncErr := h.userService.SyncUpdatedUserToLocalDB(nebulaUser, req.RealName, req.Role, req.Department)
+	if syncErr != nil {
+		h.logger.Error("Failed to sync updated user to local database",
+			zap.Error(syncErr),
+			zap.String("user_id", nebulaUser.Data.ID),
+		)
+		// NebulaAuth更新成功，但本地数据库同步失败
+		// 返回NebulaAuth更新结果，但记录错误
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to sync user to local database", syncErr)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "用户信息更新成功",
+		"data": gin.H{
+			"id":          updatedLocalUser.ID,
+			"username":    updatedLocalUser.Username,
+			"email":       updatedLocalUser.Email,
+			"phone":       updatedLocalUser.Phone,
+			"real_name":   updatedLocalUser.RealName,
+			"role":        string(updatedLocalUser.Role),
+			"department":  updatedLocalUser.Department,
+			"is_active":   updatedLocalUser.IsActive,
+			"has_account": updatedLocalUser.HasAccount,
+			"created_at":  updatedLocalUser.CreatedAt,
+			"updated_at":  updatedLocalUser.UpdatedAt,
+		},
+	})
+}

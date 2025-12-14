@@ -48,6 +48,21 @@ export interface NebulaAuthUser {
   updated_at: string
 }
 
+// UpdateNebulaAuthUserRequest 更新NebulaAuth用户请求（管理员编辑用户）
+// 包含NebulaAuth字段和OA业务字段
+export interface UpdateNebulaAuthUserRequest {
+  // NebulaAuth字段
+  email?: string
+  phone?: string
+  username?: string
+  is_verified?: boolean
+  is_active?: boolean
+  // OA业务字段
+  real_name?: string   // 真实姓名
+  role?: string        // OA角色（可选，如果NebulaAuth is_admin=true则会被覆盖为admin）
+  department?: string  // 部门
+}
+
 export interface UpdateUserRequest {
   email?: string
   real_name?: string
@@ -75,7 +90,12 @@ export const userService = {
     return post<User>('/user/users', data)
   },
 
-  // Update user (admin only)
+  // Update user (admin only) - 更新NebulaAuth用户并同步到本地数据库
+  updateNebulaAuthUser: async (id: string, data: UpdateNebulaAuthUserRequest): Promise<User> => {
+    return put<User>(`/admin/users/${id}`, data)
+  },
+
+  // Update user (legacy, for backward compatibility)
   updateUser: async (id: string, data: UpdateUserRequest): Promise<User> => {
     return put<User>(`/admin/users/${id}`, data)
   },

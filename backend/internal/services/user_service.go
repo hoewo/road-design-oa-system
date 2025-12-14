@@ -480,6 +480,165 @@ func (s *UserService) GetNebulaAuthUserByEmail(email, token string) (*CreateNebu
 	return &result, nil
 }
 
+// UpdateNebulaAuthUserRequest 更新NebulaAuth用户请求
+// 包含NebulaAuth字段和OA业务字段
+// 注意：邮箱和手机号二选一即可，但至少需要提供其中一个
+type UpdateNebulaAuthUserRequest struct {
+	// NebulaAuth字段
+	Email      string `json:"email,omitempty"`      // 邮箱（可选，与手机号二选一）
+	Phone      string `json:"phone,omitempty"`       // 手机号（可选，与邮箱二选一）
+	Username   string `json:"username,omitempty"`    // 用户名（可编辑）
+	IsVerified *bool  `json:"is_verified,omitempty"` // 是否已验证
+	IsActive   *bool  `json:"is_active,omitempty"`   // 是否激活
+	// OA业务字段
+	RealName   string `json:"real_name,omitempty"`   // 真实姓名
+	Role       string `json:"role,omitempty"`         // OA角色（可选，如果NebulaAuth is_admin=true则会被覆盖为RoleAdmin）
+	Department string `json:"department,omitempty"`   // 部门
+}
+
+// Validate 验证UpdateNebulaAuthUserRequest，确保邮箱和手机号至少提供一个（如果提供了其中一个）
+func (r *UpdateNebulaAuthUserRequest) Validate() error {
+	// 如果邮箱和手机号都为空，但至少需要提供一个用于更新
+	// 注意：更新时允许只更新部分字段，但如果提供了邮箱或手机号，需要验证格式
+	if r.Email != "" {
+		// 简单的邮箱格式验证（包含@符号）
+		if len(r.Email) < 3 || !strings.Contains(r.Email, "@") {
+			return errors.New("invalid email format")
+		}
+	}
+	// 如果提供了手机号，验证手机号格式（11位数字）
+	if r.Phone != "" {
+		if len(r.Phone) != 11 {
+			return errors.New("phone number must be 11 digits")
+		}
+		for _, c := range r.Phone {
+			if c < '0' || c > '9' {
+				return errors.New("phone number must contain only digits")
+			}
+		}
+	}
+	// 更新时允许只更新部分字段，不强制要求邮箱或手机号
+	return nil
+}
+
+// UpdateNebulaAuthUserResponse NebulaAuth更新用户响应
+type UpdateNebulaAuthUserResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Data    struct {
+		ID         string `json:"id"`
+		Email      string `json:"email"`
+		Phone      string `json:"phone"`
+		Username   string `json:"username"`
+		IsAdmin    bool   `json:"is_admin"`
+		IsVerified bool   `json:"is_verified"`
+		IsActive   bool   `json:"is_active"`
+		AvatarURL  string `json:"avatar_url,omitempty"`
+		CreatedAt  string `json:"created_at"`
+		UpdatedAt  string `json:"updated_at"`
+	} `json:"data"`
+	Error string `json:"error,omitempty"`
+}
+
+// UpdateNebulaAuthUser 调用NebulaAuth User Service API更新用户
+// userID: 要更新的用户ID
+// req: 更新请求
+// token: 当前请求的Token（用于调用NebulaAuth API）
+func (s *UserService) UpdateNebulaAuthUser(userID string, req *UpdateNebulaAuthUserRequest, token string) (*UpdateNebulaAuthUserResponse, error) {
+	if s.config == nil {
+		return nil, errors.New("config is required for UpdateNebulaAuthUser")
+	}
+	if userID == "" {
+		return nil, errors.New("user ID is required")
+	}
+
+	// 构建请求URL（通过API Gateway访问）
+	// 注意：必须通过API Gateway访问，使用APIBaseURL（网关地址）
+	url := s.config.APIBaseURL + "/user-service/v1/admin/users/" + userID
+
+	// 构建请求体（只包含NebulaAuth需要的字段，不包含OA业务字段）
+	// 注意：邮箱和手机号二选一，但至少需要提供其中一个（如果更新这些字段）
+	nebulaReq := map[string]interface{}{}
+	
+	// 如果提供了用户名，添加到请求中
+	if req.Username != "" {
+		nebulaReq["username"] = req.Username
+	}
+	// 如果提供了邮箱，添加到请求中
+	if req.Email != "" {
+		nebulaReq["email"] = req.Email
+	}
+	// 如果提供了手机号，添加到请求中
+	if req.Phone != "" {
+		nebulaReq["phone"] = req.Phone
+	}
+	// 如果提供了IsVerified，添加到请求中
+	if req.IsVerified != nil {
+		nebulaReq["is_verified"] = *req.IsVerified
+	}
+	// 如果提供了IsActive，添加到请求中
+	if req.IsActive != nil {
+		nebulaReq["is_active"] = *req.IsActive
+	}
+
+	reqBody, err := json.Marshal(nebulaReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// 创建HTTP请求
+	httpReq, err := http.NewRequest("PUT", url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// 设置请求头
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+
+	// 发送请求
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call NebulaAuth User Service API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// 解析响应
+	var result UpdateNebulaAuthUserResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	// 检查响应状态
+	if resp.StatusCode != http.StatusOK {
+		errorMsg := result.Error
+		if errorMsg == "" {
+			errorMsg = fmt.Sprintf("NebulaAuth API returned status %d", resp.StatusCode)
+		}
+		return nil, fmt.Errorf(errorMsg)
+	}
+
+	if !result.Success {
+		errorMsg := result.Error
+		if errorMsg == "" {
+			errorMsg = "NebulaAuth API returned success=false"
+		}
+		return nil, fmt.Errorf(errorMsg)
+	}
+
+	return &result, nil
+}
+
 // GetNebulaAuthUserByPhone 通过手机号从NebulaAuth查询用户（管理员接口）
 // 接口：GET /user-service/v1/admin/users/phone/{phone}
 // 需要管理员Token认证
@@ -650,6 +809,107 @@ func (s *UserService) SyncUserToLocalDB(nebulaUser *CreateNebulaAuthUserResponse
 
 	// 重新查询更新后的用户
 	if err := s.db.First(&existingUser, "id = ?", user.ID).Error; err != nil {
+		return nil, fmt.Errorf("failed to fetch updated user: %w", err)
+	}
+
+	return &existingUser, nil
+}
+
+// SyncUpdatedUserToLocalDB 同步更新后的NebulaAuth用户到OA本地数据库
+// nebulaUser: NebulaAuth返回的更新后用户信息
+// realName: OA业务字段-真实姓名（可选，如果为空则使用username）
+// role: OA业务字段-角色（可选，如果NebulaAuth is_admin=true则会被覆盖为RoleAdmin）
+// department: OA业务字段-部门（可选）
+func (s *UserService) SyncUpdatedUserToLocalDB(nebulaUser *UpdateNebulaAuthUserResponse, realName, role, department string) (*models.User, error) {
+	// 确定OA角色
+	var oaRole models.UserRole
+	if nebulaUser.Data.IsAdmin {
+		// NebulaAuth管理员 → OA系统管理员
+		oaRole = models.RoleAdmin
+	} else {
+		// 非管理员：使用前端传入的role，如果未传则保持原值
+		if role != "" {
+			oaRole = models.UserRole(role)
+		} else {
+			// 如果未传入role，查询现有用户的role
+			var existingUser models.User
+			if err := s.db.First(&existingUser, "id = ?", nebulaUser.Data.ID).Error; err == nil {
+				oaRole = existingUser.Role
+			} else {
+				oaRole = models.RoleMember
+			}
+		}
+	}
+
+	// 确定真实姓名
+	oaRealName := realName
+	if oaRealName == "" {
+		oaRealName = nebulaUser.Data.Username
+	}
+
+	// 解析时间戳
+	var updatedAt time.Time
+	if nebulaUser.Data.UpdatedAt != "" {
+		if t, err := time.Parse(time.RFC3339, nebulaUser.Data.UpdatedAt); err == nil {
+			updatedAt = t
+		} else {
+			updatedAt = time.Now()
+		}
+	} else {
+		updatedAt = time.Now()
+	}
+
+	// 构建更新字段
+	updates := map[string]interface{}{
+		"username":    nebulaUser.Data.Username,
+		"email":       nebulaUser.Data.Email,
+		"phone":       nebulaUser.Data.Phone,
+		"real_name":   oaRealName,
+		"role":        oaRole, // 更新角色（根据NebulaAuth is_admin或前端传入）
+		"is_active":   nebulaUser.Data.IsActive,
+		"has_account": true,
+		"updated_at":  updatedAt,
+	}
+
+	// 如果提供了部门，更新部门
+	if department != "" {
+		updates["department"] = department
+	}
+
+	// 更新用户
+	var existingUser models.User
+	if err := s.db.First(&existingUser, "id = ?", nebulaUser.Data.ID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 用户不存在，创建新用户
+			user := &models.User{
+				ID:         nebulaUser.Data.ID,
+				Username:   nebulaUser.Data.Username,
+				Email:      nebulaUser.Data.Email,
+				Phone:      nebulaUser.Data.Phone,
+				RealName:   oaRealName,
+				Role:       oaRole,
+				Department: department,
+				IsActive:   nebulaUser.Data.IsActive,
+				HasAccount: true,
+				Password:   "",
+				CreatedAt:  time.Now(),
+				UpdatedAt:  updatedAt,
+			}
+			if err := s.db.Create(user).Error; err != nil {
+				return nil, fmt.Errorf("failed to create user in local database: %w", err)
+			}
+			return user, nil
+		}
+		return nil, fmt.Errorf("failed to check existing user: %w", err)
+	}
+
+	// 更新现有用户
+	if err := s.db.Model(&existingUser).Updates(updates).Error; err != nil {
+		return nil, fmt.Errorf("failed to update user in local database: %w", err)
+	}
+
+	// 重新查询更新后的用户
+	if err := s.db.First(&existingUser, "id = ?", nebulaUser.Data.ID).Error; err != nil {
 		return nil, fmt.Errorf("failed to fetch updated user: %w", err)
 	}
 

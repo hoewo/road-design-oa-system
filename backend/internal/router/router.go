@@ -267,7 +267,7 @@ func (r *Router) SetupRoutes(
 			users.GET("", userHandler.ListUsers)
 			users.GET("/:id", userHandler.GetUser)
 			users.POST("", userHandler.CreateUser)
-			users.PUT("/:id", userHandler.UpdateUser)
+			users.PUT("/:id", userHandler.UpdateUserAdmin) // 管理员编辑用户（更新NebulaAuth并同步本地数据库）
 			// TODO: 实现 DeleteUser 方法
 			// users.DELETE("/:id", userHandler.DeleteUser)
 		}

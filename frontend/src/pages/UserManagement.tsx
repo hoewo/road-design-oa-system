@@ -9,20 +9,22 @@ import {
   Modal,
   message,
   Tag,
-  Switch,
 } from 'antd'
 import { PlusOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { userService } from '@/services/user'
 import { useAuth } from '@/contexts/AuthContext'
 import CreateUserForm from '@/components/admin/CreateUserForm'
+import EditUserForm from '@/components/admin/EditUserForm'
 import type { User } from '@/types'
-import type { CreateNebulaAuthUserRequest, NebulaAuthUser } from '@/services/user'
+import type { NebulaAuthUser } from '@/services/user'
 
 const { Option } = Select
 
 const UserManagement = () => {
   const [createModalVisible, setCreateModalVisible] = useState(false)
+  const [editModalVisible, setEditModalVisible] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
   const [searchKeyword, setSearchKeyword] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('')
   const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(
@@ -31,7 +33,6 @@ const UserManagement = () => {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
 
-  const queryClient = useQueryClient()
   const { user: currentUser } = useAuth()
 
   // Check if current user is admin (same logic as BasicInfoTab)
@@ -61,6 +62,26 @@ const UserManagement = () => {
     setCreateModalVisible(false)
     refetch()
     message.success(`用户 ${user?.username || user?.email} 创建成功`)
+  }
+
+  // Handle edit user
+  const handleEdit = (user: User) => {
+    setEditingUser(user)
+    setEditModalVisible(true)
+  }
+
+  // Handle edit user success
+  const handleEditSuccess = (user?: User) => {
+    setEditModalVisible(false)
+    setEditingUser(null)
+    refetch()
+    message.success(`用户 ${user?.username || user?.email} 信息更新成功`)
+  }
+
+  // Handle edit cancel
+  const handleEditCancel = () => {
+    setEditModalVisible(false)
+    setEditingUser(null)
   }
 
   // Columns definition
@@ -120,6 +141,21 @@ const UserManagement = () => {
         if (!date) return '-'
         return new Date(date).toLocaleString('zh-CN')
       },
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: User) => (
+        <Space size="middle">
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
+        </Space>
+      ),
     },
   ]
 
@@ -226,6 +262,23 @@ const UserManagement = () => {
           onSuccess={handleCreateSuccess}
           onCancel={() => setCreateModalVisible(false)}
         />
+      </Modal>
+
+      {/* Edit User Modal */}
+      <Modal
+        title="编辑用户信息"
+        open={editModalVisible}
+        onCancel={handleEditCancel}
+        footer={null}
+        width={600}
+      >
+        {editingUser && (
+          <EditUserForm
+            user={editingUser}
+            onSuccess={handleEditSuccess}
+            onCancel={handleEditCancel}
+          />
+        )}
       </Modal>
     </div>
   )

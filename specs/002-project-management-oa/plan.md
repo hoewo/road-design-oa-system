@@ -1,13 +1,16 @@
 # Implementation Plan: 道路设计公司项目管理系统
 
 **Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-01-28 | **Spec**: [spec.md](./spec.md)
+
+**最新更新**：
+- 添加了管理员编辑用户功能设计（支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库）
 **Input**: Feature specification from `/specs/002-project-management-oa/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-基于道路设计公司项目管理系统需求，构建一个完整的项目管理OA系统，支持账号管理、项目信息管理、经营信息管理、生产信息管理、公司收入管理等全生命周期管理。采用React前端和Go后端的现代化Web应用架构，遵循统一的路由与认证规范，支持本地和阿里云双存储方案。
+基于道路设计公司项目管理系统需求，构建一个完整的项目管理OA系统，支持账号管理（创建和编辑用户）、项目信息管理、经营信息管理、生产信息管理、公司收入管理等全生命周期管理。采用React前端和Go后端的现代化Web应用架构，遵循统一的路由与认证规范，支持本地和阿里云双存储方案。系统采用基于NebulaAuth的验证码登录方式，不存储密码。
 
 **关键设计决策**：
 1. **技术架构**：以 `001-project-management-oa` 为准（React 18+ + Go 1.21+ + PostgreSQL + MinIO）
@@ -413,7 +416,9 @@ database:
   - `GET /project-oa/v1/user/projects` - 项目列表（user）
   - `POST /project-oa/v1/user/projects` - 创建项目（user）
   - `GET /project-oa/v1/user/projects/{id}` - 项目详情（user）
-  - `GET /project-oa/v1/admin/users` - 用户管理（admin）
+  - `GET /project-oa/v1/admin/users` - 用户列表（admin）
+  - `POST /project-oa/v1/admin/users` - 创建用户（admin）
+  - `PUT /project-oa/v1/admin/users/{id}` - 编辑用户（admin）
   - `GET /project-oa/v1/admin/revenue` - 公司收入管理（admin）
 
 **认证要求**：
@@ -717,6 +722,116 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
 - ✅ **处理已存在用户**：支持用户已在NebulaAuth存在但OA本地数据库不存在的情况
 
 详细设计见：`research.md` 第12节
+
+### 管理员编辑用户功能设计（基于NebulaAuth）
+
+**问题**: 管理员需要能够编辑已创建的用户信息，现在只有创建功能，没有编辑能力
+
+**解决方案**: 业务服务提供管理员编辑用户接口，支持编辑所有用户信息（用户名、真实姓名、邮箱、手机号、部门、角色、激活状态等），同时同步更新NebulaAuth和OA本地数据库
+
+**完整业务流程**:
+
+#### 流程概览
+
+```
+OA前端 → OA后端 → [更新NebulaAuth] → [同步到OA本地数据库] → OA前端
+```
+
+#### 详细交互步骤
+
+**步骤 1：OA前端 → OA后端**
+- 接口：`PUT /project-oa/v1/admin/users/{user_id}`
+- 请求体：
+```json
+{
+  "email": "user@example.com",  // 邮箱（可选，与手机号二选一）
+  "phone": "13800138000",       // 手机号（可选，与邮箱二选一）
+  "username": "updateduser",    // 用户名（可编辑）
+  "real_name": "更新后的姓名",   // OA业务字段
+  "role": "member",             // OA业务字段（可选）
+  "department": "新部门",        // OA业务字段（可选）
+  "is_active": true             // 激活状态（可编辑）
+}
+```
+- **注意**：邮箱和手机号二选一即可，但至少需要提供其中一个
+
+**步骤 2：OA后端 → NebulaAuth（更新用户）**
+- 接口：`PUT /user-service/v1/admin/users/{user_id}`（通过 API Gateway）
+- 请求体（只包含NebulaAuth字段，邮箱和手机号二选一）：
+```json
+{
+  "email": "user@example.com",  // 邮箱（可选，与手机号二选一）
+  "phone": "13800138000",       // 手机号（可选，与邮箱二选一）
+  "username": "updateduser",   // 用户名（可编辑）
+  "is_verified": false,
+  "is_active": true
+}
+```
+- 需要管理员Token认证（从当前请求的Authorization Header获取）
+- 响应：返回更新后的用户信息
+
+**步骤 3：OA后端内部处理 - 同步到OA本地数据库**
+- 操作：将更新后的用户信息同步到OA本地数据库
+- 同步逻辑：
+  1. 使用NebulaAuth返回的更新后用户信息（id, email, phone, username, is_admin, is_active, is_verified）
+  2. 根据NebulaAuth的 `is_admin` 确定OA角色：
+     - `is_admin = true` → `RoleAdmin`（强制覆盖）
+     - `is_admin = false` → 使用前端传入的 `role`（如未传则保持原值）
+  3. 使用前端传入的OA业务字段（real_name, department等）
+  4. 执行 `UPDATE` 更新本地数据库
+
+**步骤 4：OA后端 → OA前端**
+- 响应：
+```json
+{
+  "success": true,
+  "message": "用户信息更新成功",
+  "data": {
+    "id": "uuid-123",
+    "username": "updateduser",
+    "email": "user@example.com",
+    "phone": "13800138000",
+    "real_name": "更新后的姓名",
+    "role": "member",
+    "department": "新部门",
+    "is_active": true,
+    "has_account": true,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T12:00:00Z"
+  }
+}
+```
+
+#### 关键要点
+
+1. **可编辑字段**：
+   - **所有信息**：用户名、真实姓名、邮箱、手机号、部门、角色、激活状态等
+   - **系统不存储密码**：登录通过NebulaAuth的验证码方式，无需管理密码
+
+2. **数据同步**：
+   - 先更新NebulaAuth用户信息
+   - 然后同步更新OA本地数据库
+   - 确保两个系统的数据一致性
+
+3. **权限验证**：
+   - 只有系统管理员可以编辑用户信息
+   - 路由层面通过AuthLevelAdmin验证
+   - Handler层面再次确认管理员权限
+
+4. **角色映射规则**：
+   - NebulaAuth `is_admin = true` → OA `RoleAdmin`（强制覆盖）
+   - NebulaAuth `is_admin = false` → 使用前端传入的 `role`（如未传则保持原值）
+
+5. **错误处理**：
+   - 如果NebulaAuth更新失败，返回错误，不更新本地数据库
+   - 如果本地数据库更新失败，记录错误日志，但返回NebulaAuth更新结果
+
+#### 实现要点
+
+- **后端接口**：`PUT /project-oa/v1/admin/users/{user_id}`（admin级别路由）
+- **NebulaAuth API**：`PUT /user-service/v1/admin/users/{user_id}`（需要管理员Token）
+- **数据验证**：确保邮箱和手机号二选一，至少提供一个
+- **权限控制**：只有系统管理员可以编辑用户信息
 
 ### 部署规范（基于 ai-quick-reference.md）
 
@@ -1146,6 +1261,7 @@ LOG_FORMAT=json
 8. ✅ **Token刷新机制**：研究如何实现Token自动刷新，确保2小时Access Token过期后能够自动刷新，保持30天免登录（已完成，见research.md第10节）
 9. ✅ **管理员判断**：研究如何在业务系统中判断当前用户是否是NebulaAuth管理员（已完成，见research.md第11节）
 10. ✅ **管理员预设用户**：研究如何在项目管理系统中实现管理员预设（新建）用户的功能（已完成，见research.md第12节）
+11. ✅ **管理员编辑用户**：研究如何在项目管理系统中实现管理员编辑用户信息的功能（已完成，见plan.md"管理员编辑用户功能设计"部分）
 
 ### Phase 1: Design & Contracts
 1. 生成 `data-model.md`：基于002的业务模型设计

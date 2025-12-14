@@ -506,164 +506,135 @@ export const BasicInfoTab = ({
         )}
       </Card>
 
-      {(() => {
-        console.log('=== 负责人配置 Card 渲染检查 ===')
-        console.log('- canManageManagers:', canManageManagers)
-        console.log('- currentUser:', currentUser)
-        console.log('- currentUser?.role:', currentUser?.role)
-        console.log('- 是否渲染 Card:', canManageManagers)
-        console.log('- isEditingManagers:', isEditingManagers)
-        console.log('================================')
-        return null
-      })()}
-      {canManageManagers ? (
-        <Card
-          title="负责人配置"
-          extra={
-            !isEditingManagers && (
-              <Button
-                type="primary"
-                size="small"
-                icon={<EditOutlined />}
-                onClick={handleEditManagers}
-              >
-                编辑
-              </Button>
-            )
-          }
-        >
-          {isEditingManagers ? (
-            <>
-              {(() => {
-                console.log('=== 渲染负责人编辑表单 ===')
-                console.log('managerForm 实例:', managerForm)
-                console.log('managerForm 方法:', {
-                  getFieldsValue: typeof managerForm.getFieldsValue,
-                  setFieldsValue: typeof managerForm.setFieldsValue,
-                })
-                return null
-              })()}
-              <Form 
-                form={managerForm} 
-                layout="vertical"
-                onValuesChange={(changedValues, allValues) => {
-                  console.log('负责人表单值变化:', { changedValues, allValues })
-                }}
-              >
-                <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item name="business_manager_id" label="经营负责人">
-                    <Select
-                      placeholder="请选择经营负责人"
-                      allowClear
-                      showSearch
-                      filterOption={(input, option) => {
-                        const label = option?.label || option?.children
-                        return String(label || '')
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }}
-                    >
-                      {users.map((user) => (
-                        <Option key={user.id} value={user.id}>
-                          {user.real_name || user.username}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item name="production_manager_id" label="生产负责人">
-                    <Select
-                      placeholder="请选择生产负责人"
-                      allowClear
-                      showSearch
-                      filterOption={(input, option) => {
-                        const label = option?.label || option?.children
-                        return String(label || '')
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }}
-                    >
-                      {users.map((user) => (
-                        <Option key={user.id} value={user.id}>
-                          {user.real_name || user.username}
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                </Col>
-              </Row>
-              <div style={{ marginTop: 16, textAlign: 'right' }}>
-                <Space>
-                  <Button icon={<CloseOutlined />} onClick={handleCancelManagers}>
-                    取消
-                  </Button>
-                  <Button
-                    type="primary"
-                    icon={<SaveOutlined />}
-                    onClick={handleSaveManagers}
-                    loading={updateMutation.isPending}
-                  >
-                    保存
-                  </Button>
-                </Space>
-              </div>
-              </Form>
-            </>
-          ) : (
+      <Card
+        title="负责人配置"
+        extra={
+          canManageManagers && !isEditingManagers && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={handleEditManagers}
+            >
+              编辑
+            </Button>
+          )
+        }
+        style={{ marginBottom: 24 }}
+      >
+        {isEditingManagers && canManageManagers ? (
+          <Form 
+            form={managerForm} 
+            layout="vertical"
+            onValuesChange={(changedValues, allValues) => {
+              console.log('负责人表单值变化:', { changedValues, allValues })
+            }}
+          >
             <Row gutter={16}>
-          <Col span={12}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                经营负责人
-              </div>
-              <div
-                style={{
-                  padding: '10px',
-                  border: '2px solid #e0e0e0',
-                  background: '#f9f9f9',
-                  borderRadius: '4px',
-                }}
-              >
-                    {project?.business_manager
-                      ? project.business_manager.real_name ||
-                        project.business_manager.username
-                      : '-'}
-              </div>
+              <Col span={12}>
+                <Form.Item name="business_manager_id" label="经营负责人">
+                  <Select
+                    placeholder="请选择经营负责人"
+                    allowClear
+                    showSearch
+                    filterOption={(input, option) => {
+                      const label = option?.label || option?.children
+                      return String(label || '')
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }}
+                  >
+                    {users.map((user) => (
+                      <Option key={user.id} value={user.id}>
+                        {user.real_name || user.username}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="production_manager_id" label="生产负责人">
+                  <Select
+                    placeholder="请选择生产负责人"
+                    allowClear
+                    showSearch
+                    filterOption={(input, option) => {
+                      const label = option?.label || option?.children
+                      return String(label || '')
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }}
+                  >
+                    {users.map((user) => (
+                      <Option key={user.id} value={user.id}>
+                        {user.real_name || user.username}
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <div style={{ marginTop: 16, textAlign: 'right' }}>
+              <Space>
+                <Button icon={<CloseOutlined />} onClick={handleCancelManagers}>
+                  取消
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<SaveOutlined />}
+                  onClick={handleSaveManagers}
+                  loading={updateMutation.isPending}
+                >
+                  保存
+                </Button>
+              </Space>
             </div>
-          </Col>
-          <Col span={12}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                生产负责人
+          </Form>
+        ) : (
+          <Row gutter={16}>
+            <Col span={12}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                  经营负责人
+                </div>
+                <div
+                  style={{
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    background: '#f9f9f9',
+                    borderRadius: '4px',
+                  }}
+                >
+                  {project?.business_manager
+                    ? project.business_manager.real_name ||
+                      project.business_manager.username
+                    : '-'}
+                </div>
               </div>
-              <div
-                style={{
-                  padding: '10px',
-                  border: '2px solid #e0e0e0',
-                  background: '#f9f9f9',
-                  borderRadius: '4px',
-                }}
-              >
-                    {project?.production_manager
-                      ? project.production_manager.real_name ||
-                        project.production_manager.username
-                      : '-'}
+            </Col>
+            <Col span={12}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                  生产负责人
+                </div>
+                <div
+                  style={{
+                    padding: '10px',
+                    border: '2px solid #e0e0e0',
+                    background: '#f9f9f9',
+                    borderRadius: '4px',
+                  }}
+                >
+                  {project?.production_manager
+                    ? project.production_manager.real_name ||
+                      project.production_manager.username
+                    : '-'}
+                </div>
               </div>
-            </div>
-          </Col>
-        </Row>
-          )}
+            </Col>
+          </Row>
+        )}
       </Card>
-      ) : (
-        <div style={{ padding: '16px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px', marginBottom: 24 }}>
-          <strong>调试信息：负责人配置 Card 未显示</strong>
-          <div>canManageManagers: {String(canManageManagers)}</div>
-          <div>currentUser: {currentUser ? JSON.stringify(currentUser, null, 2) : 'null'}</div>
-          <div>currentUser?.role: {currentUser?.role || 'undefined'}</div>
-        </div>
-      )}
     </>
   )
 }
