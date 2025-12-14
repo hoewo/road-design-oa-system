@@ -30,7 +30,7 @@ export interface CreateNebulaAuthUserRequest {
   is_active?: boolean
   // OA业务字段
   real_name?: string   // 真实姓名
-  role?: string        // OA角色（可选，如果NebulaAuth is_admin=true则会被覆盖为admin）
+  roles?: string[]     // OA角色数组（可选，如果NebulaAuth is_admin=true则会被覆盖为[admin]）
   department?: string  // 部门
 }
 
@@ -59,7 +59,7 @@ export interface UpdateNebulaAuthUserRequest {
   is_active?: boolean
   // OA业务字段
   real_name?: string   // 真实姓名
-  role?: string        // OA角色（可选，如果NebulaAuth is_admin=true则会被覆盖为admin）
+  roles?: string[]     // OA角色数组（可选，如果NebulaAuth is_admin=true则会被覆盖为[admin]）
   department?: string  // 部门
 }
 

@@ -14,6 +14,7 @@ import { PlusOutlined, SearchOutlined, EditOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
 import { userService } from '@/services/user'
 import { useAuth } from '@/contexts/AuthContext'
+import { permissionService } from '@/services/permission'
 import CreateUserForm from '@/components/admin/CreateUserForm'
 import EditUserForm from '@/components/admin/EditUserForm'
 import type { User } from '@/types'
@@ -35,9 +36,9 @@ const UserManagement = () => {
 
   const { user: currentUser } = useAuth()
 
-  // Check if current user is admin (same logic as BasicInfoTab)
-  // Only system admin (role: 'admin') can access user management
-  const isAdmin = currentUser?.role === 'admin'
+  // Check if current user is admin using permission service
+  // Only system admin can access user management
+  const isAdmin = permissionService.utils.isSystemAdmin(currentUser)
 
   // Fetch users list
   const {
@@ -109,9 +110,11 @@ const UserManagement = () => {
     },
     {
       title: '角色',
-      dataIndex: 'role',
-      key: 'role',
-      render: (role: string) => {
+      dataIndex: 'roles',
+      key: 'roles',
+      render: (roles: string[] | undefined, record: User) => {
+        // 支持多选角色：优先使用roles数组，如果没有则使用role字段（向后兼容）
+        const userRoles = roles && roles.length > 0 ? roles : (record.role ? [record.role] : [])
         const roleMap: Record<string, string> = {
           admin: '系统管理员',
           project_manager: '项目管理员',
@@ -120,7 +123,18 @@ const UserManagement = () => {
           finance: '财务人员',
           member: '普通成员',
         }
-        return <Tag>{roleMap[role] || role}</Tag>
+        if (userRoles.length === 0) {
+          return <Tag>-</Tag>
+        }
+        return (
+          <Space size="small" wrap>
+            {userRoles.map((role) => (
+              <Tag key={role} color={role === 'admin' ? 'red' : 'blue'}>
+                {roleMap[role] || role}
+              </Tag>
+            ))}
+          </Space>
+        )
       },
     },
     {

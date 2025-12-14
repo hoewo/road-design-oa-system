@@ -120,9 +120,20 @@ func (s *ProjectMemberService) ListMembers(projectID string) ([]*ProjectMemberRe
 }
 
 // CreateMember adds a project member with validation (UUID string).
-func (s *ProjectMemberService) CreateMember(projectID string, req *CreateProjectMemberRequest) (*ProjectMemberResponse, error) {
+// userID: 创建项目成员的用户ID，用于权限检查
+func (s *ProjectMemberService) CreateMember(userID string, projectID string, req *CreateProjectMemberRequest) (*ProjectMemberResponse, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
+	}
+
+	// 权限检查：系统管理员、项目管理员、项目经营负责人、项目生产负责人可以配置项目成员
+	permissionService := NewPermissionService()
+	canManage, err := permissionService.CanManageProjectMembers(userID, projectID, req.Role)
+	if err != nil {
+		return nil, fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canManage {
+		return nil, errors.New("权限不足：无法配置项目成员")
 	}
 
 	if err := s.ensureProjectExists(projectID); err != nil {
@@ -174,7 +185,8 @@ func (s *ProjectMemberService) CreateMember(projectID string, req *CreateProject
 }
 
 // UpdateMember updates fields for an existing project member (UUID string).
-func (s *ProjectMemberService) UpdateMember(memberID string, req *UpdateProjectMemberRequest) (*ProjectMemberResponse, error) {
+// userID: 更新项目成员的用户ID，用于权限检查
+func (s *ProjectMemberService) UpdateMember(userID string, memberID string, req *UpdateProjectMemberRequest) (*ProjectMemberResponse, error) {
 	if req == nil {
 		return nil, errors.New("request cannot be nil")
 	}
@@ -182,6 +194,20 @@ func (s *ProjectMemberService) UpdateMember(memberID string, req *UpdateProjectM
 	member, err := s.getMember(memberID)
 	if err != nil {
 		return nil, err
+	}
+
+	// 权限检查：系统管理员、项目管理员、项目经营负责人、项目生产负责人可以配置项目成员
+	permissionService := NewPermissionService()
+	memberRole := member.Role
+	if req.Role != nil {
+		memberRole = *req.Role
+	}
+	canManage, err := permissionService.CanManageProjectMembers(userID, member.ProjectID, memberRole)
+	if err != nil {
+		return nil, fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canManage {
+		return nil, errors.New("权限不足：无法配置项目成员")
 	}
 
 	if req.Role != nil {
@@ -336,7 +362,7 @@ func mapMemberToResponse(member *models.ProjectMember) *ProjectMemberResponse {
 			ID:       member.User.ID,
 			Username: member.User.Username,
 			RealName: member.User.RealName,
-			Role:     string(member.User.Role),
+			Role:     string(member.User.Roles[0]), // Use first role for backward compatibility
 		}
 	}
 

@@ -51,7 +51,7 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
       is_verified: values.is_verified ?? false,
       is_active: values.is_active ?? true,
       real_name: values.real_name || undefined,
-      role: values.role || undefined,
+      roles: values.roles || undefined,
       department: values.department || undefined,
     }
     createMutation.mutate(createData)
@@ -156,11 +156,16 @@ const CreateUserForm = ({ onSuccess, onCancel }: CreateUserFormProps) => {
         </Col>
         <Col span={12}>
           <Form.Item
-            name="role"
+            name="roles"
             label="角色"
-            tooltip="OA系统中的角色（可选，如果NebulaAuth用户是管理员则会被覆盖为系统管理员）"
+            rules={[{ required: true, message: '请至少选择一个角色' }]}
+            tooltip="OA系统中的角色（支持多选，至少选择一个角色，如果NebulaAuth用户是管理员则会被覆盖为系统管理员）"
           >
-            <Select placeholder="请选择角色（可选）" allowClear>
+            <Select 
+              mode="multiple" 
+              placeholder="请选择角色（至少一个）" 
+              allowClear
+            >
               {roleOptions.map((option) => (
                 <Select.Option key={option.value} value={option.value}>
                   {option.label}

@@ -1,6 +1,7 @@
 import { Form, Input, Button, Space, message, Row, Col, Switch, Select } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { userService } from '@/services/user'
+import { permissionService } from '@/services/permission'
 import type { UpdateNebulaAuthUserRequest } from '@/services/user'
 import type { UserRole, User } from '@/types'
 import { useEffect } from 'react'
@@ -15,6 +16,9 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
 
+  // 检查用户是否是系统管理员（使用权限服务）
+  const isSystemAdmin = permissionService.utils.isSystemAdmin(user)
+
   // 初始化表单值
   useEffect(() => {
     form.setFieldsValue({
@@ -22,7 +26,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       email: user.email,
       phone: user.phone || undefined,
       real_name: user.real_name || undefined,
-      role: user.role || undefined,
+      roles: user.roles || (user.role ? [user.role] : undefined), // 支持向后兼容
       department: user.department || undefined,
       is_active: user.is_active ?? true,
     })
@@ -54,7 +58,7 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
       phone: values.phone || undefined,
       is_active: values.is_active ?? true,
       real_name: values.real_name || undefined,
-      role: values.role || undefined,
+      roles: values.roles || undefined,
       department: values.department || undefined,
     }
     updateMutation.mutate(updateData)
@@ -141,11 +145,17 @@ const EditUserForm = ({ user, onSuccess, onCancel }: EditUserFormProps) => {
         </Col>
         <Col span={12}>
           <Form.Item
-            name="role"
+            name="roles"
             label="角色"
-            tooltip="OA系统中的角色（如果NebulaAuth用户是管理员则会被覆盖为系统管理员）"
+            rules={[{ required: true, message: '请至少选择一个角色' }]}
+            tooltip={isSystemAdmin ? "系统管理员的角色不能修改" : "OA系统中的角色（支持多选，至少选择一个角色，如果NebulaAuth用户是管理员则会被覆盖为系统管理员）"}
           >
-            <Select placeholder="请选择角色（可选）" allowClear>
+            <Select 
+              mode="multiple" 
+              placeholder="请选择角色（至少一个）" 
+              allowClear
+              disabled={isSystemAdmin}
+            >
               {roleOptions.map((option) => (
                 <Select.Option key={option.value} value={option.value}>
                   {option.label}

@@ -38,7 +38,7 @@ type User struct {
     Department  string    `json:"department"`
     IsActive    bool      `json:"is_active" gorm:"default:true"`
     HasAccount  bool      `json:"has_account" gorm:"default:false"` // 是否有账号
-    Role        UserRole  `json:"role" gorm:"not null"` // 账号权限角色
+    Roles       pq.StringArray `json:"roles" gorm:"type:text[]"` // 账号权限角色（支持多选）
     CreatedAt   time.Time `json:"created_at"`
     UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -60,13 +60,18 @@ const (
 - Email: 有效的邮箱格式
 - Password: 最少8位，包含字母和数字（仅当HasAccount=true时）
 - RealName: 2-10个中文字符
+- Roles: 至少包含一个角色，角色值必须是有效的UserRole常量
 - ID: UUID v4格式（从Header中读取的X-User-ID格式）
 
 **Business Rules**:
 - 用户是否有账号取决于管理员的配置（HasAccount字段）
-- 有账号的用户可以登录系统，有不同的权限（Role字段）
+- 有账号的用户可以登录系统，有不同的权限（Roles字段，支持多选）
+- 用户角色支持多选，一个用户可以同时拥有多个角色（如：项目管理员+经营负责人）
+- 系统管理员具备所有角色类型的权限，其他角色只有自己角色的权限
+- 如果用户是系统管理员，角色不能修改
 - 用户可以在项目中担任不同角色（通过ProjectMember关联）
 - 用户ID使用UUID格式，与网关注入的X-User-ID格式一致
+- 项目中关于人的配置，如果是选择的系统已有用户，应该只能选择有对应角色权限的用户
 
 ### 2. Project (项目)
 

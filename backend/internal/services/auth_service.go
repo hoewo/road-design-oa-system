@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
@@ -127,11 +128,11 @@ func (s *AuthService) fetchUserFromNebulaAuth(token string) (*models.User, error
 	// Note: NebulaAuth doesn't have real_name, role, department, password fields
 	// We'll use username as real_name, and set role based on is_admin
 	// If user is NebulaAuth admin, set role to RoleAdmin, otherwise RoleMember
-	var role models.UserRole
+	var roles []string
 	if result.Data.IsAdmin {
-		role = models.RoleAdmin
+		roles = []string{string(models.RoleAdmin)}
 	} else {
-		role = models.RoleMember
+		roles = []string{string(models.RoleMember)}
 	}
 
 	user := &models.User{
@@ -140,7 +141,7 @@ func (s *AuthService) fetchUserFromNebulaAuth(token string) (*models.User, error
 		Email:      result.Data.Email,
 		Phone:      result.Data.Phone,
 		RealName:   result.Data.Username, // Use username as real_name if not available
-		Role:       role,
+		Roles:      pq.StringArray(roles),
 		IsActive:   result.Data.IsActive,
 		HasAccount: true, // User has NebulaAuth account
 		Password:   "",   // No password stored locally
@@ -181,7 +182,7 @@ func (s *AuthService) syncUserToLocalDB(user *models.User) error {
 		"username":    user.Username,
 		"email":       user.Email,
 		"phone":       user.Phone,
-		"role":        user.Role, // Update role based on NebulaAuth is_admin status
+		"roles":       user.Roles, // Update roles based on NebulaAuth is_admin status
 		"is_active":   user.IsActive,
 		"has_account": true,
 		"updated_at":  time.Now(),
@@ -197,7 +198,7 @@ func (s *AuthService) generateToken(user *models.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id":  user.ID,
 		"username": user.Username,
-		"role":     string(user.Role),
+		"roles":    user.Roles,
 		"exp":      expirationTime.Unix(),
 		"iat":      time.Now().Unix(),
 	}
@@ -231,7 +232,7 @@ func (s *AuthService) Register(username, email, password, realName string, role 
 		Email:    email,
 		Password: string(hashedPassword),
 		RealName: realName,
-		Role:     role,
+		Roles:    pq.StringArray{string(role)},
 		IsActive: true,
 	}
 

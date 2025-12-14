@@ -4,7 +4,8 @@ export interface User {
   username: string
   email: string
   real_name: string
-  role: UserRole
+  roles: UserRole[] // 支持多选角色
+  role?: UserRole // 向后兼容字段（已废弃，使用roles）
   department?: string
   phone?: string
   is_active: boolean

@@ -23,6 +23,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { projectService } from '@/services/project'
+import { permissionService } from '@/services/permission'
 import { useAuth } from '@/contexts/AuthContext'
 import ProjectForm from '@/components/project/ProjectForm'
 import type { Project, ProjectStatus } from '@/types'
@@ -42,8 +43,8 @@ const ProjectList = () => {
     total: 0,
   })
 
-  // Check if current user is admin (same logic as BasicInfoTab)
-  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'project_manager'
+  // Check if current user can create project (only project managers can create projects)
+  const canCreateProject = permissionService.utils.canCreateProject(currentUser)
   const [modalVisible, setModalVisible] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
 
@@ -233,7 +234,7 @@ const ProjectList = () => {
             >
               公司配置
             </Button>
-            {isAdmin && (
+            {permissionService.utils.isSystemAdmin(currentUser) && (
               <Button
                 icon={<UserOutlined />}
                 onClick={() => navigate('/users')}

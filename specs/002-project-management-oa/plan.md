@@ -18,6 +18,7 @@
 3. **路由与认证**：以 `specs/002-project-management-oa/ai-quick-reference.md` 为准（`/{service}/{version}/{auth_level}/{path}` 格式，根据业务需求选择三种认证级别：public、user、admin）
 4. **存储方案**：同时兼容本地方案（MinIO、PostgreSQL）和阿里云方案（OSS、RDS）
 5. **认证模式**：支持 `self_validate`（开发环境）和 `gateway`（生产环境）两种模式
+6. **权限管理**：建立统一的权限管理机制（Permission Service），所有权限判断逻辑集中在权限服务中，业务代码不直接进行权限判断，避免权限代码分散到各个业务模块。支持双重权限检查（用户角色 + 项目成员角色），两者取并集
 
 ## Technical Context
 
@@ -138,6 +139,7 @@ backend/
 │   ├── services/
 │   │   ├── auth_service.go
 │   │   ├── user_service.go
+│   │   ├── permission_service.go        # 新增：统一权限服务
 │   │   ├── project_service.go
 │   │   ├── project_business_service.go
 │   │   ├── contract_service.go
@@ -166,6 +168,7 @@ backend/
 │   │   └── file_handler.go
 │   ├── middleware/
 │   │   ├── auth.go                       # 统一认证中间件（支持 self_validate 和 gateway 两种模式）
+│   │   ├── permission.go                 # 新增：权限检查中间件
 │   │   ├── cors.go
 │   │   ├── error_handler.go
 │   │   └── logging.go
@@ -184,7 +187,8 @@ backend/
 │   └── utils/
 │       ├── errors.go
 │       ├── logger.go
-│       └── params.go
+│       ├── params.go
+│       └── permission.go                 # 新增：权限检查辅助函数
 ├── tests/
 │   ├── integration/
 │   ├── unit/
@@ -722,6 +726,168 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
 - ✅ **处理已存在用户**：支持用户已在NebulaAuth存在但OA本地数据库不存在的情况
 
 详细设计见：`research.md` 第12节
+
+### 统一权限管理机制设计
+
+**设计目标**：
+- 建立统一的权限管理机制，避免权限判断代码分散到各个业务模块
+- 支持双重权限检查（用户角色 + 项目成员角色）
+- 提供清晰的权限检查接口，业务代码只需调用统一接口
+
+**架构设计**：
+
+1. **权限服务（Permission Service）**：
+   - 位置：`backend/internal/services/permission_service.go`
+   - 职责：统一的权限检查逻辑，所有业务代码通过此服务进行权限判断
+   - 接口设计：
+     ```go
+     type PermissionService struct {
+         db *gorm.DB
+     }
+     
+     // 检查用户是否有权限执行操作
+     func (s *PermissionService) CheckPermission(ctx context.Context, userID string, action PermissionAction, resource Resource) (bool, error)
+     
+     // 检查用户是否可以配置项目成员
+     func (s *PermissionService) CanManageProjectMembers(ctx context.Context, userID string, projectID string, memberRole MemberRole) (bool, error)
+     
+     // 检查用户是否可以访问项目
+     func (s *PermissionService) CanAccessProject(ctx context.Context, userID string, projectID string) (bool, error)
+     
+     // 检查用户是否可以创建项目
+     func (s *PermissionService) CanCreateProject(ctx context.Context, userID string) (bool, error)
+     
+     // 检查用户是否可以配置项目负责人
+     func (s *PermissionService) CanManageProjectManagers(ctx context.Context, userID string, projectID string) (bool, error)
+     
+     // 获取用户可选择的用户列表（用于配置项目成员）
+     func (s *PermissionService) GetAvailableUsersForMemberRole(ctx context.Context, memberRole MemberRole) ([]User, error)
+     
+     // 获取用户可选择的用户列表（用于配置项目负责人）
+     func (s *PermissionService) GetAvailableUsersForManagerRole(ctx context.Context, managerRole UserRole) ([]User, error)
+     ```
+
+2. **权限中间件（Permission Middleware）**：
+   - 位置：`backend/internal/middleware/permission.go`
+   - 职责：在路由层面进行权限检查，拦截无权限请求
+   - 使用场景：需要统一权限检查的接口
+   - 示例：
+     ```go
+     // 权限检查中间件
+     func PermissionMiddleware(permissionService *services.PermissionService, action PermissionAction) gin.HandlerFunc {
+         return func(c *gin.Context) {
+             userID := c.GetString(string(middleware.UserIDKey))
+             // 根据action和资源进行权限检查
+             // 如果无权限，返回403错误
+         }
+     }
+     ```
+
+3. **权限检查辅助函数**：
+   - 位置：`backend/internal/utils/permission.go`
+   - 职责：提供权限检查的辅助函数，供业务代码调用
+   - 函数设计：
+     ```go
+     // 检查用户角色权限等级
+     func GetUserRoleLevel(role UserRole) int
+     
+     // 检查用户是否拥有指定角色或更高权限
+     func HasRoleOrHigher(userRoles []UserRole, requiredRole UserRole) bool
+     
+     // 检查用户是否是系统管理员
+     func IsSystemAdmin(userRoles []UserRole) bool
+     
+     // 检查用户是否是项目管理员
+     func IsProjectManager(userRoles []UserRole) bool
+     ```
+
+4. **权限规则实现**：
+
+   **权限检查原则**：
+   - 同时考虑用户角色（UserRole）和项目成员角色（MemberRole）
+   - 两者取并集（任一满足即可）
+   - 系统管理员具备所有权限
+
+   **权限等级**：
+   ```go
+   const (
+       RoleLevelSystemAdmin = 4  // 系统管理员
+       RoleLevelProjectManager = 3  // 项目管理员/财务人员
+       RoleLevelManager = 2  // 经营负责人/生产负责人
+       RoleLevelMember = 1  // 普通成员
+   )
+   ```
+
+   **配置项目成员权限检查**：
+   - 系统管理员：可以配置所有类型的项目成员
+   - 项目管理员：可以配置所有类型的项目成员
+   - 项目经营负责人：可以配置经营参与人
+   - 项目生产负责人：可以配置生产人员（设计人、参与人、复核人、审核人、审定人）
+
+   **选择项目成员时的用户过滤**：
+   - 项目成员（MemberRole）配置：可以选择所有用户，不需要角色过滤
+   - 项目负责人配置：需要根据角色过滤，支持向上兼容
+     - 经营负责人：可选择有经营负责人、项目管理员、系统管理员角色的用户
+     - 生产负责人：可选择有生产负责人、项目管理员、系统管理员角色的用户
+
+5. **业务代码使用方式**：
+
+   **方式1：在Handler中调用权限服务**（推荐）：
+   ```go
+   func (h *ProjectHandler) CreateProject(c *gin.Context) {
+       userID := c.GetString(string(middleware.UserIDKey))
+       
+       // 检查权限
+       canCreate, err := h.permissionService.CanCreateProject(c.Request.Context(), userID)
+       if err != nil || !canCreate {
+           utils.SendErrorResponse(c, http.StatusForbidden, "FORBIDDEN", "您没有权限创建项目")
+           return
+       }
+       
+       // 业务逻辑...
+   }
+   ```
+
+   **方式2：使用权限中间件**：
+   ```go
+   // 在router中注册
+   projectRoutes.POST("/", 
+       middleware.AuthMiddleware(cfg, middleware.AuthLevelUser),
+       middleware.PermissionMiddleware(permissionService, PermissionActionCreateProject),
+       projectHandler.CreateProject,
+   )
+   ```
+
+6. **项目结构更新**：
+
+   ```
+   backend/internal/
+   ├── services/
+   │   ├── permission_service.go    # 新增：统一权限服务
+   │   └── ...
+   ├── middleware/
+   │   ├── auth.go                  # 认证中间件（已存在）
+   │   ├── permission.go            # 新增：权限检查中间件
+   │   └── ...
+   └── utils/
+       ├── permission.go            # 新增：权限检查辅助函数
+       └── ...
+   ```
+
+7. **实现要求**：
+
+   - ✅ 所有权限检查逻辑集中在 `permission_service.go`
+   - ✅ 业务代码不直接进行权限判断，统一调用权限服务
+   - ✅ 支持双重权限检查（用户角色 + 项目成员角色）
+   - ✅ 支持权限等级判断（向上兼容）
+   - ✅ 提供清晰的错误信息
+   - ✅ 支持缓存用户权限信息（提高性能）
+
+8. **测试要求**：
+
+   - ✅ 单元测试：测试各种权限检查场景
+   - ✅ 集成测试：测试权限检查与业务逻辑的集成
+   - ✅ 边界测试：测试权限边界情况
 
 ### 管理员编辑用户功能设计（基于NebulaAuth）
 
@@ -1262,6 +1428,7 @@ LOG_FORMAT=json
 9. ✅ **管理员判断**：研究如何在业务系统中判断当前用户是否是NebulaAuth管理员（已完成，见research.md第11节）
 10. ✅ **管理员预设用户**：研究如何在项目管理系统中实现管理员预设（新建）用户的功能（已完成，见research.md第12节）
 11. ✅ **管理员编辑用户**：研究如何在项目管理系统中实现管理员编辑用户信息的功能（已完成，见plan.md"管理员编辑用户功能设计"部分）
+12. ✅ **统一权限管理机制**：设计统一的权限管理机制，避免权限判断代码分散到各个业务模块。支持双重权限检查（用户角色 + 项目成员角色），提供清晰的权限检查接口（已完成，见plan.md"统一权限管理机制设计"部分）
 
 ### Phase 1: Design & Contracts
 1. 生成 `data-model.md`：基于002的业务模型设计

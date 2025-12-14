@@ -56,7 +56,18 @@ type ListProjectsParams struct {
 }
 
 // CreateProject creates a new project
-func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Project, error) {
+// userID: 创建项目的用户ID，用于权限检查
+func (s *ProjectService) CreateProject(userID string, req *CreateProjectRequest) (*models.Project, error) {
+	// 权限检查：只有项目管理员角色的用户才能创建项目
+	permissionService := NewPermissionService()
+	canCreate, err := permissionService.CanCreateProject(userID)
+	if err != nil {
+		return nil, fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canCreate {
+		return nil, errors.New("权限不足：只有项目管理员角色的用户才能创建项目")
+	}
+
 	// Validate project number uniqueness
 	var existingProject models.Project
 	if err := s.db.Where("project_number = ?", req.ProjectNumber).First(&existingProject).Error; err == nil {
@@ -178,31 +189,34 @@ func (s *ProjectService) ListProjects(params *ListProjectsParams) ([]models.Proj
 
 // CanManageProjectManagers checks if a user can manage project managers (business manager and production manager)
 // Only project managers (RoleProjectManager) or admins (RoleAdmin) can manage project managers
+// 注意：此方法已废弃，请使用 PermissionService.CanManageProjectManagers
+// Deprecated: Use PermissionService.CanManageProjectManagers instead
 func (s *ProjectService) CanManageProjectManagers(userID string) (bool, error) {
-	var user models.User
-	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, errors.New("user not found")
-		}
-		return false, err
-	}
-
-	// Only project managers or admins can manage project managers
-	if user.Role == models.RoleProjectManager || user.Role == models.RoleAdmin {
-		return true, nil
-	}
-
-	return false, nil
+	permissionService := NewPermissionService()
+	return permissionService.CanManageProjectManagers(userID)
 }
 
 // UpdateProject updates an existing project (UUID string)
-func (s *ProjectService) UpdateProject(id string, req *UpdateProjectRequest) (*models.Project, error) {
+// userID: 更新项目的用户ID，用于权限检查（配置项目负责人时需要）
+func (s *ProjectService) UpdateProject(userID string, id string, req *UpdateProjectRequest) (*models.Project, error) {
 	var project models.Project
 	if err := s.db.First(&project, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
 		return nil, err
+	}
+
+	// 如果更新项目负责人，需要权限检查
+	if req.BusinessManagerID != nil || req.ProductionManagerID != nil {
+		permissionService := NewPermissionService()
+		canManage, err := permissionService.CanManageProjectManagers(userID)
+		if err != nil {
+			return nil, fmt.Errorf("权限检查失败: %w", err)
+		}
+		if !canManage {
+			return nil, errors.New("权限不足：只有项目管理员或系统管理员可以配置项目负责人")
+		}
 	}
 
 	// Update fields
@@ -241,8 +255,13 @@ func (s *ProjectService) UpdateProject(id string, req *UpdateProjectRequest) (*m
 	}
 
 	// Handle business manager ID and production manager ID
-	// Note: Permission check should be done in handler layer, not service layer
-	// Service layer only validates data integrity
+	// 权限检查：只有项目管理员或系统管理员可以配置项目负责人
+	// 注意：userID 需要从调用方传入
+	if req.BusinessManagerID != nil || req.ProductionManagerID != nil {
+		// 如果提供了 userID，进行权限检查（需要调用方传入）
+		// 这里暂时不检查，由 Handler 层调用权限服务进行检查
+	}
+
 	if req.BusinessManagerID != nil {
 		// Validate manager exists
 		var manager models.User

@@ -2,9 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
-**Last Updated**: 2025-01-28  
+**Last Updated**: 2025-01-30  
 **Status**: In Progress  
-**Total Tasks**: 376
+**Total Tasks**: 487
 
 ## Summary
 
@@ -12,7 +12,7 @@
 
 **任务组织**:
 - **Phase 1**: Setup（项目初始化）
-- **Phase 2**: Foundational（现有代码改造 - 路由、认证、数据模型、Auth优化）
+- **Phase 2**: Foundational（现有代码改造 - 路由、认证、数据模型、Auth优化、统一权限管理机制）
 - **Phase 3-8**: User Stories（部分实现，US1-US6）
 
 **最新更新（基于research.md技术方案调研）**:
@@ -21,6 +21,7 @@
 - **管理员预设用户功能**（T366-T370）：实现管理员通过业务系统调用NebulaAuth API创建用户的功能
 - **用户创建流程优化**（T378-T382）：支持邮箱和手机号二选一，实现完整的查询流程（本地DB → NebulaAuth → 创建）
 - **管理员编辑用户功能**（T383-T388）：实现管理员编辑用户信息功能，支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库
+- **统一权限管理机制**（T389-T408）：建立统一的权限管理机制，避免权限判断代码分散到各个业务模块。实现权限服务、权限中间件和权限检查辅助函数，所有业务代码通过统一接口进行权限判断
 
 **关键改造点**:
 1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
@@ -32,6 +33,7 @@
 5. 存储方案：支持MinIO和OSS切换
 6. 服务注册：生产环境需注册服务到NebulaAuth网关
 7. **Auth优化**（新增）：修复健康检查端点、Token验证响应格式、统一错误响应、规范错误码、添加API_BASE_URL配置、优化环境配置文件管理
+8. **统一权限管理机制**（新增）：建立统一的权限管理机制，实现权限服务（PermissionService）、权限中间件（PermissionMiddleware）和权限检查辅助函数。所有权限判断逻辑集中在权限服务中，业务代码通过统一接口进行权限判断，避免权限代码分散到各个业务模块。支持双重权限检查（用户角色 + 项目成员角色），两者取并集
 
 ---
 
@@ -236,6 +238,36 @@
 - [X] T326 优化配置加载逻辑：修改 config.Load() 函数支持根据 ENV 环境变量自动加载对应配置文件（.env.development 或 .env.production）backend/internal/config/config.go
 - [X] T327 实现 .env 本地覆盖支持：在配置加载逻辑中添加 .env 文件覆盖功能（使用 godotenv.Overload）backend/internal/config/config.go
 - [X] T328 更新 .gitignore：确保 .env 文件被忽略，但 .env.development 和 .env.production 可以提交 .gitignore
+
+#### 2.10 统一权限管理机制
+
+**目标**：建立统一的权限管理机制，避免权限判断代码分散到各个业务模块。所有权限检查逻辑集中在权限服务中，业务代码通过统一接口进行权限判断。
+
+**实现任务**：
+
+- [X] T389 创建权限检查辅助函数：实现 GetUserRoleLevel、HasRoleOrHigher、IsSystemAdmin、IsProjectManager 等辅助函数 backend/internal/utils/permission.go
+- [X] T390 创建权限服务结构体：定义 PermissionService 结构体，包含 db 字段 backend/internal/services/permission_service.go
+- [X] T391 实现权限等级常量：定义 RoleLevelSystemAdmin、RoleLevelProjectManager、RoleLevelManager、RoleLevelMember 常量 backend/internal/services/permission_service.go
+- [X] T392 实现 CanCreateProject 方法：检查用户是否可以创建项目（只有项目管理员角色的用户才能创建项目）backend/internal/services/permission_service.go
+- [X] T393 实现 CanManageProjectManagers 方法：检查用户是否可以配置项目负责人（项目管理员或系统管理员）backend/internal/services/permission_service.go
+- [X] T394 实现 CanManageProjectMembers 方法：检查用户是否可以配置项目成员（系统管理员、项目管理员、项目经营负责人、项目生产负责人）backend/internal/services/permission_service.go
+- [X] T395 实现 CanAccessProject 方法：检查用户是否可以访问项目（考虑用户角色和项目成员角色，两者取并集）backend/internal/services/permission_service.go
+- [X] T396 实现 GetAvailableUsersForMemberRole 方法：获取可用于配置项目成员的用户列表（返回所有用户，不需要角色过滤）backend/internal/services/permission_service.go
+- [X] T397 实现 GetAvailableUsersForManagerRole 方法：获取可用于配置项目负责人的用户列表（根据角色过滤，支持向上兼容）backend/internal/services/permission_service.go
+- [X] T397.1 实现 CanManageBusinessInfo 方法：检查用户是否可以管理项目经营信息（经营负责人、项目管理员、系统管理员）backend/internal/services/permission_service.go
+- [X] T397.2 实现 CanManageProductionInfo 方法：检查用户是否可以管理项目生产信息（生产负责人、项目管理员、系统管理员）backend/internal/services/permission_service.go
+- [X] T397.3 实现 CanManageCompanyRevenue 方法：检查用户是否可以管理公司收入（财务人员、系统管理员）backend/internal/services/permission_service.go
+- [X] T398 创建权限中间件：实现 PermissionMiddleware 函数，在路由层面进行权限检查 backend/internal/middleware/permission.go
+- [X] T399 更新 ProjectService 使用权限服务：在 CreateProject 方法中调用权限服务检查创建权限 backend/internal/services/project_service.go
+- [X] T400 更新 ProjectService 使用权限服务：在配置项目负责人时调用权限服务检查权限 backend/internal/services/project_service.go
+- [X] T401 更新 ProjectMemberService 使用权限服务：在配置项目成员时调用权限服务检查权限 backend/internal/services/project_member_service.go
+- [X] T402 更新 ProjectHandler 使用权限服务：在 CreateProject Handler 中调用权限服务 backend/internal/handlers/project_handler.go
+- [X] T403 更新 ProjectHandler 使用权限服务：在配置项目负责人 Handler 中调用权限服务 backend/internal/handlers/project_handler.go
+- [X] T404 更新 ProjectMemberHandler 使用权限服务：在配置项目成员 Handler 中调用权限服务 backend/internal/handlers/project_member_handler.go
+- [X] T405 更新前端项目创建页面：使用权限服务检查权限，无权限时显示提示信息 frontend/src/pages/ProjectList.tsx
+- [X] T406 更新前端项目详情页面：使用权限服务检查权限，根据权限显示/隐藏编辑按钮 frontend/src/components/project/BasicInfoTab.tsx
+- [X] T407 更新前端项目成员配置：使用权限服务获取可选择的用户列表 frontend/src/components/project/ProjectMemberList.tsx
+- [X] T408 更新前端负责人配置：使用权限服务获取可选择的用户列表（支持向上兼容）frontend/src/components/project/BasicInfoTab.tsx
 
 #### 2.9 负责人配置改造（确保符合User Story 3要求）
 
@@ -444,6 +476,42 @@
 - [X] T387 [US1] 创建前端编辑用户表单组件：实现用户编辑表单（支持编辑所有字段：用户名、真实姓名、邮箱、手机号、部门、角色、激活状态），复用CreateUserForm或创建独立的EditUserForm组件 frontend/src/components/admin/EditUserForm.tsx
 - [X] T388 [US1] 更新前端用户管理页面：集成编辑用户功能，在用户列表中添加编辑按钮，点击后打开编辑表单弹窗 frontend/src/pages/UserManagement.tsx
 
+#### 用户角色多选支持实现
+
+**问题说明**：
+根据权限规则，用户角色应该支持多选，一个用户可以同时拥有多个角色（如：项目管理员+经营负责人）。当前实现中User模型使用单个Role字段，需要改为支持多选的Roles数组字段。
+
+**解决方案**：
+1. 更新User模型，将Role字段改为Roles数组字段（使用PostgreSQL的text[]类型）
+2. 创建数据库迁移脚本，将现有数据从Role迁移到Roles
+3. 更新UserService的请求结构体，支持多选角色
+4. 更新权限服务，适配多选角色（getUserRoles方法需要调整）
+5. 更新前端表单，使用多选Select组件
+6. 更新前端类型定义，支持多选角色
+7. 实现系统管理员角色不可修改的规则
+
+**执行顺序**：
+1. 数据库模型和迁移（T473-T475）：必须先完成，确保数据结构支持多选
+2. 后端服务层更新（T476-T479）：更新服务层支持多选角色
+3. 权限服务适配（T480）：更新权限服务适配多选角色
+4. 前端类型和表单更新（T481-T485）：更新前端支持多选角色
+5. 系统管理员角色保护（T486）：实现系统管理员角色不可修改的规则
+
+- [X] T473 [US1] 更新User模型支持多选角色：将Role字段改为Roles字段（类型改为[]UserRole，使用pq.StringArray或gorm的text[]类型）backend/internal/models/user.go
+- [X] T474 [US1] 创建数据库迁移脚本：将users表的role字段迁移到roles字段（text[]类型），将现有单个角色值转换为数组格式 scripts/migrations/XXX_migrate_user_role_to_roles.sql
+- [X] T475 [US1] 更新User模型的BeforeCreate hook：适配多选角色，如果Roles为空则设置默认值[RoleMember] backend/internal/models/user.go
+- [X] T476 [US1] 更新CreateUserRequest支持多选角色：将Role字段改为Roles字段（类型改为[]models.UserRole），添加验证规则确保至少包含一个角色 backend/internal/services/user_service.go
+- [X] T477 [US1] 更新UpdateUserRequest支持多选角色：将Role字段改为Roles字段（类型改为*[]models.UserRole），添加验证规则确保至少包含一个角色 backend/internal/services/user_service.go
+- [X] T478 [US1] 更新CreateUser方法：适配多选角色，处理Roles数组字段 backend/internal/services/user_service.go
+- [X] T479 [US1] 更新UpdateUser方法：适配多选角色，处理Roles数组字段，如果Roles为空则不更新 backend/internal/services/user_service.go
+- [X] T480 [US1] 更新权限服务getUserRoles方法：直接从User.Roles字段获取角色数组，移除单个Role到数组的转换逻辑 backend/internal/services/permission_service.go
+- [X] T481 [US1] 更新前端User类型定义：将role字段改为roles字段（类型改为UserRole[]），保持向后兼容性 frontend/src/types/index.ts
+- [X] T482 [US1] 更新前端CreateUserForm组件：将角色选择改为多选Select（mode="multiple"），支持选择多个角色 frontend/src/components/admin/CreateUserForm.tsx
+- [X] T483 [US1] 更新前端EditUserForm组件：将角色选择改为多选Select（mode="multiple"），支持选择多个角色，如果用户是系统管理员则禁用角色编辑 frontend/src/components/admin/EditUserForm.tsx
+- [X] T484 [US1] 更新前端CreateNebulaAuthUserRequest类型：将role字段改为roles字段（类型改为UserRole[]）frontend/src/services/user.ts
+- [X] T485 [US1] 更新前端UpdateNebulaAuthUserRequest类型：将role字段改为roles字段（类型改为UserRole[]）frontend/src/services/user.ts
+- [X] T486 [US1] 实现系统管理员角色保护：在UpdateUserAdmin方法中，如果用户是系统管理员（Roles包含admin），则不允许修改Roles字段，返回错误提示 backend/internal/handlers/user_handler.go
+
 ---
 
 ## Phase 4: User Story 2 - 创建项目 (P1)
@@ -514,6 +582,11 @@
 - [X] T119 [US4] 更新前端甲方选择组件 frontend/src/components/business/ClientSelectModal.tsx
 - [X] T120 [US4] 实现项目联系人表单组件 frontend/src/components/business/ProjectContactForm.tsx
 - [X] T121 [US4] 更新前端项目经营信息页面集成联系人管理 frontend/src/components/project/BusinessInfoTab.tsx
+- [ ] T409 [US4] 更新ClientService使用权限服务：在管理甲方信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/client_service.go
+- [ ] T410 [US4] 更新ProjectContactService使用权限服务：在管理项目联系人时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_contact_service.go
+- [ ] T411 [US4] 更新ClientHandler使用权限服务：在甲方管理Handler中调用权限服务 backend/internal/handlers/client_handler.go
+- [ ] T412 [US4] 更新ProjectContactHandler使用权限服务：在项目联系人Handler中调用权限服务 backend/internal/handlers/project_contact_handler.go
+- [ ] T413 [US4] 更新前端甲方管理页面：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ClientSelectModal.tsx
 
 ---
 
@@ -560,6 +633,9 @@
 - [X] T135 [US6] 实现招投标文件上传UI frontend/src/components/business/BiddingFileList.tsx
 - [X] T136 [US6] 实现专家费支付表单 frontend/src/components/business/ExpertFeeForm.tsx
 - [X] T137 [US6] 更新前端项目经营信息页面集成招投标管理 frontend/src/components/project/BusinessInfoTab.tsx
+- [ ] T414 [US6] 更新BiddingService使用权限服务：在管理招投标信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/bidding_service.go
+- [ ] T415 [US6] 更新BiddingHandler使用权限服务：在招投标管理Handler中调用权限服务 backend/internal/handlers/bidding_handler.go
+- [ ] T416 [US6] 更新前端招投标管理组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/BiddingFileList.tsx
 
 ---
 
@@ -640,6 +716,9 @@
 - [ ] T144 [US7] 实现合同金额明细录入（设计费、勘察费、咨询费）frontend/src/components/business/ContractForm.tsx
 - [ ] T145 [US7] 实现合同文件上传UI frontend/src/components/business/ContractFileUpload.tsx
 - [ ] T146 [US7] 更新前端项目经营信息页面集成合同管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T417 [US7] 更新ContractService使用权限服务：在管理合同信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_service.go
+- [ ] T418 [US7] 更新ContractHandler使用权限服务：在合同管理Handler中调用权限服务 backend/internal/handlers/contract_handler.go
+- [ ] T419 [US7] 更新前端合同管理组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ContractForm.tsx
 
 ---
 
@@ -664,6 +743,9 @@
 - [ ] T153 [US8] 更新前端补充协议表单组件 frontend/src/components/business/ContractAmendmentForm.tsx
 - [ ] T154 [US8] 实现补充协议列表显示 frontend/src/components/business/ContractAmendmentList.tsx
 - [ ] T155 [US8] 更新前端合同详情页面集成补充协议管理 frontend/src/components/business/ContractDetail.tsx
+- [ ] T420 [US8] 更新ContractAmendmentService使用权限服务：在管理补充协议时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_amendment_service.go
+- [ ] T421 [US8] 更新ContractAmendmentHandler使用权限服务：在补充协议管理Handler中调用权限服务 backend/internal/handlers/contract_amendment_handler.go
+- [ ] T422 [US8] 更新前端补充协议管理组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ContractAmendmentForm.tsx
 
 ---
 
@@ -686,6 +768,9 @@
 - [ ] T160 [US9] 创建前端甲方支付表单组件 frontend/src/components/business/ClientPaymentForm.tsx
 - [ ] T161 [US9] 实现支付记录列表显示 frontend/src/components/business/ClientPaymentList.tsx
 - [ ] T162 [US9] 更新前端项目经营信息页面集成支付记录管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T423 [US9] 更新FinancialService使用权限服务：在记录甲方支付时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
+- [ ] T424 [US9] 更新FinancialHandler使用权限服务：在甲方支付记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [ ] T425 [US9] 更新前端甲方支付表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ClientPaymentForm.tsx
 
 ---
 
@@ -709,6 +794,9 @@
 - [ ] T168 [US10] 实现发票文件上传UI frontend/src/components/business/InvoiceFileUpload.tsx
 - [ ] T169 [US10] 实现开票记录列表显示 frontend/src/components/business/OurInvoiceList.tsx
 - [ ] T170 [US10] 更新前端项目经营信息页面集成开票记录管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T426 [US10] 更新FinancialService使用权限服务：在记录我方开票时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
+- [ ] T427 [US10] 更新FinancialHandler使用权限服务：在我方开票记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [ ] T428 [US10] 更新前端我方开票表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/OurInvoiceForm.tsx
 
 ---
 
@@ -732,6 +820,9 @@
 - [ ] T176 [US11] 实现发放人员选择组件 frontend/src/components/business/BonusRecipientSelector.tsx
 - [ ] T177 [US11] 实现奖金记录列表显示 frontend/src/components/business/BusinessBonusList.tsx
 - [ ] T178 [US11] 更新前端项目经营信息页面集成奖金管理 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T429 [US11] 更新FinancialService使用权限服务：在分配经营奖金时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
+- [ ] T430 [US11] 更新FinancialHandler使用权限服务：在经营奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [ ] T431 [US11] 更新前端经营奖金表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/BusinessBonusForm.tsx
 
 ---
 
@@ -756,6 +847,9 @@
 - [ ] T185 [US12] 实现统计数据可视化展示 frontend/src/components/business/BusinessStatistics.tsx
 - [ ] T186 [US12] 实现统计报表导出功能 frontend/src/components/business/BusinessStatistics.tsx
 - [ ] T187 [US12] 更新前端项目经营信息页面集成统计展示 frontend/src/pages/ProjectBusiness.tsx
+- [ ] T432 [US12] 更新ProjectBusinessService使用权限服务：在查看经营信息统计时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_business_service.go
+- [ ] T433 [US12] 更新ProjectBusinessHandler使用权限服务：在经营信息统计Handler中调用权限服务 backend/internal/handlers/project_business_handler.go
+- [ ] T434 [US12] 更新前端经营信息统计组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/BusinessStatistics.tsx
 
 ---
 
@@ -781,6 +875,9 @@
 - [ ] T172 [US13] 实现审核人和审定人配置UI frontend/src/components/production/ReviewerConfig.tsx
 - [ ] T173 [US13] 实现专业选择器（支持创建新专业）frontend/src/components/production/DisciplineSelector.tsx
 - [ ] T174 [US13] 更新前端项目生产信息页面集成人员配置 frontend/src/pages/ProjectProduction.tsx
+- [ ] T435 [US13] 更新ProjectMemberService使用权限服务：在配置生产人员时调用权限服务检查权限（CanManageProjectMembers，memberRole为生产人员角色）backend/internal/services/project_member_service.go
+- [ ] T436 [US13] 更新ProjectMemberHandler使用权限服务：在生产人员配置Handler中调用权限服务 backend/internal/handlers/project_member_handler.go
+- [ ] T437 [US13] 更新前端生产人员配置组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ProductionPersonnelManager.tsx
 
 ---
 
@@ -807,6 +904,9 @@
 - [ ] T183 [US14] 实现引用合同金额功能 frontend/src/components/production/ApprovalForm.tsx
 - [ ] T184 [US14] 实现批复审计报告上传UI frontend/src/components/production/ApprovalReportUpload.tsx
 - [ ] T185 [US14] 更新前端项目生产信息页面集成批复审计管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T438 [US14] 更新ProductionApprovalService使用权限服务：在管理批复审计信息时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_approval_service.go
+- [ ] T439 [US14] 更新ProductionApprovalHandler使用权限服务：在批复审计管理Handler中调用权限服务 backend/internal/handlers/production_approval_handler.go
+- [ ] T440 [US14] 更新前端批复审计表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ApprovalForm.tsx
 
 ---
 
@@ -831,6 +931,9 @@
 - [ ] T192 [US15] 实现评分录入组件 frontend/src/components/production/ScoreInput.tsx
 - [ ] T193 [US15] 实现方案文件列表显示 frontend/src/components/production/SchemeFileList.tsx
 - [ ] T194 [US15] 更新前端项目生产信息页面集成方案阶段文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T441 [US15] 更新ProductionFileService使用权限服务：在管理方案阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
+- [ ] T442 [US15] 更新ProductionFileHandler使用权限服务：在方案阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
+- [ ] T443 [US15] 更新前端方案阶段文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/SchemeFileUpload.tsx
 
 ---
 
@@ -851,6 +954,9 @@
 - [ ] T197 [US16] 创建前端初步设计阶段文件上传组件 frontend/src/components/production/PreliminaryFileUpload.tsx
 - [ ] T198 [US16] 实现初步设计文件列表显示 frontend/src/components/production/PreliminaryFileList.tsx
 - [ ] T199 [US16] 更新前端项目生产信息页面集成初步设计阶段文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T444 [US16] 更新ProductionFileService使用权限服务：在管理初步设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
+- [ ] T445 [US16] 更新ProductionFileHandler使用权限服务：在初步设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
+- [ ] T446 [US16] 更新前端初步设计阶段文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/PreliminaryFileUpload.tsx
 
 ---
 
@@ -871,6 +977,9 @@
 - [ ] T202 [US17] 创建前端施工图设计阶段文件上传组件 frontend/src/components/production/ConstructionFileUpload.tsx
 - [ ] T203 [US17] 实现施工图设计文件列表显示 frontend/src/components/production/ConstructionFileList.tsx
 - [ ] T204 [US17] 更新前端项目生产信息页面集成施工图设计阶段文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T447 [US17] 更新ProductionFileService使用权限服务：在管理施工图设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
+- [ ] T448 [US17] 更新ProductionFileHandler使用权限服务：在施工图设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
+- [ ] T449 [US17] 更新前端施工图设计阶段文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ConstructionFileUpload.tsx
 
 ---
 
@@ -891,6 +1000,9 @@
 - [ ] T207 [US18] 创建前端变更洽商阶段文件上传组件 frontend/src/components/production/ChangeFileUpload.tsx
 - [ ] T208 [US18] 实现变更洽商文件列表显示 frontend/src/components/production/ChangeFileList.tsx
 - [ ] T209 [US18] 更新前端项目生产信息页面集成变更洽商文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T450 [US18] 更新ProductionFileService使用权限服务：在管理变更洽商文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
+- [ ] T451 [US18] 更新ProductionFileHandler使用权限服务：在变更洽商文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
+- [ ] T452 [US18] 更新前端变更洽商文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ChangeFileUpload.tsx
 
 ---
 
@@ -911,6 +1023,9 @@
 - [ ] T212 [US19] 创建前端竣工验收阶段文件上传组件 frontend/src/components/production/CompletionFileUpload.tsx
 - [ ] T213 [US19] 实现竣工验收文件列表显示 frontend/src/components/production/CompletionFileList.tsx
 - [ ] T214 [US19] 更新前端项目生产信息页面集成竣工验收文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T453 [US19] 更新ProductionFileService使用权限服务：在管理竣工验收文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
+- [ ] T454 [US19] 更新ProductionFileHandler使用权限服务：在竣工验收文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
+- [ ] T455 [US19] 更新前端竣工验收文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/CompletionFileUpload.tsx
 
 ---
 
@@ -940,6 +1055,9 @@
 - [ ] T226 [US20] 实现生产成本列表显示 frontend/src/components/production/ProductionCostList.tsx
 - [ ] T227 [US20] 实现成本统计展示 frontend/src/components/production/ProductionCostStatistics.tsx
 - [ ] T228 [US20] 更新前端项目生产信息页面集成成本管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T456 [US20] 更新FinancialService使用权限服务：在记录生产成本时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
+- [ ] T457 [US20] 更新FinancialHandler使用权限服务：在生产成本记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [ ] T458 [US20] 更新前端生产成本表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ProductionCostForm.tsx
 
 ---
 
@@ -1057,6 +1175,9 @@
 - [ ] T240 [US21] 实现委托合同文件上传UI frontend/src/components/production/CommissionContractUpload.tsx
 - [ ] T241 [US21] 实现对外委托列表显示 frontend/src/components/production/ExternalCommissionList.tsx
 - [ ] T242 [US21] 更新前端项目生产信息页面集成对外委托管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T459 [US21] 更新ExternalCommissionService使用权限服务：在管理对外委托时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/external_commission_service.go
+- [ ] T460 [US21] 更新ExternalCommissionHandler使用权限服务：在对外委托管理Handler中调用权限服务 backend/internal/handlers/external_commission_handler.go
+- [ ] T461 [US21] 更新前端对外委托表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ExternalCommissionForm.tsx
 
 ---
 
@@ -1080,6 +1201,9 @@
 - [ ] T248 [US22] 实现发放人员选择组件（从项目生产人员中选择）frontend/src/components/production/ProductionBonusRecipientSelector.tsx
 - [ ] T249 [US22] 实现奖金记录列表显示 frontend/src/components/production/ProductionBonusList.tsx
 - [ ] T250 [US22] 更新前端项目生产信息页面集成生产奖金管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T462 [US22] 更新FinancialService使用权限服务：在分配生产奖金时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
+- [ ] T463 [US22] 更新FinancialHandler使用权限服务：在生产奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [ ] T464 [US22] 更新前端生产奖金表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ProductionBonusForm.tsx
 
 ---
 
@@ -1102,7 +1226,10 @@
 - [ ] T255 [US23] 实现所有发票信息汇总 backend/internal/services/financial_service.go
 - [ ] T256 [US23] 实现所有支付信息汇总 backend/internal/services/financial_service.go
 - [ ] T257 [US23] 实现未收金额统计（总应收-已收）backend/internal/services/financial_service.go
-- [ ] T258 [US23] 实现财务人员权限验证中间件 backend/internal/middleware/auth.go
+- [ ] T465 [US23] 更新CompanyConfigService使用权限服务：在设置管理费比例时调用权限服务检查权限（CanManageCompanyRevenue）backend/internal/services/company_config_service.go
+- [ ] T466 [US23] 更新FinancialService使用权限服务：在查看公司收入统计时调用权限服务检查权限（CanManageCompanyRevenue）backend/internal/services/financial_service.go
+- [ ] T467 [US23] 更新CompanyConfigHandler使用权限服务：在管理费设置Handler中调用权限服务 backend/internal/handlers/company_config_handler.go
+- [ ] T468 [US23] 更新FinancialHandler使用权限服务：在公司收入统计Handler中调用权限服务 backend/internal/handlers/financial_handler.go
 - [ ] T259 [US23] 更新CompanyConfigHandler支持管理费设置 backend/internal/handlers/company_config_handler.go
 - [ ] T260 [US23] 更新FinancialHandler支持公司收入统计查询 backend/internal/handlers/financial_handler.go
 - [ ] T261 [US23] 创建前端管理费设置组件 frontend/src/components/financial/ManagementFeeSetting.tsx
@@ -1111,7 +1238,7 @@
 - [ ] T264 [US23] 实现发票信息列表展示 frontend/src/components/financial/InvoiceSummary.tsx
 - [ ] T265 [US23] 实现支付信息列表展示 frontend/src/components/financial/PaymentSummary.tsx
 - [ ] T266 [US23] 实现未收金额统计展示 frontend/src/components/financial/UnpaidAmountSummary.tsx
-- [ ] T267 [US23] 实现权限控制（非财务人员无法访问）frontend/src/pages/CompanyRevenue.tsx
+- [ ] T469 [US23] 更新前端公司收入管理页面：使用权限服务检查权限（CanManageCompanyRevenue），无权限时显示提示信息 frontend/src/pages/CompanyRevenue.tsx
 - [ ] T268 [US23] 更新前端公司收入管理页面 frontend/src/pages/CompanyRevenue.tsx
 
 ---
@@ -1133,7 +1260,8 @@
 - [ ] T271 [US24] 实现文件类型验证（仅限制危险文件类型）backend/internal/services/file_service.go
 - [ ] T272 [US24] 实现文件大小验证（最大100MB）backend/internal/services/file_service.go
 - [ ] T273 [US24] 实现文件搜索功能（按项目、文件类型、上传时间）backend/internal/services/file_service.go
-- [ ] T274 [US24] 实现文件权限验证（用户只能访问有权限的项目文件）backend/internal/services/file_service.go
+- [ ] T470 [US24] 更新FileService使用权限服务：在文件上传、下载、搜索时调用权限服务检查权限（CanAccessProject）backend/internal/services/file_service.go
+- [ ] T471 [US24] 更新FileHandler使用权限服务：在文件管理Handler中调用权限服务 backend/internal/handlers/file_handler.go
 - [ ] T275 [US24] 创建FileHandler支持文件管理接口 backend/internal/handlers/file_handler.go
 - [ ] T276 [US24] 实现文件上传接口 backend/internal/handlers/file_handler.go
 - [ ] T277 [US24] 实现文件下载接口（带权限验证）backend/internal/handlers/file_handler.go
@@ -1147,6 +1275,7 @@
 - [ ] T285 [US24] 实现文件搜索筛选（项目、文件类型、上传时间）frontend/src/components/file/FileSearch.tsx
 - [ ] T286 [US24] 创建前端文件管理页面 frontend/src/pages/FileManagement.tsx
 - [ ] T287 [US24] 更新前端路由集成文件管理页面 frontend/src/App.tsx
+- [ ] T472 [US24] 更新前端文件管理页面：使用权限服务检查权限（CanAccessProject），无权限时显示提示信息 frontend/src/pages/FileManagement.tsx
 
 ---
 
@@ -1198,7 +1327,9 @@
 
 1. **Phase 1 (Setup)** → 必须首先完成
 2. **Phase 2 (Foundational)** → 必须在所有用户故事之前完成
-3. **Phase 3-8 (US1-US6)** → P1优先级，基础功能
+   - **Phase 2.10 (统一权限管理机制)** → 必须在所有需要权限检查的用户故事之前完成（T389-T408）
+   - **权限集成任务** → 必须在对应的用户故事实现完成后进行（T409-T472）
+3. **Phase 3-8 (US1-US6)** → P1优先级，基础功能（依赖Phase 2.10完成）
 4. **Phase 9-14 (US7-US12)** → P1优先级，核心经营功能
 5. **Phase 15-22 (US13-US20)** → P2优先级，生产管理功能
 6. **Phase 23-24 (US21-US22)** → P2优先级，生产管理补充功能
@@ -1214,11 +1345,22 @@
 - T240-T257 (US23) 可以部分并行
 - T258-T276 (US24) 可以部分并行
 
+**Phase 2.10内部并行**:
+- T389-T391 (权限辅助函数和权限服务基础) 可以部分并行
+- T392-T397.3 (权限服务方法实现) 可以部分并行
+- T398-T404 (权限中间件和业务代码集成) 可以部分并行
+- T405-T408 (前端权限集成) 可以部分并行
+
+**各用户故事权限集成任务并行**:
+- US4-US12的权限集成任务（T409-T434）可以部分并行
+- US13-US22的权限集成任务（T435-T464）可以部分并行
+- US23-US24的权限集成任务（T465-T472）可以部分并行
+
 **Final Phase内部并行**:
-- T277-T285 (边界情况处理) 可以并行
-- T286-T292 (后端优化) 可以并行
-- T293-T298 (前端优化) 可以并行
-- T299-T302 (测试) 可以并行
+- T288-T291 (边界情况处理) 可以并行
+- T292-T297 (错误处理和优化) 可以并行
+- T298-T302 (性能优化和测试) 可以并行
+- T303-T312 (完善和测试) 可以并行
 
 ---
 
@@ -1236,7 +1378,7 @@
 ### Incremental Delivery (Final)
 1. **Week 1**: Phase 1 + Phase 2.1-2.2（路由和认证改造）
 2. **Week 2**: Phase 2.3-2.4（ID类型和项目联系人改造）
-3. **Week 3**: Phase 2.5-2.6（财务记录统一和专业字典）
+3. **Week 3**: Phase 2.5-2.6（财务记录统一和专业字典）+ Phase 2.10（统一权限管理机制）
 4. **Week 4**: Phase 3-4（账号管理和项目创建）
 5. **Week 5**: Phase 5-6（负责人配置和甲方管理）
 6. **Week 6**: Phase 7-8（经营参与人和招投标管理）
@@ -1268,19 +1410,20 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 357/376 (95%)
+**任务进度**: 357/487 (73%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
 - Phase 2.9: 8个任务（负责人配置改造，确保符合User Story 3要求）
-- Phase 3: 49个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务，新增6个管理员编辑用户任务）
-- Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）
-- Phase 9-14: 50个任务（US7-US12）
-- Phase 15-22: 64个任务（US13-US20）
-- Phase 23-24: 22个任务（US21-US22）
-- Phase 25: 18个任务（US23）
-- Phase 26: 19个任务（US24）
+- Phase 2.10: 23个任务（统一权限管理机制，新增权限服务、权限中间件和权限检查辅助函数，包含3个权限服务方法：CanManageBusinessInfo、CanManageProductionInfo、CanManageCompanyRevenue）
+- Phase 3: 49个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务，新增6个管理员编辑用户任务）+ 14个用户角色多选支持任务（T473-T486）
+- Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）+ 8个权限集成任务（US4: T409-T413, US6: T414-T416）
+- Phase 9-14: 50个任务（US7-US12）+ 18个权限集成任务（T417-T434）
+- Phase 15-22: 64个任务（US13-US20）+ 24个权限集成任务（T435-T458）
+- Phase 23-24: 22个任务（US21-US22）+ 6个权限集成任务（T459-T464）
+- Phase 25: 18个任务（US23）+ 5个权限集成任务（T465-T469，替换T258和T267）
+- Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 376个任务（新增6个任务：管理员编辑用户功能，支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库）
+**总计**: 487个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能）
 

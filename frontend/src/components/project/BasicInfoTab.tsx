@@ -12,13 +12,13 @@ import {
   Col,
 } from 'antd'
 import { EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons'
-import { useMutation, QueryClient } from '@tanstack/react-query'
+import { useMutation, QueryClient, useQuery } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
+import { permissionService } from '@/services/permission'
 import { useAuth } from '@/contexts/AuthContext'
 import type {
   Project,
   ProjectMember,
-  User,
   UpdateProjectRequest,
 } from '@/types'
 import dayjs from 'dayjs'
@@ -30,7 +30,6 @@ interface BasicInfoTabProps {
   projectId: string
   project: Project | undefined
   projectMembers: ProjectMember[] | undefined
-  users: User[]
   queryClient: QueryClient
   onRefetch: () => void
 }
@@ -39,7 +38,6 @@ export const BasicInfoTab = ({
   projectId,
   project,
   projectMembers,
-  users,
   queryClient,
   onRefetch,
 }: BasicInfoTabProps) => {
@@ -59,8 +57,22 @@ export const BasicInfoTab = ({
 
   // Check if current user can manage project managers
   // Only project managers (role: 'project_manager') or admins (role: 'admin') can manage project managers
-  const canManageManagers =
-    currentUser?.role === 'project_manager' || currentUser?.role === 'admin'
+  // 使用权限服务工具函数进行权限检查
+  const canManageManagers = permissionService.utils.canManageProjectManagers(currentUser)
+
+  // 获取可用于配置经营负责人的用户列表（根据权限过滤）
+  const { data: businessManagerOptions = [] } = useQuery({
+    queryKey: ['availableUsersForManager', 'business'],
+    queryFn: () => permissionService.getAvailableUsersForManager('business'),
+    enabled: canManageManagers, // 只有有权限的用户才需要获取列表
+  })
+
+  // 获取可用于配置生产负责人的用户列表（根据权限过滤）
+  const { data: productionManagerOptions = [] } = useQuery({
+    queryKey: ['availableUsersForManager', 'production'],
+    queryFn: () => permissionService.getAvailableUsersForManager('production'),
+    enabled: canManageManagers, // 只有有权限的用户才需要获取列表
+  })
 
   // 调试日志：检查用户权限和状态
   useEffect(() => {
@@ -348,7 +360,7 @@ export const BasicInfoTab = ({
                       .includes(input.toLowerCase())
                   }}
                 >
-                  {users.map((user) => (
+                  {businessManagerOptions.map((user) => (
                     <Option key={user.id} value={user.id}>
                       {user.real_name || user.username}
                     </Option>
@@ -369,7 +381,7 @@ export const BasicInfoTab = ({
                       .includes(input.toLowerCase())
                   }}
                 >
-                  {users.map((user) => (
+                  {productionManagerOptions.map((user) => (
                     <Option key={user.id} value={user.id}>
                       {user.real_name || user.username}
                     </Option>
@@ -506,134 +518,134 @@ export const BasicInfoTab = ({
         )}
       </Card>
 
-      <Card
-        title="负责人配置"
-        extra={
+        <Card
+          title="负责人配置"
+          extra={
           canManageManagers && !isEditingManagers && (
-            <Button
-              type="primary"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={handleEditManagers}
-            >
-              编辑
-            </Button>
-          )
-        }
+              <Button
+                type="primary"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={handleEditManagers}
+              >
+                编辑
+              </Button>
+            )
+          }
         style={{ marginBottom: 24 }}
-      >
+        >
         {isEditingManagers && canManageManagers ? (
-          <Form 
-            form={managerForm} 
-            layout="vertical"
-            onValuesChange={(changedValues, allValues) => {
-              console.log('负责人表单值变化:', { changedValues, allValues })
-            }}
-          >
+              <Form 
+                form={managerForm} 
+                layout="vertical"
+                onValuesChange={(changedValues, allValues) => {
+                  console.log('负责人表单值变化:', { changedValues, allValues })
+                }}
+              >
+                <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="business_manager_id" label="经营负责人">
+                    <Select
+                      placeholder="请选择经营负责人"
+                      allowClear
+                      showSearch
+                      filterOption={(input, option) => {
+                        const label = option?.label || option?.children
+                        return String(label || '')
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }}
+                    >
+                      {businessManagerOptions.map((user) => (
+                        <Option key={user.id} value={user.id}>
+                          {user.real_name || user.username}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="production_manager_id" label="生产负责人">
+                    <Select
+                      placeholder="请选择生产负责人"
+                      allowClear
+                      showSearch
+                      filterOption={(input, option) => {
+                        const label = option?.label || option?.children
+                        return String(label || '')
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }}
+                    >
+                      {productionManagerOptions.map((user) => (
+                        <Option key={user.id} value={user.id}>
+                          {user.real_name || user.username}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <div style={{ marginTop: 16, textAlign: 'right' }}>
+                <Space>
+                  <Button icon={<CloseOutlined />} onClick={handleCancelManagers}>
+                    取消
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<SaveOutlined />}
+                    onClick={handleSaveManagers}
+                    loading={updateMutation.isPending}
+                  >
+                    保存
+                  </Button>
+                </Space>
+              </div>
+              </Form>
+          ) : (
             <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name="business_manager_id" label="经营负责人">
-                  <Select
-                    placeholder="请选择经营负责人"
-                    allowClear
-                    showSearch
-                    filterOption={(input, option) => {
-                      const label = option?.label || option?.children
-                      return String(label || '')
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }}
-                  >
-                    {users.map((user) => (
-                      <Option key={user.id} value={user.id}>
-                        {user.real_name || user.username}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="production_manager_id" label="生产负责人">
-                  <Select
-                    placeholder="请选择生产负责人"
-                    allowClear
-                    showSearch
-                    filterOption={(input, option) => {
-                      const label = option?.label || option?.children
-                      return String(label || '')
-                        .toLowerCase()
-                        .includes(input.toLowerCase())
-                    }}
-                  >
-                    {users.map((user) => (
-                      <Option key={user.id} value={user.id}>
-                        {user.real_name || user.username}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
-            <div style={{ marginTop: 16, textAlign: 'right' }}>
-              <Space>
-                <Button icon={<CloseOutlined />} onClick={handleCancelManagers}>
-                  取消
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  onClick={handleSaveManagers}
-                  loading={updateMutation.isPending}
-                >
-                  保存
-                </Button>
-              </Space>
+          <Col span={12}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                经营负责人
+              </div>
+              <div
+                style={{
+                  padding: '10px',
+                  border: '2px solid #e0e0e0',
+                  background: '#f9f9f9',
+                  borderRadius: '4px',
+                }}
+              >
+                    {project?.business_manager
+                      ? project.business_manager.real_name ||
+                        project.business_manager.username
+                      : '-'}
+              </div>
             </div>
-          </Form>
-        ) : (
-          <Row gutter={16}>
-            <Col span={12}>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                  经营负责人
-                </div>
-                <div
-                  style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {project?.business_manager
-                    ? project.business_manager.real_name ||
-                      project.business_manager.username
-                    : '-'}
-                </div>
+          </Col>
+          <Col span={12}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                生产负责人
               </div>
-            </Col>
-            <Col span={12}>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                  生产负责人
-                </div>
-                <div
-                  style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
-                    borderRadius: '4px',
-                  }}
-                >
-                  {project?.production_manager
-                    ? project.production_manager.real_name ||
-                      project.production_manager.username
-                    : '-'}
-                </div>
+              <div
+                style={{
+                  padding: '10px',
+                  border: '2px solid #e0e0e0',
+                  background: '#f9f9f9',
+                  borderRadius: '4px',
+                }}
+              >
+                    {project?.production_manager
+                      ? project.production_manager.real_name ||
+                        project.production_manager.username
+                      : '-'}
               </div>
-            </Col>
-          </Row>
-        )}
+            </div>
+          </Col>
+        </Row>
+          )}
       </Card>
     </>
   )

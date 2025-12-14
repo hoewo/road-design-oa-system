@@ -38,13 +38,20 @@ func NewProjectHandler(logger *zap.Logger) *ProjectHandler {
 // @Failure 400 {object} utils.ErrorResponse
 // @Router /projects [post]
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
+	// 获取用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
 	var req services.CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	project, err := h.projectService.CreateProject(&req)
+	project, err := h.projectService.CreateProject(userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create project",
 			zap.Error(err),
@@ -170,31 +177,14 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		return
 	}
 
-	// Check permission if updating managers (business manager or production manager)
-	if req.BusinessManagerID != nil || req.ProductionManagerID != nil {
-		userID, exists := middleware.GetUserID(c)
-		if !exists {
-			utils.HandleError(c, http.StatusUnauthorized, "User ID not found", nil)
-			return
-		}
-
-		canManage, err := h.projectService.CanManageProjectManagers(userID)
-		if err != nil {
-			h.logger.Error("Failed to check permission",
-				zap.Error(err),
-				zap.String("user_id", userID),
-			)
-			utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
-			return
-		}
-
-		if !canManage {
-			utils.HandleError(c, http.StatusForbidden, "Only project managers can configure project managers", nil)
-			return
-		}
+	// 获取用户ID（权限检查在 Service 层进行）
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
 	}
 
-	project, err := h.projectService.UpdateProject(id, &req)
+	project, err := h.projectService.UpdateProject(userID, id, &req)
 	if err != nil {
 		h.logger.Error("Failed to update project",
 			zap.Error(err),

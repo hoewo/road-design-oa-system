@@ -13,6 +13,16 @@ import (
 	"project-oa-backend/pkg/utils"
 )
 
+// containsRole checks if a role exists in the roles array
+func containsRole(roles []string, targetRole string) bool {
+	for _, role := range roles {
+		if role == targetRole {
+			return true
+		}
+	}
+	return false
+}
+
 // UserHandler handles user-related HTTP requests
 type UserHandler struct {
 	userService *services.UserService
@@ -203,7 +213,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 				Email:      localUser.Email,
 				Phone:      localUser.Phone,
 				Username:   localUser.Username,
-				IsAdmin:    localUser.Role == "admin",
+				IsAdmin:    containsRole(localUser.Roles, "admin"),
 				IsVerified: true, // 假设已存在用户已验证
 				IsActive:   localUser.IsActive,
 				CreatedAt:  localUser.CreatedAt.Format(time.RFC3339),
@@ -283,7 +293,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	}
 
 	// 同步用户到OA本地数据库
-	localUser, syncErr := h.userService.SyncUserToLocalDB(nebulaUser, req.RealName, req.Role, req.Department)
+	localUser, syncErr := h.userService.SyncUserToLocalDB(nebulaUser, req.RealName, req.Roles, req.Department)
 	if syncErr != nil {
 		// 记录错误但不失败（用户已在NebulaAuth创建成功）
 		h.logger.Error("Failed to sync user to local database",
@@ -306,7 +316,7 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 				"email":       localUser.Email,
 				"phone":       localUser.Phone,
 				"real_name":   localUser.RealName,
-				"role":        string(localUser.Role),
+				"roles":       localUser.Roles,
 				"department":  localUser.Department,
 				"is_active":   localUser.IsActive,
 				"has_account": localUser.HasAccount,
@@ -412,6 +422,25 @@ func (h *UserHandler) UpdateUserAdmin(c *gin.Context) {
 		return
 	}
 
+	// 检查用户是否是系统管理员，如果是则不允许修改Roles
+	if req.Roles != nil && len(req.Roles) > 0 {
+		// 查询现有用户
+		existingUser, err := h.userService.GetUser(id)
+		if err == nil && existingUser != nil {
+			// 检查现有用户是否是系统管理员
+			if containsRole(existingUser.Roles, "admin") {
+				utils.HandleError(c, http.StatusForbidden, "系统管理员的角色不能修改", nil)
+				return
+			}
+		} else if err != nil {
+			// 如果查询失败，记录错误但继续执行（可能用户不存在，后续会报错）
+			h.logger.Warn("Failed to check existing user for admin role protection",
+				zap.String("user_id", id),
+				zap.Error(err),
+			)
+		}
+	}
+
 	// 从Authorization Header提取Token
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
@@ -451,7 +480,7 @@ func (h *UserHandler) UpdateUserAdmin(c *gin.Context) {
 	)
 
 	// 同步更新后的用户信息到OA本地数据库
-	updatedLocalUser, syncErr := h.userService.SyncUpdatedUserToLocalDB(nebulaUser, req.RealName, req.Role, req.Department)
+	updatedLocalUser, syncErr := h.userService.SyncUpdatedUserToLocalDB(nebulaUser, req.RealName, req.Roles, req.Department)
 	if syncErr != nil {
 		h.logger.Error("Failed to sync updated user to local database",
 			zap.Error(syncErr),
@@ -472,7 +501,7 @@ func (h *UserHandler) UpdateUserAdmin(c *gin.Context) {
 			"email":       updatedLocalUser.Email,
 			"phone":       updatedLocalUser.Phone,
 			"real_name":   updatedLocalUser.RealName,
-			"role":        string(updatedLocalUser.Role),
+			"roles":       updatedLocalUser.Roles,
 			"department":  updatedLocalUser.Department,
 			"is_active":   updatedLocalUser.IsActive,
 			"has_account": updatedLocalUser.HasAccount,

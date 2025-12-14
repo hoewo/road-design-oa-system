@@ -47,6 +47,7 @@ func (r *Router) SetupRoutes(
 	projectContactHandler *handlers.ProjectContactHandler,
 	disciplineHandler *handlers.DisciplineHandler,
 	biddingHandler *handlers.BiddingHandler,
+	permissionHandler *handlers.PermissionHandler,
 ) {
 	r.logger = logger
 
@@ -87,6 +88,15 @@ func (r *Router) SetupRoutes(
 		{
 			auth.POST("/logout", authHandler.Logout)
 			auth.GET("/me", authHandler.GetCurrentUser)
+		}
+
+		// 权限相关路由
+		permissions := user.Group("/permissions")
+		{
+			permissions.GET("/can-create-project", permissionHandler.CheckCreateProjectPermission)
+			permissions.GET("/can-manage-project-managers", permissionHandler.CheckManageProjectManagersPermission)
+			permissions.GET("/available-users-for-manager", permissionHandler.GetAvailableUsersForManagerRole)
+			permissions.GET("/available-users-for-member", permissionHandler.GetAvailableUsersForMemberRole)
 		}
 
 		// 项目路由

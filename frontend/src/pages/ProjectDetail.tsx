@@ -4,7 +4,6 @@ import { Card, Tabs, Breadcrumb, message } from 'antd'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
 import { businessService } from '@/services/business'
-import { userService } from '@/services/user'
 import { projectMemberService } from '@/services/projectMember'
 import { BasicInfoTab } from '@/components/project/BasicInfoTab'
 import { BusinessInfoTab } from '@/components/project/BusinessInfoTab'
@@ -38,19 +37,6 @@ const ProjectDetail = () => {
     queryKey: ['project', projectId],
     queryFn: () => projectService.getProject(projectId),
     enabled: !!projectId,
-  })
-
-  // Load users for manager selection
-  const { data: usersData } = useQuery({
-    queryKey: ['activeUsers'],
-    queryFn: async () => {
-      const response = await userService.listUsers({
-        page: 1,
-        size: 100,
-        is_active: true,
-      })
-      return response.data || []
-    },
   })
 
   // Load project members for manager display
@@ -129,8 +115,6 @@ const ProjectDetail = () => {
     return <div>项目不存在</div>
   }
 
-  const users = usersData || []
-
   const tabItems = [
     {
       key: 'basic',
@@ -140,7 +124,6 @@ const ProjectDetail = () => {
           projectId={projectId}
           project={project}
           projectMembers={projectMembers}
-          users={users}
           queryClient={queryClient}
           onRefetch={refetch}
         />

@@ -2,14 +2,15 @@ import { Avatar, Dropdown, message } from 'antd'
 import { UserOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
+import { permissionService } from '@/services/permission'
 
 const UserInfo = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
 
-  // Check if current user is admin (same logic as BasicInfoTab)
-  // Only system admin (role: 'admin') can access user management
-  const isAdmin = user?.role === 'admin'
+  // Check if current user is admin using permission service
+  // Only system admin can access user management
+  const isAdmin = permissionService.utils.isSystemAdmin(user)
 
   const handleLogout = async () => {
     try {

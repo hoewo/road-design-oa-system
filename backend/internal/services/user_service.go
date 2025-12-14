@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
@@ -59,23 +60,23 @@ type ListUsersResponse struct {
 
 // CreateUserRequest represents the request to create a user
 type CreateUserRequest struct {
-	Username   string          `json:"username" binding:"required"`
-	Email      string          `json:"email" binding:"required,email"`
-	Password   string          `json:"password" binding:"required,min=8"`
-	RealName   string          `json:"real_name" binding:"required"`
-	Role       models.UserRole `json:"role" binding:"required"`
-	Department string          `json:"department"`
-	Phone      string          `json:"phone"`
+	Username   string           `json:"username" binding:"required"`
+	Email      string           `json:"email" binding:"required,email"`
+	Password   string           `json:"password" binding:"required,min=8"`
+	RealName   string           `json:"real_name" binding:"required"`
+	Roles      []models.UserRole `json:"roles" binding:"required,min=1,dive"` // 支持多选角色，至少包含一个角色
+	Department string           `json:"department"`
+	Phone      string           `json:"phone"`
 }
 
 // UpdateUserRequest represents the request to update a user
 type UpdateUserRequest struct {
-	Email      *string          `json:"email"`
-	RealName   *string          `json:"real_name"`
-	Role       *models.UserRole `json:"role"`
-	Department *string          `json:"department"`
-	Phone      *string          `json:"phone"`
-	IsActive   *bool            `json:"is_active"`
+	Email      *string           `json:"email"`
+	RealName   *string           `json:"real_name"`
+	Roles      *[]models.UserRole `json:"roles" binding:"omitempty,min=1,dive"` // 支持多选角色，如果提供则至少包含一个角色
+	Department *string           `json:"department"`
+	Phone      *string           `json:"phone"`
+	IsActive   *bool             `json:"is_active"`
 }
 
 // ListUsers retrieves a list of users with pagination and filtering
@@ -98,9 +99,9 @@ func (s *UserService) ListUsers(req *ListUsersRequest) (*ListUsersResponse, erro
 		query = query.Where("username LIKE ? OR real_name LIKE ? OR email LIKE ?", keyword, keyword, keyword)
 	}
 
-	// Apply role filter
+	// Apply role filter (支持多选角色：检查roles数组是否包含指定角色)
 	if req.Role != "" {
-		query = query.Where("role = ?", req.Role)
+		query = query.Where("? = ANY(roles)", req.Role)
 	}
 
 	// Apply is_active filter
@@ -169,13 +170,19 @@ func (s *UserService) CreateUser(req *CreateUserRequest) (*models.User, error) {
 		return nil, err
 	}
 
+	// Convert roles to pq.StringArray
+	rolesArray := make([]string, len(req.Roles))
+	for i, role := range req.Roles {
+		rolesArray[i] = string(role)
+	}
+
 	// Create user
 	user := &models.User{
 		Username:   req.Username,
 		Email:      req.Email,
 		Password:   string(hashedPassword),
 		RealName:   req.RealName,
-		Role:       req.Role,
+		Roles:      pq.StringArray(rolesArray),
 		Department: req.Department,
 		Phone:      req.Phone,
 		IsActive:   true,
@@ -215,8 +222,13 @@ func (s *UserService) UpdateUser(userID string, req *UpdateUserRequest) (*models
 		user.RealName = *req.RealName
 	}
 
-	if req.Role != nil {
-		user.Role = *req.Role
+	if req.Roles != nil {
+		// Convert roles to pq.StringArray
+		rolesArray := make([]string, len(*req.Roles))
+		for i, role := range *req.Roles {
+			rolesArray[i] = string(role)
+		}
+		user.Roles = pq.StringArray(rolesArray)
 	}
 
 	if req.Department != nil {
@@ -252,9 +264,9 @@ type CreateNebulaAuthUserRequest struct {
 	IsVerified bool   `json:"is_verified,omitempty"`
 	IsActive   bool   `json:"is_active,omitempty"`
 	// OA业务字段
-	RealName   string `json:"real_name,omitempty"`   // 真实姓名
-	Role       string `json:"role,omitempty"`         // OA角色（可选，如果NebulaAuth is_admin=true则会被覆盖为RoleAdmin）
-	Department string `json:"department,omitempty"`   // 部门
+	RealName   string   `json:"real_name,omitempty"`   // 真实姓名
+	Roles      []string `json:"roles,omitempty"`       // OA角色数组（可选，如果NebulaAuth is_admin=true则会被覆盖为[RoleAdmin]）
+	Department string   `json:"department,omitempty"`   // 部门
 }
 
 // Validate 验证CreateNebulaAuthUserRequest，确保邮箱和手机号至少提供一个
@@ -491,9 +503,9 @@ type UpdateNebulaAuthUserRequest struct {
 	IsVerified *bool  `json:"is_verified,omitempty"` // 是否已验证
 	IsActive   *bool  `json:"is_active,omitempty"`   // 是否激活
 	// OA业务字段
-	RealName   string `json:"real_name,omitempty"`   // 真实姓名
-	Role       string `json:"role,omitempty"`         // OA角色（可选，如果NebulaAuth is_admin=true则会被覆盖为RoleAdmin）
-	Department string `json:"department,omitempty"`   // 部门
+	RealName   string   `json:"real_name,omitempty"`   // 真实姓名
+	Roles      []string `json:"roles,omitempty"`       // OA角色数组（可选，如果NebulaAuth is_admin=true则会被覆盖为[RoleAdmin]）
+	Department string   `json:"department,omitempty"`   // 部门
 }
 
 // Validate 验证UpdateNebulaAuthUserRequest，确保邮箱和手机号至少提供一个（如果提供了其中一个）
@@ -716,20 +728,20 @@ func (s *UserService) GetNebulaAuthUserByEmailOrUsername(email, username, token 
 // SyncUserToLocalDB 同步NebulaAuth用户到OA本地数据库
 // nebulaUser: NebulaAuth返回的用户信息
 // realName: OA业务字段-真实姓名（可选，如果为空则使用username）
-// role: OA业务字段-角色（可选，如果NebulaAuth is_admin=true则会被覆盖为RoleAdmin）
+// roles: OA业务字段-角色数组（可选，如果NebulaAuth is_admin=true则会被覆盖为[RoleAdmin]）
 // department: OA业务字段-部门（可选）
-func (s *UserService) SyncUserToLocalDB(nebulaUser *CreateNebulaAuthUserResponse, realName, role, department string) (*models.User, error) {
-	// 确定OA角色
-	var oaRole models.UserRole
+func (s *UserService) SyncUserToLocalDB(nebulaUser *CreateNebulaAuthUserResponse, realName string, roles []string, department string) (*models.User, error) {
+	// 确定OA角色数组
+	var oaRoles pq.StringArray
 	if nebulaUser.Data.IsAdmin {
 		// NebulaAuth管理员 → OA系统管理员
-		oaRole = models.RoleAdmin
+		oaRoles = pq.StringArray{string(models.RoleAdmin)}
 	} else {
-		// 非管理员：使用前端传入的role，如果未传则默认RoleMember
-		if role != "" {
-			oaRole = models.UserRole(role)
+		// 非管理员：使用前端传入的roles，如果未传或为空则默认[RoleMember]
+		if len(roles) > 0 {
+			oaRoles = pq.StringArray(roles)
 		} else {
-			oaRole = models.RoleMember
+			oaRoles = pq.StringArray{string(models.RoleMember)}
 		}
 	}
 
@@ -767,7 +779,7 @@ func (s *UserService) SyncUserToLocalDB(nebulaUser *CreateNebulaAuthUserResponse
 		Email:      nebulaUser.Data.Email,
 		Phone:      nebulaUser.Data.Phone,
 		RealName:   oaRealName,
-		Role:       oaRole,
+		Roles:      oaRoles,
 		Department: department,
 		IsActive:   nebulaUser.Data.IsActive,
 		HasAccount: true, // 用户有NebulaAuth账号
@@ -796,7 +808,7 @@ func (s *UserService) SyncUserToLocalDB(nebulaUser *CreateNebulaAuthUserResponse
 		"email":       user.Email,
 		"phone":       user.Phone,
 		"real_name":   user.RealName,
-		"role":        user.Role, // 更新角色（根据NebulaAuth is_admin或前端传入）
+		"roles":       user.Roles, // 更新角色数组（根据NebulaAuth is_admin或前端传入）
 		"department":  user.Department,
 		"is_active":   user.IsActive,
 		"has_account": true,
@@ -818,25 +830,25 @@ func (s *UserService) SyncUserToLocalDB(nebulaUser *CreateNebulaAuthUserResponse
 // SyncUpdatedUserToLocalDB 同步更新后的NebulaAuth用户到OA本地数据库
 // nebulaUser: NebulaAuth返回的更新后用户信息
 // realName: OA业务字段-真实姓名（可选，如果为空则使用username）
-// role: OA业务字段-角色（可选，如果NebulaAuth is_admin=true则会被覆盖为RoleAdmin）
+// roles: OA业务字段-角色数组（可选，如果NebulaAuth is_admin=true则会被覆盖为[RoleAdmin]）
 // department: OA业务字段-部门（可选）
-func (s *UserService) SyncUpdatedUserToLocalDB(nebulaUser *UpdateNebulaAuthUserResponse, realName, role, department string) (*models.User, error) {
-	// 确定OA角色
-	var oaRole models.UserRole
+func (s *UserService) SyncUpdatedUserToLocalDB(nebulaUser *UpdateNebulaAuthUserResponse, realName string, roles []string, department string) (*models.User, error) {
+	// 确定OA角色数组
+	var oaRoles pq.StringArray
 	if nebulaUser.Data.IsAdmin {
 		// NebulaAuth管理员 → OA系统管理员
-		oaRole = models.RoleAdmin
+		oaRoles = pq.StringArray{string(models.RoleAdmin)}
 	} else {
-		// 非管理员：使用前端传入的role，如果未传则保持原值
-		if role != "" {
-			oaRole = models.UserRole(role)
+		// 非管理员：使用前端传入的roles，如果未传或为空则保持原值
+		if len(roles) > 0 {
+			oaRoles = pq.StringArray(roles)
 		} else {
-			// 如果未传入role，查询现有用户的role
+			// 如果未传入roles，查询现有用户的roles
 			var existingUser models.User
 			if err := s.db.First(&existingUser, "id = ?", nebulaUser.Data.ID).Error; err == nil {
-				oaRole = existingUser.Role
+				oaRoles = existingUser.Roles
 			} else {
-				oaRole = models.RoleMember
+				oaRoles = pq.StringArray{string(models.RoleMember)}
 			}
 		}
 	}
@@ -865,7 +877,7 @@ func (s *UserService) SyncUpdatedUserToLocalDB(nebulaUser *UpdateNebulaAuthUserR
 		"email":       nebulaUser.Data.Email,
 		"phone":       nebulaUser.Data.Phone,
 		"real_name":   oaRealName,
-		"role":        oaRole, // 更新角色（根据NebulaAuth is_admin或前端传入）
+		"roles":       oaRoles, // 更新角色数组（根据NebulaAuth is_admin或前端传入）
 		"is_active":   nebulaUser.Data.IsActive,
 		"has_account": true,
 		"updated_at":  updatedAt,
@@ -887,7 +899,7 @@ func (s *UserService) SyncUpdatedUserToLocalDB(nebulaUser *UpdateNebulaAuthUserR
 				Email:      nebulaUser.Data.Email,
 				Phone:      nebulaUser.Data.Phone,
 				RealName:   oaRealName,
-				Role:       oaRole,
+				Roles:      oaRoles,
 				Department: department,
 				IsActive:   nebulaUser.Data.IsActive,
 				HasAccount: true,

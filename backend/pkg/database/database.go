@@ -52,6 +52,11 @@ func Migrate() error {
 
 	log.Println("Starting database migration...")
 
+	// 先执行用户角色迁移（从单个role字段迁移到roles数组）
+	if err := migrateUserRoles(); err != nil {
+		return fmt.Errorf("failed to migrate user roles: %w", err)
+	}
+
 	// 使用事务进行迁移，但不回滚已存在的表
 	// GORM AutoMigrate 是幂等的，多次执行是安全的
 	err := DB.AutoMigrate(
@@ -88,6 +93,87 @@ func Migrate() error {
 	}
 
 	log.Println("Database migration completed successfully")
+	return nil
+}
+
+// migrateUserRoles 迁移用户角色从单个role字段到roles数组
+func migrateUserRoles() error {
+	// 检查roles列是否已存在
+	var exists bool
+	err := DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'users' 
+			AND column_name = 'roles'
+		)
+	`).Scan(&exists).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check roles column: %w", err)
+	}
+
+	// 如果roles列已存在，跳过迁移
+	if exists {
+		log.Println("Roles column already exists, skipping migration")
+		return nil
+	}
+
+	// 检查role列是否存在
+	var roleExists bool
+	err = DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'users' 
+			AND column_name = 'role'
+		)
+	`).Scan(&roleExists).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check role column: %w", err)
+	}
+
+	log.Println("Migrating user roles from single role to roles array...")
+
+	// Step 1: 添加roles列（允许NULL）
+	if err := DB.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS roles text[]`).Error; err != nil {
+		return fmt.Errorf("failed to add roles column: %w", err)
+	}
+
+	// Step 2: 迁移现有role数据到roles数组
+	if roleExists {
+		if err := DB.Exec(`
+			UPDATE users 
+			SET roles = ARRAY[role]::text[]
+			WHERE roles IS NULL AND role IS NOT NULL
+		`).Error; err != nil {
+			return fmt.Errorf("failed to migrate role data: %w", err)
+		}
+	}
+
+	// Step 3: 为剩余的NULL值设置默认值
+	if err := DB.Exec(`
+		UPDATE users 
+		SET roles = ARRAY['member']::text[]
+		WHERE roles IS NULL
+	`).Error; err != nil {
+		return fmt.Errorf("failed to set default roles: %w", err)
+	}
+
+	// Step 4: 设置NOT NULL约束
+	if err := DB.Exec(`ALTER TABLE users ALTER COLUMN roles SET NOT NULL`).Error; err != nil {
+		return fmt.Errorf("failed to set NOT NULL constraint: %w", err)
+	}
+
+	// Step 5: 设置默认值
+	if err := DB.Exec(`ALTER TABLE users ALTER COLUMN roles SET DEFAULT ARRAY['member']::text[]`).Error; err != nil {
+		return fmt.Errorf("failed to set default value: %w", err)
+	}
+
+	log.Println("User roles migration completed successfully")
 	return nil
 }
 

@@ -85,14 +85,15 @@ export const authService = {
         localStorage.setItem('refresh_token', loginData.tokens.refresh_token)
       }
 
-      // 保存用户信息到localStorage（包括is_admin）
+      // 保存用户信息到localStorage（包括is_admin和roles）
       if (loginData.user) {
         localStorage.setItem('user_info', JSON.stringify({
           id: loginData.user.id,
           username: loginData.user.username,
           email: loginData.user.email,
           real_name: loginData.user.real_name,
-          role: loginData.user.role,
+          roles: loginData.user.roles,
+          role: loginData.user.role, // 向后兼容
           is_admin: loginData.user.is_admin || false,
         }))
       }
@@ -203,14 +204,15 @@ export const authService = {
     // Use user auth endpoint: /project-oa/v1/user/auth/me
     const user = await get<User>('/user/auth/me')
     
-    // 更新localStorage中的用户信息（包括is_admin）
+    // 更新localStorage中的用户信息（包括is_admin和roles）
     if (user) {
       localStorage.setItem('user_info', JSON.stringify({
         id: user.id,
         username: user.username,
         email: user.email,
         real_name: user.real_name,
-        role: user.role,
+        roles: user.roles,
+        role: user.role, // 向后兼容
         is_admin: user.is_admin || false,
       }))
     }

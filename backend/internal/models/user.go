@@ -3,6 +3,7 @@ package models
 import (
 	"time"
 
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -18,18 +19,18 @@ const (
 )
 
 type User struct {
-	ID         string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	Username   string    `json:"username" gorm:"uniqueIndex;not null"`
-	Email      string    `json:"email" gorm:"uniqueIndex;not null"`
-	Password   string    `json:"-" gorm:"not null"`
-	RealName   string    `json:"real_name" gorm:"not null"`
-	Role       UserRole  `json:"role" gorm:"not null"`
-	Department string    `json:"department"`
-	Phone      string    `json:"phone"`
-	IsActive   bool      `json:"is_active" gorm:"default:true"`
-	HasAccount bool      `json:"has_account" gorm:"default:false"` // 是否有账号
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	ID         string         `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Username   string         `json:"username" gorm:"uniqueIndex;not null"`
+	Email      string         `json:"email" gorm:"uniqueIndex;not null"`
+	Password   string         `json:"-" gorm:"not null"`
+	RealName   string         `json:"real_name" gorm:"not null"`
+	Roles      pq.StringArray `json:"roles" gorm:"type:text[];not null"` // 账号权限角色（支持多选）
+	Department string         `json:"department"`
+	Phone      string         `json:"phone"`
+	IsActive   bool           `json:"is_active" gorm:"default:true"`
+	HasAccount bool           `json:"has_account" gorm:"default:false"` // 是否有账号
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 // TableName returns the table name for the User model
@@ -39,8 +40,9 @@ func (User) TableName() string {
 
 // BeforeCreate hook to set default values
 func (u *User) BeforeCreate(tx *gorm.DB) error {
-	if u.Role == "" {
-		u.Role = RoleMember // 默认角色为普通成员
+	// 如果Roles为空或nil，设置默认值为[RoleMember]
+	if u.Roles == nil || len(u.Roles) == 0 {
+		u.Roles = pq.StringArray{string(RoleMember)}
 	}
 	return nil
 }

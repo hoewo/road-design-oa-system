@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"project-oa-backend/internal/middleware"
 	"project-oa-backend/internal/models"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
@@ -93,7 +94,14 @@ func (h *ProjectMemberHandler) CreateMember(c *gin.Context) {
 		IsActive:  payload.IsActive == nil || *payload.IsActive,
 	}
 
-	member, err := h.service.CreateMember(projectID, req)
+	// 获取用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	member, err := h.service.CreateMember(userID, projectID, req)
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Failed to create member", err)
 		return
@@ -150,7 +158,14 @@ func (h *ProjectMemberHandler) UpdateMember(c *gin.Context) {
 		req.LeaveDate = &leaveDate
 	}
 
-	member, err := h.service.UpdateMember(memberID, req)
+	// 获取用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	member, err := h.service.UpdateMember(userID, memberID, req)
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Failed to update member", err)
 		return

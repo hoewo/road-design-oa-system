@@ -77,6 +77,7 @@ func main() {
 	projectContactHandler := handlers.NewProjectContactHandler(logger)
 	disciplineHandler := handlers.NewDisciplineHandler(logger)
 	biddingHandler := handlers.NewBiddingHandler(logger)
+	permissionHandler := handlers.NewPermissionHandler(logger)
 
 	// Setup router with new routing format
 	routerManager := router.NewRouter(cfg)
@@ -146,6 +147,7 @@ func main() {
 		projectContactHandler,
 		disciplineHandler,
 		biddingHandler,
+		permissionHandler,
 	)
 
 	// Start server

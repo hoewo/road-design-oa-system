@@ -16,6 +16,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import { projectService } from '@/services/project'
 import { userService } from '@/services/user'
+import { permissionService } from '@/services/permission'
 import ClientForm from '@/components/client/ClientForm'
 import UserForm from '@/components/user/UserForm'
 import type {
@@ -46,8 +47,6 @@ export const ProjectBusinessForm = ({
   const [retryCount, setRetryCount] = useState(0)
 
   // User management state
-  const [users, setUsers] = useState<User[]>([])
-  const [loadingUsers, setLoadingUsers] = useState(false)
   const [managerSearchValue, setManagerSearchValue] = useState('')
   const [personnelSearchValue, setPersonnelSearchValue] = useState('')
   const [createUserModalVisible, setCreateUserModalVisible] = useState(false)
@@ -56,6 +55,18 @@ export const ProjectBusinessForm = ({
   const [userDropdownType, setUserDropdownType] = useState<
     'manager' | 'personnel' | null
   >(null)
+
+  // 获取可用于配置经营负责人的用户列表（根据权限过滤）
+  const { data: businessManagerOptions = [], isLoading: loadingBusinessManagers } = useQuery({
+    queryKey: ['availableUsersForManager', 'business'],
+    queryFn: () => permissionService.getAvailableUsersForManager('business'),
+  })
+
+  // 获取可用于配置项目成员的用户列表（根据权限过滤）
+  const { data: memberOptions = [], isLoading: loadingMembers } = useQuery({
+    queryKey: ['availableUsersForMember'],
+    queryFn: () => permissionService.getAvailableUsersForMember(),
+  })
 
   // Load project business data
   const { data: businessData, isLoading } = useQuery({
@@ -109,31 +120,7 @@ export const ProjectBusinessForm = ({
     loadClients()
   }, [retryCount])
 
-  // Load users
-  useEffect(() => {
-    const loadUsers = async () => {
-      setLoadingUsers(true)
-      try {
-        const response = await userService.listUsers({
-          page: 1,
-          size: 100,
-          is_active: true,
-        })
-        // Sort by created_at DESC
-        const sortedUsers = (response.data || []).sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        setUsers(sortedUsers)
-      } catch (error) {
-        console.error('Failed to load users:', error)
-        message.error('加载用户列表失败')
-      } finally {
-        setLoadingUsers(false)
-      }
-    }
-    loadUsers()
-  }, [])
+  // 注意：用户列表现在通过权限服务获取，不再需要手动加载
 
   // Set form values when business data is loaded
   useEffect(() => {
@@ -202,8 +189,6 @@ export const ProjectBusinessForm = ({
 
   const handleUserCreated = (newUser?: User) => {
     if (newUser) {
-      // Add new user to the list
-      setUsers((prev) => [newUser, ...prev])
       // Select the new user in the appropriate dropdown
       if (userDropdownType === 'manager') {
         const currentManagerIds =
@@ -219,25 +204,18 @@ export const ProjectBusinessForm = ({
         })
       }
       message.success('用户创建成功，已自动选择')
+      // 刷新用户列表（通过权限服务）
+      queryClient.invalidateQueries({ queryKey: ['availableUsersForManager', 'business'] })
+      queryClient.invalidateQueries({ queryKey: ['availableUsersForMember'] })
     }
     setCreateUserModalVisible(false)
     setUserDropdownType(null)
   }
 
   const handleUserUpdated = () => {
-    // Reload users after update
-    userService
-      .listUsers({ page: 1, size: 100, is_active: true })
-      .then((response) => {
-        const sortedUsers = (response.data || []).sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        setUsers(sortedUsers)
-      })
-      .catch(() => {
-        message.error('刷新用户列表失败')
-      })
+    // 刷新用户列表（通过权限服务）
+    queryClient.invalidateQueries({ queryKey: ['availableUsersForManager', 'business'] })
+    queryClient.invalidateQueries({ queryKey: ['availableUsersForMember'] })
     setEditUserModalVisible(false)
     setEditingUser(null)
   }
@@ -341,7 +319,7 @@ export const ProjectBusinessForm = ({
                 placeholder="选择经营负责人"
                 allowClear
                 showSearch
-                loading={loadingUsers}
+                loading={loadingBusinessManagers}
                 onSearch={setManagerSearchValue}
                 filterOption={(input, option) =>
                   (option?.children as string)
@@ -349,13 +327,13 @@ export const ProjectBusinessForm = ({
                     .includes(input.toLowerCase())
                 }
                 notFoundContent={
-                  loadingUsers ? (
+                  loadingBusinessManagers ? (
                     <div style={{ padding: '8px', textAlign: 'center' }}>
                       加载中...
                     </div>
-                  ) : users.length === 0 ? (
+                  ) : businessManagerOptions.length === 0 ? (
                     <div style={{ padding: '8px', textAlign: 'center' }}>
-                      暂无用户数据
+                      暂无可用用户（仅显示有经营负责人角色的用户）
                     </div>
                   ) : null
                 }
@@ -373,7 +351,7 @@ export const ProjectBusinessForm = ({
                   </>
                 )}
               >
-                {users
+                {businessManagerOptions
                   .filter((user) =>
                     managerSearchValue
                       ? user.real_name
@@ -424,7 +402,7 @@ export const ProjectBusinessForm = ({
                 placeholder="选择经营人员"
                 allowClear
                 showSearch
-                loading={loadingUsers}
+                loading={loadingMembers}
                 onSearch={setPersonnelSearchValue}
                 filterOption={(input, option) =>
                   (option?.children as string)
@@ -432,13 +410,13 @@ export const ProjectBusinessForm = ({
                     .includes(input.toLowerCase())
                 }
                 notFoundContent={
-                  loadingUsers ? (
+                  loadingMembers ? (
                     <div style={{ padding: '8px', textAlign: 'center' }}>
                       加载中...
                     </div>
-                  ) : users.length === 0 ? (
+                  ) : memberOptions.length === 0 ? (
                     <div style={{ padding: '8px', textAlign: 'center' }}>
-                      暂无用户数据
+                      暂无可用用户
                     </div>
                   ) : null
                 }
@@ -456,7 +434,7 @@ export const ProjectBusinessForm = ({
                   </>
                 )}
               >
-                {users
+                {memberOptions
                   .filter((user) =>
                     personnelSearchValue
                       ? user.real_name

@@ -147,6 +147,12 @@ func (s *BiddingService) CanManageBiddingInfo(userID string) (bool, error) {
 		}
 		return false, err
 	}
-	return user.Role == models.RoleBusinessManager || user.Role == models.RoleAdmin, nil
+	// Check if user has business manager or admin role
+	for _, role := range user.Roles {
+		if role == string(models.RoleBusinessManager) || role == string(models.RoleAdmin) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
