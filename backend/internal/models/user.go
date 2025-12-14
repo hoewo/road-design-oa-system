@@ -9,12 +9,12 @@ import (
 type UserRole string
 
 const (
-	RoleAdmin    UserRole = "admin"    // 系统管理员
-	RoleManager  UserRole = "manager"  // 项目经理
-	RoleBusiness UserRole = "business" // 经营人员
-	RoleDesigner UserRole = "designer" // 设计人员
-	RoleReviewer UserRole = "reviewer" // 复核人员
-	RoleFinance  UserRole = "finance"  // 财务人员
+	RoleAdmin            UserRole = "admin"             // 系统管理员
+	RoleProjectManager   UserRole = "project_manager"   // 项目管理员
+	RoleBusinessManager  UserRole = "business_manager"  // 经营负责人
+	RoleProductionManager UserRole = "production_manager" // 生产负责人
+	RoleFinance          UserRole = "finance"           // 财务人员
+	RoleMember           UserRole = "member"            // 普通成员
 )
 
 type User struct {
@@ -40,7 +40,7 @@ func (User) TableName() string {
 // BeforeCreate hook to set default values
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.Role == "" {
-		u.Role = RoleManager
+		u.Role = RoleMember // 默认角色为普通成员
 	}
 	return nil
 }

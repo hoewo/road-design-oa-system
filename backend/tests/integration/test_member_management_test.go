@@ -39,7 +39,7 @@ func TestProjectMemberIntegrationFlow(t *testing.T) {
 		Email:    "int-user@example.com",
 		Password: "pwd",
 		RealName: "集成人员",
-		Role:     models.RoleDesigner,
+		Role:     models.RoleMember,
 	}
 	require.NoError(t, db.Create(user).Error)
 

@@ -19,7 +19,7 @@ export const projectService = {
     return getPaginated<Project>('/user/projects', params)
   },
 
-  getProject: async (id: number): Promise<Project> => {
+  getProject: async (id: string | number): Promise<Project> => {
     return get<Project>(`/user/projects/${id}`)
   },
 
@@ -28,13 +28,13 @@ export const projectService = {
   },
 
   updateProject: async (
-    id: number,
+    id: string | number,
     data: UpdateProjectRequest
   ): Promise<Project> => {
     return put<Project>(`/user/projects/${id}`, data)
   },
 
-  deleteProject: async (id: number): Promise<void> => {
+  deleteProject: async (id: string | number): Promise<void> => {
     return del<void>(`/user/projects/${id}`)
   },
 
@@ -47,7 +47,7 @@ export const projectService = {
     return getPaginated<Client>('/user/clients', params)
   },
 
-  getClient: async (id: number): Promise<Client> => {
+  getClient: async (id: string | number): Promise<Client> => {
     return get<Client>(`/user/clients/${id}`)
   },
 
@@ -56,13 +56,13 @@ export const projectService = {
   },
 
   updateClient: async (
-    id: number,
+    id: string | number,
     data: Partial<CreateClientRequest>
   ): Promise<Client> => {
     return put<Client>(`/user/clients/${id}`, data)
   },
 
-  deleteClient: async (id: number): Promise<void> => {
+  deleteClient: async (id: string | number): Promise<void> => {
     return del<void>(`/user/clients/${id}`)
   },
 }

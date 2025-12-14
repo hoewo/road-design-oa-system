@@ -23,7 +23,9 @@ import type {
 
 export const businessService = {
   // Project Business Information
-  getProjectBusiness: async (projectId: number): Promise<ProjectBusiness> => {
+  getProjectBusiness: async (
+    projectId: string | number
+  ): Promise<ProjectBusiness> => {
     const response = await get<ProjectBusiness>(
       `/user/projects/${projectId}/business`
     )
@@ -31,7 +33,7 @@ export const businessService = {
   },
 
   updateProjectBusiness: async (
-    projectId: number,
+    projectId: string | number,
     data: UpdateProjectBusinessRequest
   ): Promise<ProjectBusiness> => {
     const response = await put<ProjectBusiness>(
@@ -42,13 +44,15 @@ export const businessService = {
   },
 
   // Contracts
-  getContracts: async (projectId: number): Promise<Contract[]> => {
+  getContracts: async (
+    projectId: string | number
+  ): Promise<Contract[]> => {
     const response = await get<Contract[]>(`/user/projects/${projectId}/contracts`)
     return response || []
   },
 
   createContract: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateContractRequest
   ): Promise<Contract> => {
     const response = await post<Contract>(
@@ -134,7 +138,7 @@ export const businessService = {
 
   // Expert Fee Payments
   getExpertFeePayments: async (
-    projectId: number
+    projectId: string | number
   ): Promise<ExpertFeePayment[]> => {
     const response = await get<ExpertFeePayment[]>(
       `/user/projects/${projectId}/expert-fee-payments`
@@ -143,7 +147,7 @@ export const businessService = {
   },
 
   createExpertFeePayment: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateExpertFeePaymentRequest
   ): Promise<ExpertFeePayment> => {
     const response = await post<ExpertFeePayment>(
@@ -247,7 +251,9 @@ export const businessService = {
   },
 
   // Financial Records
-  getProjectFinancial: async (projectId: number): Promise<ProjectFinancial> => {
+  getProjectFinancial: async (
+    projectId: string | number
+  ): Promise<ProjectFinancial> => {
     const response = await get<ProjectFinancial>(
       `/user/projects/${projectId}/financial`
     )
@@ -255,7 +261,7 @@ export const businessService = {
   },
 
   createFinancialRecord: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateFinancialRecordRequest
   ): Promise<FinancialRecord> => {
     const response = await post<FinancialRecord>(
@@ -285,13 +291,13 @@ export const businessService = {
   },
 
   // Bonuses
-  getBonuses: async (projectId: number): Promise<Bonus[]> => {
+  getBonuses: async (projectId: string | number): Promise<Bonus[]> => {
     const response = await get<Bonus[]>(`/user/projects/${projectId}/bonuses`)
     return response || []
   },
 
   createBonus: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateBonusRequest
   ): Promise<Bonus> => {
     const response = await post<Bonus>(`/user/projects/${projectId}/bonuses`, data)

@@ -46,6 +46,7 @@ func (r *Router) SetupRoutes(
 	companyConfigHandler *handlers.CompanyConfigHandler,
 	projectContactHandler *handlers.ProjectContactHandler,
 	disciplineHandler *handlers.DisciplineHandler,
+	biddingHandler *handlers.BiddingHandler,
 ) {
 	r.logger = logger
 
@@ -105,6 +106,12 @@ func (r *Router) SetupRoutes(
 			projects.GET("/:id/contact", projectContactHandler.GetProjectContact)
 			projects.PUT("/:id/contact", projectContactHandler.CreateOrUpdateProjectContact)
 			projects.DELETE("/:id/contact", projectContactHandler.DeleteProjectContact)
+
+			// Bidding info routes
+			projects.GET("/:id/bidding", biddingHandler.GetBiddingInfo)
+			projects.PUT("/:id/bidding", biddingHandler.CreateOrUpdateBiddingInfo)
+			projects.DELETE("/:id/bidding", biddingHandler.DeleteBiddingInfo)
+			projects.POST("/:id/bidding/expert-fee", biddingHandler.CreateExpertFeePayment)
 
 			// Project member routes
 			projects.GET("/:id/members", projectMemberHandler.ListMembers)

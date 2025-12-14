@@ -499,6 +499,225 @@ database:
 - `specs/002-project-management-oa/guides/developer-guide.md` - 详细实现说明
 - `specs/002-project-management-oa/research.md` - 技术调研（第9节）
 
+### Token刷新机制设计（基于NebulaAuth）
+
+**问题**: 
+1. Access Token有效期只有2小时，需要刷新保持长期有效（30天免登录）
+2. **关键问题**：超过2小时后重新打开网页，会错误回到登录页面
+
+**问题分析**:
+- 用户超过2小时后重新打开网页，Access Token已过期，但Refresh Token仍然有效（30天内）
+- 页面加载时，`AuthContext` 初始化调用 `getCurrentUser()`，使用过期的Access Token返回401
+- 虽然API拦截器会尝试刷新，但此时可能已经被误判为未认证，导致错误跳转到登录页
+
+**解决方案**: 在页面加载时，**先主动刷新Token，再获取用户信息**
+
+**实现要点**:
+1. **被动刷新（已实现）**：API拦截器检测401错误自动刷新Token
+2. **主动刷新（关键修复）**：页面加载时，先检查Refresh Token，如果存在则主动刷新Token，刷新成功后再获取用户信息
+3. **定时刷新（可选）**：在Token过期前5分钟自动刷新
+
+**Token有效期**:
+- Access Token: 2小时（7200秒）
+- Refresh Token: 30天（2592000秒）
+- 刷新机制：每次刷新Refresh Token时，会返回新的Token对，Refresh Token有效期重新计算为30天
+
+**关键实现**:
+- ✅ **核心修复**：页面加载时，先刷新Token，再获取用户信息，避免使用过期的Access Token
+- ✅ **刷新顺序**：检查Refresh Token存在 → 主动刷新Token → 刷新成功后获取用户信息
+- ✅ **刷新时机**：`AuthContext` 初始化时或应用入口处主动刷新
+- ✅ **刷新逻辑**：刷新时必须同时更新 `access_token` 和 `refresh_token`
+- ✅ **失败处理**：刷新失败时清除所有Token，但不立即跳转登录页（让路由守卫处理）
+
+**问题解决确认**:
+- ✅ **问题**：超过2小时后重新打开网页，会错误回到登录页面
+- ✅ **解决方案**：在页面加载时，先刷新Token，再获取用户信息
+- ✅ **效果**：即使用户超过2小时后重新打开网页，只要Refresh Token有效（30天内），就能自动刷新Token，无需重新登录
+
+详细设计见：`research.md` 第10节
+
+### 管理员判断机制设计（基于NebulaAuth）
+
+**问题**: 登录用户需要明确判断是否是NebulaAuth的管理员，现在缺少这个信息
+
+**解决方案**: 结合登录响应和API查询两种方式
+
+**实现要点**:
+1. **前端判断**：
+   - 登录时保存 `is_admin` 到localStorage（登录响应包含完整用户信息）
+   - 页面加载时调用API更新用户信息，确保 `is_admin` 是最新的
+   - 提供统一的 `isAdmin()` 检查函数
+
+2. **后端判断**：
+   - **self_validate模式**：从Token验证API响应获取 `is_admin` 字段
+   - **gateway模式**：调用NebulaAuth User Service API获取管理员状态
+   - ⚠️ **注意**：gateway模式下，外部服务不会收到 `X-User-IsAdmin` header（出于安全考虑）
+
+**关键实现**:
+- 前端：登录时保存，页面加载时更新，提供统一检查函数
+- 后端：self_validate模式下从Token验证响应获取，gateway模式下调用User Service API
+- 业务服务需要返回 `is_admin` 字段（在用户信息接口中）
+
+详细设计见：`research.md` 第11节
+
+### 管理员预设用户功能设计（基于NebulaAuth）
+
+**问题**: 管理员要能在项目管理系统中预设（新建）用户，现在没有这个能力
+
+**解决方案**: 业务服务提供管理员创建用户接口，采用"先查询后创建"的优化流程，确保用户数据一致性
+
+**完整业务流程**:
+
+#### 流程概览
+
+```
+OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [创建NebulaAuth用户（如不存在）] → [同步到OA本地数据库] → OA前端
+```
+
+#### 详细交互步骤
+
+**步骤 1：OA前端 → OA后端**
+- 接口：`POST /project-oa/v1/admin/users`
+- 请求体：
+```json
+{
+  "email": "user@example.com",  // 邮箱（可选，与手机号二选一）
+  "phone": "13800138000",       // 手机号（可选，与邮箱二选一）
+  "username": "newuser",        // 用户名（必填）
+  "is_verified": false,
+  "is_active": true,
+  "real_name": "新用户",        // OA业务字段
+  "role": "member",             // OA业务字段（可选，默认member）
+  "department": "设计部"        // OA业务字段（可选）
+}
+```
+- **注意**：邮箱和手机号二选一即可，但至少需要提供其中一个
+
+**步骤 2：OA后端内部处理 - 查询OA本地数据库**
+- 操作：通过邮箱、手机号或用户名查询OA本地数据库
+- 查询条件：`WHERE email = ? OR phone = ? OR username = ?`
+- **如果已存在**：
+  - 直接同步更新OA业务字段（real_name, role, department）
+  - 返回更新后的完整用户信息
+  - **流程结束**
+
+**步骤 3：OA后端 → NebulaAuth（查询用户）**
+- **如果OA本地数据库不存在**，查询NebulaAuth服务器
+- 查询方式（按优先级，都需要管理员Token认证，邮箱和手机号二选一）：
+  1. **优先使用邮箱查询**（管理员接口，需要Token）：
+     - 接口：`GET /user-service/v1/admin/users/email/{email}`
+     - 如果邮箱不为空，使用此接口查询
+     - 需要管理员Token认证（从当前请求的Authorization Header获取）
+     - 如果返回200，用户存在；如果返回404，用户不存在
+  2. **备用：使用手机号查询**（管理员接口，需要Token）：
+     - 接口：`GET /user-service/v1/admin/users/phone/{phone}`
+     - 如果邮箱为空或邮箱查询失败，且手机号不为空，使用此接口查询
+     - 需要管理员Token认证（从当前请求的Authorization Header获取）
+     - 如果返回200，用户存在；如果返回404，用户不存在
+- **注意**：邮箱和手机号二选一即可，如果邮箱为空则直接使用手机号查询
+- **如果NebulaAuth已存在**：
+  - 获取用户信息（id, email, phone, username, is_admin, is_active, is_verified）
+  - 跳转到步骤 5（同步到OA本地数据库）
+
+**步骤 4：OA后端 → NebulaAuth（创建用户）**
+- **如果NebulaAuth不存在**，创建新用户
+- 接口：`POST /user-service/v1/admin/users`（通过 API Gateway）
+- 请求体（只包含NebulaAuth字段，邮箱和手机号二选一）：
+```json
+{
+  "email": "user@example.com",  // 邮箱（可选，与手机号二选一）
+  "phone": "13800138000",       // 手机号（可选，与邮箱二选一）
+  "username": "newuser",        // 用户名（必填）
+  "is_verified": false,
+  "is_active": true
+}
+```
+- **注意**：邮箱和手机号二选一即可，但至少需要提供其中一个
+- 响应：
+```json
+{
+  "success": true,
+  "message": "User created successfully",
+  "data": {
+    "id": "uuid-123",
+    "email": "user@example.com",
+    "phone": "13800138000",
+    "username": "newuser",
+    "is_admin": false,
+    "is_verified": false,
+    "is_active": true,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+**步骤 5：OA后端内部处理 - 同步到OA本地数据库**
+- 操作：将用户同步到OA本地数据库
+- 同步逻辑：
+  1. 使用NebulaAuth返回的用户信息（id, email, phone, username, is_admin, is_active, is_verified）
+  2. 根据NebulaAuth的 `is_admin` 确定OA角色：
+     - `is_admin = true` → `RoleAdmin`（覆盖前端传入的role）
+     - `is_admin = false` → 使用前端传入的 `role`（如未传则默认 `RoleMember`）
+  3. 使用前端传入的OA业务字段（real_name, department等）
+  4. 执行 `INSERT` 或 `UPDATE`（如果已存在则更新）
+
+**步骤 6：OA后端 → OA前端**
+- 响应：
+```json
+{
+  "success": true,
+  "message": "用户创建成功",
+  "data": {
+    "id": "uuid-123",
+    "username": "newuser",
+    "email": "user@example.com",
+    "phone": "13800138000",
+    "real_name": "新用户",        // OA业务字段
+    "role": "member",             // OA业务字段（根据is_admin或前端传入）
+    "department": "设计部",       // OA业务字段
+    "is_active": true,
+    "has_account": true,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+#### 关键要点
+
+1. **查询优先级**：
+   - 先查询OA本地数据库（快速响应，避免不必要的API调用）
+   - 再查询NebulaAuth服务器（确保数据一致性）
+   - 最后创建NebulaAuth用户（如不存在）
+
+2. **查询方式**：
+   - **邮箱查询**：使用管理员接口 `GET /admin/users/email/{email}`（需要Token，优先使用）
+   - **手机号查询**：使用管理员接口 `GET /admin/users/phone/{phone}`（需要Token，备用方案）
+   - **注意**：两个查询接口都需要管理员Token认证，Token从当前请求的Authorization Header获取
+
+3. **数据来源**：
+   - **NebulaAuth**：`id`, `email`, `phone`, `username`, `is_admin`, `is_active`, `is_verified`
+   - **OA前端**：`real_name`, `role`（可选），`department`（可选）
+
+4. **角色映射规则**：
+   - NebulaAuth `is_admin = true` → OA `RoleAdmin`（强制覆盖）
+   - NebulaAuth `is_admin = false` → 使用前端传入的 `role`（未传则默认 `RoleMember`）
+
+5. **同步时机**：
+   - OA本地数据库已存在：直接更新OA业务字段
+   - NebulaAuth已存在但OA本地数据库不存在：同步创建
+   - NebulaAuth不存在：创建后立即同步
+
+#### 优化效果
+
+- ✅ **避免重复创建**：先检查本地数据库和NebulaAuth，避免重复创建用户
+- ✅ **提高性能**：本地数据库存在时直接更新，无需调用NebulaAuth API
+- ✅ **数据一致性**：确保OA本地数据库和NebulaAuth服务器数据同步
+- ✅ **处理已存在用户**：支持用户已在NebulaAuth存在但OA本地数据库不存在的情况
+
+详细设计见：`research.md` 第12节
+
 ### 部署规范（基于 ai-quick-reference.md）
 
 **本地开发部署**：
@@ -924,6 +1143,9 @@ LOG_FORMAT=json
 5. 研究服务注册到 NebulaAuth 的流程
 6. 研究财务记录统一实体的详细设计
 7. 研究专业字典的设计方案
+8. ✅ **Token刷新机制**：研究如何实现Token自动刷新，确保2小时Access Token过期后能够自动刷新，保持30天免登录（已完成，见research.md第10节）
+9. ✅ **管理员判断**：研究如何在业务系统中判断当前用户是否是NebulaAuth管理员（已完成，见research.md第11节）
+10. ✅ **管理员预设用户**：研究如何在项目管理系统中实现管理员预设（新建）用户的功能（已完成，见research.md第12节）
 
 ### Phase 1: Design & Contracts
 1. 生成 `data-model.md`：基于002的业务模型设计

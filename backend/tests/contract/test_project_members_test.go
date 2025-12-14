@@ -39,7 +39,7 @@ func setupProjectMemberContractEnv(t *testing.T) (*gin.Engine, *models.Project, 
 		Email:    fmt.Sprintf("tester-%d@example.com", time.Now().UnixNano()),
 		Password: "pwd",
 		RealName: "合约成员",
-		Role:     models.RoleManager,
+		Role:     models.RoleProjectManager,
 	}
 	require.NoError(t, db.Create(user).Error)
 

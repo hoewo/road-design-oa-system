@@ -279,6 +279,8 @@ func (s *ProjectMemberService) validateRole(role models.MemberRole) error {
 	if _, ok := models.AllowedMemberRoles[role]; !ok {
 		return fmt.Errorf("invalid role: %s", role)
 	}
+	// 禁止通过ProjectMember API创建负责人角色（负责人只能通过Project API配置）
+	// 注意：MemberRole 中不再有 manager 和 business_manager 角色，这些通过 Project 的 BusinessManagerID 和 ProductionManagerID 配置
 	return nil
 }
 

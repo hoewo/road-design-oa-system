@@ -1,5 +1,5 @@
 -- NebulaAuth 初始化管理员脚本
--- 参考: guides/adding-first-admin.md
+-- 参考: guides/01-system-setup.md
 -- 
 -- 重要提示：
 --   - NebulaAuth 系统使用验证码登录，无需设置密码

@@ -2,8 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
+**Last Updated**: 2025-01-28  
 **Status**: In Progress  
-**Total Tasks**: 343
+**Total Tasks**: 370
 
 ## Summary
 
@@ -13,6 +14,11 @@
 - **Phase 1**: Setup（项目初始化）
 - **Phase 2**: Foundational（现有代码改造 - 路由、认证、数据模型、Auth优化）
 - **Phase 3-8**: User Stories（部分实现，US1-US6）
+
+**最新更新（基于research.md技术方案调研）**:
+- **Token刷新机制增强**（T360-T361）：解决超过2小时后重新打开网页错误跳转登录页的问题，在页面加载时先刷新Token再获取用户信息
+- **管理员判断机制**（T362-T365）：实现后端管理员判断逻辑，支持self_validate和gateway两种模式
+- **管理员预设用户功能**（T366-T370）：实现管理员通过业务系统调用NebulaAuth API创建用户的功能
 
 **关键改造点**:
 1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
@@ -229,6 +235,25 @@
 - [X] T327 实现 .env 本地覆盖支持：在配置加载逻辑中添加 .env 文件覆盖功能（使用 godotenv.Overload）backend/internal/config/config.go
 - [X] T328 更新 .gitignore：确保 .env 文件被忽略，但 .env.development 和 .env.production 可以提交 .gitignore
 
+#### 2.9 负责人配置改造（确保符合User Story 3要求）
+
+**问题说明**：
+根据 User Story 3 的要求，经营负责人和生产负责人应该在项目基本信息中配置，而不是在经营信息或生产信息中配置。当前实现存在以下问题：
+1. `BusinessPersonnelList` 组件允许添加 `business_manager` 角色，这是不对的
+2. 需要确保基本信息中正确支持配置负责人
+3. 需要确保经营信息和生产信息中只能配置参与人，不能配置负责人
+
+**改造任务**：
+
+- [X] T348 [US3] 改造BusinessPersonnelList组件：移除business_manager角色选项，只允许添加business_personnel角色 frontend/src/components/business/BusinessPersonnelList.tsx
+- [X] T349 [US3] 更新BusinessPersonnelList组件：移除角色选择Radio，默认使用business_personnel角色 frontend/src/components/business/BusinessPersonnelList.tsx
+- [X] T350 [US3] 更新BusinessPersonnelList组件：过滤显示逻辑，只显示business_personnel角色的成员，不显示business_manager角色 frontend/src/components/business/BusinessPersonnelList.tsx
+- [X] T351 [US3] 更新ProjectMemberService：添加验证逻辑，禁止通过ProjectMember API创建business_manager或manager角色的成员（负责人只能通过Project API配置）backend/internal/services/project_member_service.go
+- [X] T352 [US3] 更新ProjectMemberHandler：添加验证逻辑，拒绝创建business_manager或manager角色的请求 backend/internal/handlers/project_member_handler.go
+- [X] T353 [US3] 验证BasicInfoTab组件：确保经营负责人和生产负责人配置功能正常工作，使用Project API而不是ProjectMember API frontend/src/components/project/BasicInfoTab.tsx
+- [X] T354 [US3] 检查生产信息组件：确保生产信息中不包含生产负责人配置功能，只包含生产参与人配置 frontend/src/components/production/ProductionInfo.tsx
+- [X] T355 [US3] 更新项目成员列表显示：在经营信息和生产信息中，只显示参与人，不显示负责人（负责人在基本信息中显示）frontend/src/components/business/BusinessPersonnelList.tsx 和 frontend/src/components/production/ProductionInfo.tsx
+
 ---
 
 ## Phase 3: User Story 1 - 账号管理 (P1)
@@ -290,6 +315,108 @@
 - [X] T346 [US1] 创建前端生产环境配置：添加NEBULA_AUTH_URL配置 frontend/.env.production
 - [X] T347 [US1] 更新前端类型定义：添加LoginRequest类型（支持email/phone、code、code_type字段），更新LoginResponse类型（包含tokens.access_token和tokens.refresh_token）frontend/src/types/index.ts
 
+#### Token刷新机制增强（解决超过2小时后重新打开网页错误跳转登录页问题）
+
+**问题说明**：
+超过2小时后重新打开网页，Access Token已过期，但Refresh Token仍然有效（30天内）。页面加载时，`AuthContext` 初始化直接调用 `getCurrentUser()`，使用过期的Access Token导致401错误，虽然API拦截器会尝试刷新，但可能已经被误判为未认证，错误跳转到登录页。
+
+**解决方案**：在页面加载时，先刷新Token，再获取用户信息。
+
+**执行顺序**：
+1. 修改AuthContext的refreshAuth方法（T360）：必须先完成，确保页面加载时先刷新Token
+2. 或者，在应用入口处初始化（T361）：替代方案，在应用启动前刷新Token
+
+- [X] T360 [US1] 修改AuthContext的refreshAuth方法：在获取用户信息前，先检查Refresh Token是否存在，如果存在则主动刷新Token，刷新成功后再获取用户信息 frontend/src/contexts/AuthContext.tsx
+- [X] T361 [US1] [P] 实现应用入口初始化函数：在应用启动时（main.tsx或App.tsx），先调用authService.initializeAuth()刷新Token（如果Refresh Token存在），确保进入应用时Token有效 frontend/src/services/auth.ts 和 frontend/src/main.tsx
+
+#### 管理员判断机制实现
+
+**问题说明**：
+登录用户需要明确判断是否是NebulaAuth的管理员。前端已有判断逻辑，但后端需要增强：在self_validate模式下从Token验证响应获取，在gateway模式下调用User Service API获取。
+
+**执行顺序**：
+1. 后端管理员判断实现（T362-T364）：实现后端判断逻辑
+2. 前端管理员判断增强（T365）：确保前端判断逻辑完整
+
+- [X] T362 [US1] 实现后端管理员判断函数（self_validate模式）：在认证中间件中，从Token验证API响应获取is_admin字段并设置到Context backend/internal/middleware/auth.go
+- [X] T363 [US1] 实现后端管理员判断函数（gateway模式）：创建IsNebulaAuthAdmin函数，调用NebulaAuth User Service API获取管理员状态 backend/internal/services/auth_service.go
+- [X] T364 [US1] 更新认证中间件：在gateway模式下，调用IsNebulaAuthAdmin函数获取管理员状态并设置到Context backend/internal/middleware/auth.go
+- [X] T365 [US1] 增强前端管理员判断：确保登录时保存is_admin，页面加载时更新，提供统一的isAdmin()检查函数 frontend/src/services/auth.ts
+
+#### 管理员预设用户功能实现
+
+**问题说明**：
+管理员要能在项目管理系统中预设（新建）用户，现在没有这个能力。需要业务服务提供管理员创建用户接口，内部调用NebulaAuth User Service API创建用户。
+
+**执行顺序**：
+1. 后端实现（T366-T368）：实现调用NebulaAuth API创建用户的逻辑
+2. 前端实现（T369-T370）：实现管理员创建用户界面
+
+- [X] T366 [US1] 实现CreateNebulaAuthUser方法：在UserService中实现调用NebulaAuth User Service API创建用户的方法（POST /user-service/v1/admin/users）backend/internal/services/user_service.go
+- [X] T367 [US1] 实现管理员创建用户Handler：在UserHandler中实现CreateUser方法，验证管理员权限后调用CreateNebulaAuthUser backend/internal/handlers/user_handler.go
+- [X] T368 [US1] 添加管理员创建用户路由：在admin路由组中添加POST /project-oa/v1/admin/users路由 backend/internal/router/router.go（路由已存在，无需修改）
+- [X] T369 [US1] 创建前端管理员创建用户表单组件：实现用户创建表单（邮箱、手机号、用户名、验证状态等）frontend/src/components/admin/CreateUserForm.tsx
+- [X] T370 [US1] 更新前端用户管理页面：集成创建用户功能，添加创建用户按钮和表单弹窗 frontend/src/pages/UserManagement.tsx
+
+#### 管理员创建用户同步到本地数据库
+
+**问题说明**：
+管理员创建用户后，用户只在NebulaAuth中存在，OA系统的用户管理列表查询本地数据库，导致新创建的用户不可见，直到用户首次登录时才会同步。
+
+**解决方案**：
+在创建NebulaAuth用户成功后，立即同步到OA本地数据库，确保用户管理列表可见。
+
+**执行顺序**：
+1. 修改CreateUserRequest，添加OA业务字段（real_name, role, department）
+2. 实现UserService.SyncUserToLocalDB方法，同步用户到本地数据库
+3. 修改UserHandler.CreateUser，在创建NebulaAuth用户后调用同步方法
+4. 修改前端CreateUserForm，添加OA业务字段输入
+
+- [X] T373 [US1] 修改CreateNebulaAuthUserRequest，添加OA业务字段：在UserService中添加real_name、role、department字段 backend/internal/services/user_service.go
+- [X] T374 [US1] 实现SyncUserToLocalDB方法：在UserService中实现同步用户到本地数据库的方法，根据NebulaAuth的is_admin确定OA角色，使用前端传入的OA业务字段 backend/internal/services/user_service.go
+- [X] T375 [US1] 修改UserHandler.CreateUser：在创建NebulaAuth用户成功后，调用SyncUserToLocalDB同步到本地数据库，返回同步后的完整用户信息 backend/internal/handlers/user_handler.go
+- [X] T376 [US1] 修改前端CreateUserForm：添加real_name、role、department字段输入，提交时包含这些字段 frontend/src/components/admin/CreateUserForm.tsx
+- [X] T377 [US1] 修改前端CreateNebulaAuthUserRequest类型：添加real_name、role、department字段 frontend/src/services/user.ts
+
+#### 用户创建流程优化（邮箱和手机号二选一，查询NebulaAuth）
+
+**问题说明**：
+根据最新的业务需求，用户创建流程需要进一步优化：
+1. 邮箱和手机号二选一即可，但至少需要提供其中一个
+2. 先查询OA本地数据库（支持通过邮箱、手机号或用户名查询）
+3. 如果本地不存在，再查询NebulaAuth（通过邮箱或手机号，二选一）
+4. 如果NebulaAuth也不存在，才创建新用户
+
+**解决方案**：
+1. 更新CreateNebulaAuthUserRequest，使邮箱和手机号二选一（移除邮箱必填验证，添加自定义验证确保至少提供一个）
+2. 更新GetUserByEmailOrUsername方法，支持通过手机号查询
+3. 实现GetNebulaAuthUserByEmailOrUsername方法，查询NebulaAuth用户（优先使用邮箱，如果邮箱为空则使用手机号）
+4. 更新CreateUser handler，实现完整的查询流程（本地DB → NebulaAuth → 创建）
+
+**执行顺序**：
+1. 更新CreateNebulaAuthUserRequest验证规则（T378）：必须先完成，确保邮箱和手机号二选一
+2. 更新GetUserByEmailOrUsername支持手机号查询（T379）：扩展本地数据库查询能力
+3. 实现GetNebulaAuthUserByEmailOrUsername方法（T380-T381）：实现NebulaAuth用户查询
+4. 更新CreateUser handler实现完整流程（T382）：整合所有查询逻辑
+
+- [X] T378 [US1] 更新CreateNebulaAuthUserRequest验证规则：移除Email的required验证，添加自定义验证函数，确保邮箱和手机号至少提供一个 backend/internal/services/user_service.go
+- [X] T379 [US1] 更新GetUserByEmailOrUsername方法：扩展查询条件，支持通过邮箱、手机号或用户名查询本地数据库（WHERE email = ? OR phone = ? OR username = ?）backend/internal/services/user_service.go
+- [X] T380 [US1] 实现GetNebulaAuthUserByEmail方法：在UserService中实现通过邮箱查询NebulaAuth用户的方法（GET /user-service/v1/admin/users/email/{email}，需要管理员Token）backend/internal/services/user_service.go
+- [X] T381 [US1] 实现GetNebulaAuthUserByPhone方法：在UserService中实现通过手机号查询NebulaAuth用户的方法（GET /user-service/v1/admin/users/phone/{phone}，需要管理员Token）backend/internal/services/user_service.go
+- [X] T382 [US1] 更新UserHandler.CreateUser实现完整查询流程：先查询本地数据库（支持邮箱、手机号、用户名），如果不存在则查询NebulaAuth（优先邮箱，如果邮箱为空则使用手机号），如果NebulaAuth也不存在才创建新用户 backend/internal/handlers/user_handler.go
+
+#### 用户管理导航入口实现
+
+**问题说明**：
+用户管理功能的后端API和前端页面都已实现，但缺少导航入口，管理员无法从界面访问用户管理功能。
+
+**执行顺序**：
+1. 在 ProjectList 页面添加"用户管理"按钮（仅管理员可见）
+2. 在 UserInfo 下拉菜单中添加"用户管理"选项（仅管理员可见）
+
+- [X] T371 [US1] 在 ProjectList 页面添加"用户管理"按钮：检查当前用户是否为管理员，如果是则显示"用户管理"按钮，点击跳转到 /users 页面 frontend/src/pages/ProjectList.tsx
+- [X] T372 [US1] 在 UserInfo 组件添加"用户管理"菜单项：检查当前用户是否为管理员，如果是则在下拉菜单中添加"用户管理"选项，点击跳转到 /users 页面 frontend/src/components/auth/UserInfo.tsx
+
 ---
 
 ## Phase 4: User Story 2 - 创建项目 (P1)
@@ -326,13 +453,17 @@
 
 ### Implementation Tasks
 
-- [ ] T107 [US3] 更新Project模型添加负责人字段 backend/internal/models/project.go
-- [ ] T108 [US3] 更新ProjectService支持负责人配置 backend/internal/services/project_service.go
-- [ ] T109 [US3] 实现负责人权限验证 backend/internal/services/project_service.go
-- [ ] T110 [US3] 更新ProjectHandler支持负责人配置 backend/internal/handlers/project_handler.go
-- [ ] T111 [US3] 更新前端项目详情页面显示负责人信息 frontend/src/pages/ProjectDetail.tsx
-- [ ] T112 [US3] 实现负责人选择组件 frontend/src/components/project/ManagerSelector.tsx
-- [ ] T113 [US3] 实现负责人配置权限控制 frontend/src/components/project/ManagerSelector.tsx
+- [X] T107 [US3] 更新Project模型添加负责人字段 backend/internal/models/project.go
+- [X] T108 [US3] 更新ProjectService支持负责人配置 backend/internal/services/project_service.go
+- [X] T109 [US3] 实现负责人权限验证 backend/internal/services/project_service.go
+- [X] T110 [US3] 更新ProjectHandler支持负责人配置 backend/internal/handlers/project_handler.go
+- [X] T111 [US3] 更新前端项目详情页面显示负责人信息 frontend/src/pages/ProjectDetail.tsx
+- [X] T112 [US3] 实现负责人选择组件 frontend/src/components/project/ManagerSelector.tsx
+- [X] T113 [US3] 实现负责人配置权限控制 frontend/src/components/project/BasicInfoTab.tsx
+- [X] T356 [US3] 在负责人配置Card中添加编辑按钮：在查看模式下，为负责人配置Card添加独立的编辑按钮 frontend/src/components/project/BasicInfoTab.tsx
+- [X] T357 [US3] 实现负责人配置独立编辑模式：添加负责人配置的独立编辑状态，允许只编辑负责人而不编辑其他基本信息 frontend/src/components/project/BasicInfoTab.tsx
+- [X] T358 [US3] 实现负责人配置保存逻辑：负责人配置编辑模式下，只更新business_manager_id和production_manager_id字段 frontend/src/components/project/BasicInfoTab.tsx
+- [X] T359 [US3] 优化负责人配置编辑体验：添加取消按钮，编辑时显示保存和取消按钮，保存后自动退出编辑模式 frontend/src/components/project/BasicInfoTab.tsx
 
 ---
 
@@ -348,14 +479,14 @@
 
 ### Implementation Tasks
 
-- [ ] T114 [US4] 更新ClientService支持甲方管理 backend/internal/services/client_service.go
-- [ ] T115 [US4] 更新ClientHandler支持甲方CRUD backend/internal/handlers/client_handler.go
-- [ ] T116 [US4] 更新ProjectContactService支持项目联系人管理 backend/internal/services/project_contact_service.go
-- [ ] T117 [US4] 实现项目联系人创建和更新逻辑 backend/internal/services/project_contact_service.go
-- [ ] T118 [US4] 更新ProjectContactHandler支持联系人管理 backend/internal/handlers/project_contact_handler.go
-- [ ] T119 [US4] 更新前端甲方选择组件 frontend/src/components/business/ClientSelector.tsx
-- [ ] T120 [US4] 实现项目联系人表单组件 frontend/src/components/business/ProjectContactForm.tsx
-- [ ] T121 [US4] 更新前端项目经营信息页面集成联系人管理 frontend/src/pages/ProjectBusiness.tsx
+- [X] T114 [US4] 更新ClientService支持甲方管理 backend/internal/services/client_service.go
+- [X] T115 [US4] 更新ClientHandler支持甲方CRUD backend/internal/handlers/client_handler.go
+- [X] T116 [US4] 更新ProjectContactService支持项目联系人管理 backend/internal/services/project_contact_service.go
+- [X] T117 [US4] 实现项目联系人创建和更新逻辑 backend/internal/services/project_contact_service.go
+- [X] T118 [US4] 更新ProjectContactHandler支持联系人管理 backend/internal/handlers/project_contact_handler.go
+- [X] T119 [US4] 更新前端甲方选择组件 frontend/src/components/business/ClientSelectModal.tsx
+- [X] T120 [US4] 实现项目联系人表单组件 frontend/src/components/business/ProjectContactForm.tsx
+- [X] T121 [US4] 更新前端项目经营信息页面集成联系人管理 frontend/src/components/project/BusinessInfoTab.tsx
 
 ---
 
@@ -371,12 +502,12 @@
 
 ### Implementation Tasks
 
-- [ ] T122 [US5] 更新ProjectMember模型支持经营参与人角色 backend/internal/models/project_member.go
-- [ ] T123 [US5] 更新ProjectMemberService支持经营参与人配置 backend/internal/services/project_member_service.go
-- [ ] T124 [US5] 实现经营参与人权限验证 backend/internal/services/project_member_service.go
-- [ ] T125 [US5] 更新ProjectMemberHandler支持经营参与人管理 backend/internal/handlers/project_member_handler.go
-- [ ] T126 [US5] 更新前端项目成员管理组件 frontend/src/components/project/ProjectMemberManager.tsx
-- [ ] T127 [US5] 实现经营参与人选择组件 frontend/src/components/business/BusinessPersonnelSelector.tsx
+- [X] T122 [US5] 更新ProjectMember模型支持经营参与人角色 backend/internal/models/project_member.go
+- [X] T123 [US5] 更新ProjectMemberService支持经营参与人配置 backend/internal/services/project_member_service.go
+- [X] T124 [US5] 实现经营参与人权限验证 backend/internal/services/project_member_service.go
+- [X] T125 [US5] 更新ProjectMemberHandler支持经营参与人管理 backend/internal/handlers/project_member_handler.go
+- [X] T126 [US5] 更新前端项目成员管理组件 frontend/src/components/business/BusinessPersonnelList.tsx
+- [X] T127 [US5] 实现经营参与人选择组件 frontend/src/components/business/BusinessPersonnelList.tsx
 
 ---
 
@@ -392,16 +523,16 @@
 
 ### Implementation Tasks
 
-- [ ] T128 [US6] 创建BiddingInfo模型 backend/internal/models/bidding_info.go
-- [ ] T129 [US6] 创建BiddingService backend/internal/services/bidding_service.go
-- [ ] T130 [US6] 创建BiddingHandler backend/internal/handlers/bidding_handler.go
-- [ ] T131 [US6] 实现招投标文件上传功能 backend/internal/handlers/bidding_handler.go
-- [ ] T132 [US6] 实现专家费支付记录（使用FinancialRecord）backend/internal/services/bidding_service.go
-- [ ] T133 [US6] 创建数据库迁移脚本添加bidding_info表 scripts/migrations/008_add_bidding_info.sql
-- [ ] T134 [US6] 创建前端招投标管理组件 frontend/src/components/business/BiddingInfoManager.tsx
-- [ ] T135 [US6] 实现招投标文件上传UI frontend/src/components/business/BiddingFileUpload.tsx
-- [ ] T136 [US6] 实现专家费支付表单 frontend/src/components/business/ExpertFeeForm.tsx
-- [ ] T137 [US6] 更新前端项目经营信息页面集成招投标管理 frontend/src/pages/ProjectBusiness.tsx
+- [X] T128 [US6] 创建BiddingInfo模型 backend/internal/models/bidding_info.go
+- [X] T129 [US6] 创建BiddingService backend/internal/services/bidding_service.go
+- [X] T130 [US6] 创建BiddingHandler backend/internal/handlers/bidding_handler.go
+- [X] T131 [US6] 实现招投标文件上传功能 backend/internal/handlers/bidding_handler.go
+- [X] T132 [US6] 实现专家费支付记录（使用FinancialRecord）backend/internal/services/bidding_service.go
+- [X] T133 [US6] 创建数据库迁移脚本添加bidding_info表 scripts/migrations/008_add_bidding_info.sql
+- [X] T134 [US6] 创建前端招投标管理组件 frontend/src/components/business/BiddingFileList.tsx
+- [X] T135 [US6] 实现招投标文件上传UI frontend/src/components/business/BiddingFileList.tsx
+- [X] T136 [US6] 实现专家费支付表单 frontend/src/components/business/ExpertFeeForm.tsx
+- [X] T137 [US6] 更新前端项目经营信息页面集成招投标管理 frontend/src/components/project/BusinessInfoTab.tsx
 
 ---
 
@@ -1110,12 +1241,13 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 317/343 (92%)
+**任务进度**: 357/370 (96%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
-- Phase 3: 28个任务（US1 - 账号管理，包含19个登录页面改造任务）
-- Phase 4-8: 44个任务（US2-US6）
+- Phase 2.9: 8个任务（负责人配置改造，确保符合User Story 3要求）
+- Phase 3: 43个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务）
+- Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）
 - Phase 9-14: 50个任务（US7-US12）
 - Phase 15-22: 64个任务（US13-US20）
 - Phase 23-24: 22个任务（US21-US22）
@@ -1123,5 +1255,5 @@
 - Phase 26: 19个任务（US24）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 343个任务（新增15个登录页面改造任务）
+**总计**: 370个任务（新增5个任务：用户创建流程优化，支持邮箱和手机号二选一，实现NebulaAuth用户查询）
 

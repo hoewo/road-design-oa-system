@@ -8,19 +8,18 @@ import {
   Modal,
   Select,
   Popconfirm,
-  Radio,
   Form,
 } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { businessService } from '@/services/business'
+import { projectMemberService } from '@/services/projectMember'
 import { userService } from '@/services/user'
-import type { User } from '@/types'
+import type { User, ProjectMember } from '@/types'
 
 const { Option } = Select
 
 interface BusinessPersonnelListProps {
-  projectId: number
+  projectId: string
 }
 
 export const BusinessPersonnelList = ({
@@ -30,10 +29,10 @@ export const BusinessPersonnelList = ({
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
 
-  // 获取项目经营信息
-  const { data: businessData } = useQuery({
-    queryKey: ['projectBusiness', projectId],
-    queryFn: () => businessService.getProjectBusiness(projectId),
+  // 获取项目成员（经营参与人）
+  const { data: projectMembers } = useQuery({
+    queryKey: ['projectMembers', projectId],
+    queryFn: () => projectMemberService.list(projectId),
     enabled: !!projectId,
   })
 
@@ -50,38 +49,29 @@ export const BusinessPersonnelList = ({
     },
   })
 
-  // 添加参与人
+  // 添加参与人（只允许添加business_personnel角色）
   const addMutation = useMutation({
-    mutationFn: async ({
-      userId,
-      role,
-    }: {
-      userId: number
-      role: 'business_manager' | 'business_personnel'
-    }) => {
-      const currentManagerIds = businessData?.business_manager_ids || []
-      const currentPersonnelIds = businessData?.business_personnel_ids || []
-
-      if (role === 'business_manager') {
-        if (currentManagerIds.includes(userId)) {
-          throw new Error('该人员已是经营负责人')
-        }
-        await businessService.updateProjectBusiness(projectId, {
-          business_manager_ids: [...currentManagerIds, userId],
-        })
-      } else {
-        if (currentPersonnelIds.includes(userId)) {
+    mutationFn: async ({ userId }: { userId: string }) => {
+      // Check if member already exists
+      const existingMember = projectMembers?.find(
+        (m) => m.user_id === userId && m.role === 'business_personnel' && m.is_active
+      )
+      if (existingMember) {
           throw new Error('该人员已在参与人列表中')
         }
-        await businessService.updateProjectBusiness(projectId, {
-          business_personnel_ids: [...currentPersonnelIds, userId],
-        })
-      }
+
+      // Create new project member with business_personnel role only
+      await projectMemberService.create(projectId, {
+        user_id: userId,
+        role: 'business_personnel', // 固定使用business_personnel角色
+        join_date: new Date().toISOString().split('T')[0],
+        is_active: true,
+      })
     },
     onSuccess: () => {
       message.success('添加参与人成功')
       queryClient.invalidateQueries({
-        queryKey: ['projectBusiness', projectId],
+        queryKey: ['projectMembers', projectId],
       })
       setAddModalVisible(false)
       form.resetFields()
@@ -93,18 +83,13 @@ export const BusinessPersonnelList = ({
 
   // 删除参与人
   const removeMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const currentPersonnelIds = businessData?.business_personnel_ids || []
-      await businessService.updateProjectBusiness(projectId, {
-        business_personnel_ids: currentPersonnelIds.filter(
-          (id) => id !== userId
-        ),
-      })
+    mutationFn: async (memberId: string) => {
+      await projectMemberService.remove(memberId)
     },
     onSuccess: () => {
       message.success('删除参与人成功')
       queryClient.invalidateQueries({
-        queryKey: ['projectBusiness', projectId],
+        queryKey: ['projectMembers', projectId],
       })
     },
     onError: (error: any) => {
@@ -119,46 +104,42 @@ export const BusinessPersonnelList = ({
         message.warning('请选择要添加的人员')
         return
       }
-      if (!values.role) {
-        message.warning('请选择角色')
-        return
-      }
+      // 不再需要选择角色，固定使用business_personnel
       addMutation.mutate({
         userId: values.user_id,
-        role: values.role,
       })
     } catch (error) {
       // 表单验证错误
     }
   }
 
-  const handleRemove = (userId: number) => {
-    removeMutation.mutate(userId)
+  const handleRemove = (memberId: string) => {
+    removeMutation.mutate(memberId)
   }
 
-  // 获取经营负责人和参与人信息
-  const managerIds = businessData?.business_manager_ids || []
-  const personnelIds = businessData?.business_personnel_ids || []
-  const allPersonnelIds = [...managerIds, ...personnelIds]
+  // 只获取经营参与人信息（不包含负责人，负责人应在基本信息中显示）
+  const businessPersonnel = projectMembers?.filter(
+    (m) => m.role === 'business_personnel' && m.is_active
+  ) || []
   const users = usersData || []
 
-  // 构建表格数据
-  const tableData = allPersonnelIds.map((userId) => {
-    const user = users.find((u) => u.id === userId)
-    const isManager = managerIds.includes(userId)
+  // 构建表格数据（只显示经营参与人）
+  const tableData = businessPersonnel.map((member) => {
     return {
-      id: userId,
-      name: user?.real_name || user?.username || `用户ID: ${userId}`,
-      role: isManager ? '经营负责人' : '经营参与人',
-      userId,
-      isManager,
+      id: member.id,
+      name:
+        member.user?.real_name ||
+        member.user?.username ||
+        `用户ID: ${member.user_id}`,
+      role: '经营参与人',
+      memberId: member.id,
+      userId: member.user_id,
     }
   })
 
   // 获取可添加的用户列表（排除已在列表中的人员）
-  const availableUsers = users.filter(
-    (user) => !allPersonnelIds.includes(user.id)
-  )
+  const existingUserIds = businessPersonnel.map((m) => m.user_id)
+  const availableUsers = users.filter((user) => !existingUserIds.includes(user.id))
 
   const columns = [
     {
@@ -176,10 +157,9 @@ export const BusinessPersonnelList = ({
       key: 'action',
       render: (_: any, record: any) => (
         <Space>
-          {!record.isManager ? (
             <Popconfirm
               title="确定要删除该参与人吗？"
-              onConfirm={() => handleRemove(record.userId)}
+            onConfirm={() => handleRemove(record.memberId)}
               okText="确定"
               cancelText="取消"
             >
@@ -187,9 +167,6 @@ export const BusinessPersonnelList = ({
                 删除
               </Button>
             </Popconfirm>
-          ) : (
-            <span style={{ color: '#999' }}>-</span>
-          )}
         </Space>
       ),
     },
@@ -231,20 +208,10 @@ export const BusinessPersonnelList = ({
       >
         <Form form={form} layout="vertical">
           <Form.Item
-            label="角色"
-            name="role"
-            rules={[{ required: true, message: '请选择角色' }]}
-          >
-            <Radio.Group>
-              <Radio value="business_manager">经营负责人</Radio>
-              <Radio value="business_personnel">经营参与人</Radio>
-            </Radio.Group>
-          </Form.Item>
-
-          <Form.Item
             label="人员"
             name="user_id"
             rules={[{ required: true, message: '请选择要添加的人员' }]}
+            tooltip="只能添加经营参与人，经营负责人请在项目基本信息中配置"
           >
             <Select
               placeholder="请选择要添加的人员"

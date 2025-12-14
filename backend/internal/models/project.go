@@ -25,6 +25,7 @@ type Project struct {
 	ProjectOverview    string        `json:"project_overview" gorm:"type:text"`
 	DrawingUnit        string        `json:"drawing_unit"`
 	Status             ProjectStatus `json:"status" gorm:"default:'planning'"`
+	IsDeleted          bool          `json:"is_deleted" gorm:"default:false"` // 软删除标记
 	ManagementFeeRatio *float64      `json:"management_fee_ratio"` // 管理费比例（可选，NULL表示使用公司默认值）
 
 	// 负责人字段
@@ -42,6 +43,7 @@ type Project struct {
 
 	// 关联数据
 	ProjectContact    *ProjectContact    `json:"project_contact,omitempty" gorm:"foreignKey:ProjectID"` // 项目联系人（一对一）
+	BiddingInfo       *BiddingInfo      `json:"bidding_info,omitempty" gorm:"foreignKey:ProjectID"`   // 招投标信息（一对一）
 	Contracts         []Contract         `json:"contracts" gorm:"foreignKey:ProjectID"`
 	Members           []ProjectMember    `json:"members" gorm:"foreignKey:ProjectID"`
 	Files             []File             `json:"files" gorm:"foreignKey:ProjectID"`

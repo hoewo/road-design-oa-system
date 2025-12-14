@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"project-oa-backend/internal/middleware"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -153,6 +154,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 // @Param request body services.UpdateProjectRequest true "Project update information"
 // @Success 200 {object} models.Project
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id} [put]
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
@@ -166,6 +168,30 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
+	}
+
+	// Check permission if updating managers (business manager or production manager)
+	if req.BusinessManagerID != nil || req.ProductionManagerID != nil {
+		userID, exists := middleware.GetUserID(c)
+		if !exists {
+			utils.HandleError(c, http.StatusUnauthorized, "User ID not found", nil)
+			return
+		}
+
+		canManage, err := h.projectService.CanManageProjectManagers(userID)
+		if err != nil {
+			h.logger.Error("Failed to check permission",
+				zap.Error(err),
+				zap.String("user_id", userID),
+			)
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
+			return
+		}
+
+		if !canManage {
+			utils.HandleError(c, http.StatusForbidden, "Only project managers can configure project managers", nil)
+			return
+		}
 	}
 
 	project, err := h.projectService.UpdateProject(id, &req)

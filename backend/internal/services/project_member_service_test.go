@@ -47,13 +47,13 @@ func TestProjectMemberService_CreateAndList(t *testing.T) {
 	require.NoError(t, db.Create(project).Error)
 
 	user := &models.User{
-		Username: "pm1", Email: "pm1@example.com", Password: "pwd", RealName: "成员A", Role: models.RoleDesigner,
+		Username: "pm1", Email: "pm1@example.com", Password: "pwd", RealName: "成员A", Role: models.RoleMember,
 	}
 	require.NoError(t, db.Create(user).Error)
 
 	req := &CreateProjectMemberRequest{
 		UserID:   user.ID,
-		Role:     models.MemberRoleManager,
+		Role:     models.MemberRoleDesigner,
 		JoinDate: time.Now().AddDate(0, -1, 0),
 		IsActive: true,
 	}
@@ -66,7 +66,7 @@ func TestProjectMemberService_CreateAndList(t *testing.T) {
 	members, err := service.ListMembers(project.ID)
 	require.NoError(t, err)
 	require.Len(t, members, 1)
-	require.Equal(t, models.MemberRoleManager, members[0].Role)
+	require.Equal(t, models.MemberRoleDesigner, members[0].Role)
 	require.Equal(t, "成员A", members[0].User.RealName)
 
 	require.Len(t, notifier.events, 1)
@@ -87,7 +87,7 @@ func TestProjectMemberService_RoleUniqueness(t *testing.T) {
 
 	req := &CreateProjectMemberRequest{
 		UserID:   user1.ID,
-		Role:     models.MemberRoleManager,
+		Role:     models.MemberRoleDesigner,
 		JoinDate: time.Now().AddDate(0, -2, 0),
 		IsActive: true,
 	}
@@ -97,7 +97,7 @@ func TestProjectMemberService_RoleUniqueness(t *testing.T) {
 
 	reqDuplicate := &CreateProjectMemberRequest{
 		UserID:   user2.ID,
-		Role:     models.MemberRoleManager,
+		Role:     models.MemberRoleDesigner,
 		JoinDate: time.Now().AddDate(0, -1, 0),
 	}
 

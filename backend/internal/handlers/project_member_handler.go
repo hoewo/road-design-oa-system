@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -70,7 +69,7 @@ func (h *ProjectMemberHandler) CreateMember(c *gin.Context) {
 		return
 	}
 
-	joinDate, err := parseFlexibleDate(payload.JoinDate)
+	joinDate, err := utils.ParseFlexibleDate(payload.JoinDate)
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid join date", err)
 		return
@@ -78,7 +77,7 @@ func (h *ProjectMemberHandler) CreateMember(c *gin.Context) {
 
 	var leaveDate *time.Time
 	if payload.LeaveDate != nil && *payload.LeaveDate != "" {
-		t, err := parseFlexibleDate(*payload.LeaveDate)
+		t, err := utils.ParseFlexibleDate(*payload.LeaveDate)
 		if err != nil {
 			utils.HandleError(c, http.StatusBadRequest, "Invalid leave date", err)
 			return
@@ -134,7 +133,7 @@ func (h *ProjectMemberHandler) UpdateMember(c *gin.Context) {
 	}
 
 	if payload.JoinDate != nil && *payload.JoinDate != "" {
-		joinDate, err := parseFlexibleDate(*payload.JoinDate)
+		joinDate, err := utils.ParseFlexibleDate(*payload.JoinDate)
 		if err != nil {
 			utils.HandleError(c, http.StatusBadRequest, "Invalid join date", err)
 			return
@@ -143,7 +142,7 @@ func (h *ProjectMemberHandler) UpdateMember(c *gin.Context) {
 	}
 
 	if payload.LeaveDate != nil && *payload.LeaveDate != "" {
-		leaveDate, err := parseFlexibleDate(*payload.LeaveDate)
+		leaveDate, err := utils.ParseFlexibleDate(*payload.LeaveDate)
 		if err != nil {
 			utils.HandleError(c, http.StatusBadRequest, "Invalid leave date", err)
 			return
@@ -182,18 +181,3 @@ func (h *ProjectMemberHandler) DeleteMember(c *gin.Context) {
 	})
 }
 
-func parseFlexibleDate(value string) (time.Time, error) {
-	layouts := []string{
-		time.RFC3339,
-		"2006-01-02",
-		"2006/01/02",
-	}
-
-	for _, layout := range layouts {
-		if t, err := time.Parse(layout, value); err == nil {
-			return t, nil
-		}
-	}
-
-	return time.Time{}, fmt.Errorf("invalid date format, expected YYYY-MM-DD or RFC3339")
-}

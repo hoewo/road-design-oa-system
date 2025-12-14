@@ -13,11 +13,16 @@
 
 启动服务后，访问以下地址查看交互式API文档：
 
-- **Auth Server**: `http://localhost:4433/swagger/index.html`
-- **User Service**: `http://localhost:3001/swagger/index.html`
-- **OAuth Server**: `http://localhost:4434/swagger/index.html`
-- **Service Registry**: `http://localhost:4435/swagger/index.html`
-- **API Gateway**: `http://localhost:8080/swagger/index.html`
+- **Auth Server**: `http://<auth-server-host>:<auth-server-port>/swagger/index.html`
+- **User Service**: `http://<user-service-host>:<user-service-port>/swagger/index.html`
+- **OAuth Server**: `http://<oauth-server-host>:<oauth-server-port>/swagger/index.html`
+- **Service Registry**: `http://<service-registry-host>:<service-registry-port>/swagger/index.html`
+- **API Gateway**: `http://<api-gateway-host>:<api-gateway-port>/swagger/index.html`
+
+**说明**：
+- `<service-name>-host` 和 `<service-name>-port` 需要根据实际部署环境替换
+- Docker 环境示例：`http://nebula-auth-server:4433/swagger/index.html`
+- 开发环境示例：`http://<auth-server-host>:<auth-server-port>/swagger/index.html`
 
 ### Markdown文档
 

@@ -9,12 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"golang.org/x/crypto/bcrypt"
-
 	"project-oa-backend/internal/config"
 	"project-oa-backend/internal/handlers"
 	"project-oa-backend/internal/middleware"
-	"project-oa-backend/internal/models"
 	"project-oa-backend/internal/router"
 	"project-oa-backend/pkg/database"
 	"project-oa-backend/pkg/storage"
@@ -48,11 +45,6 @@ func main() {
 		logger.Fatal("Failed to migrate database", zap.Error(err))
 	}
 
-	// Initialize test user if not exists
-	if err := initTestUser(cfg, logger); err != nil {
-		logger.Warn("Failed to initialize test user", zap.Error(err))
-	}
-
 	// Initialize storage (MinIO or OSS)
 	storageInstance, err := storage.InitStorage(cfg)
 	if err != nil {
@@ -80,10 +72,11 @@ func main() {
 	expertFeePaymentHandler := handlers.NewExpertFeePaymentHandler(logger)
 	financialHandler := handlers.NewFinancialHandler(logger)
 	bonusHandler := handlers.NewBonusHandler(logger)
-	userHandler := handlers.NewUserHandler(logger)
+	userHandler := handlers.NewUserHandlerWithConfig(cfg, logger)
 	companyConfigHandler := handlers.NewCompanyConfigHandler(logger)
 	projectContactHandler := handlers.NewProjectContactHandler(logger)
 	disciplineHandler := handlers.NewDisciplineHandler(logger)
+	biddingHandler := handlers.NewBiddingHandler(logger)
 
 	// Setup router with new routing format
 	routerManager := router.NewRouter(cfg)
@@ -152,6 +145,7 @@ func main() {
 		companyConfigHandler,
 		projectContactHandler,
 		disciplineHandler,
+		biddingHandler,
 	)
 
 	// Start server
@@ -163,37 +157,3 @@ func main() {
 	}
 }
 
-// initTestUser creates a test user if it doesn't exist
-func initTestUser(cfg *config.Config, logger *zap.Logger) error {
-	var user models.User
-	if err := database.DB.Where("username = ?", "admin").First(&user).Error; err == nil {
-		// User already exists
-		return nil
-	}
-
-	// Create test user
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	testUser := &models.User{
-		Username: "admin",
-		Email:    "admin@example.com",
-		Password: string(hashedPassword),
-		RealName: "系统管理员",
-		Role:     models.RoleAdmin,
-		IsActive: true,
-	}
-
-	if err := database.DB.Create(testUser).Error; err != nil {
-		return err
-	}
-
-	logger.Info("Test user created",
-		zap.String("username", "admin"),
-		zap.String("password", "admin123"),
-	)
-
-	return nil
-}

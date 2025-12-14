@@ -27,7 +27,7 @@ const ProjectDetail = () => {
     }
   }, [searchParams])
 
-  const projectId = Number(id)
+  const projectId = id || ''
 
   const {
     data: project,

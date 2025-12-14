@@ -61,11 +61,13 @@ func (s *ProjectBusinessService) GetProjectBusiness(projectID string) (*ProjectB
 		BusinessPersonnelIDs: []string{},
 	}
 
-	// 提取经营负责人和经营人员
+	// 提取经营负责人（从 Project.BusinessManagerID 获取）
+	if project.BusinessManagerID != nil && *project.BusinessManagerID != "" {
+		business.BusinessManagerIDs = []string{*project.BusinessManagerID}
+	}
+
+	// 提取经营人员（从 ProjectMember 获取）
 	for _, member := range project.Members {
-		if member.Role == models.MemberRoleBusinessManager && member.IsActive {
-			business.BusinessManagerIDs = append(business.BusinessManagerIDs, member.UserID)
-		}
 		if member.Role == models.MemberRoleBusinessPersonnel && member.IsActive {
 			business.BusinessPersonnelIDs = append(business.BusinessPersonnelIDs, member.UserID)
 		}
@@ -103,48 +105,37 @@ func (s *ProjectBusinessService) UpdateProjectBusiness(projectID string, req *Up
 		}
 	}
 
-	// Update project
-	if err := s.db.Model(&project).Update("client_id", project.ClientID).Error; err != nil {
-		return nil, err
-	}
-
-	// Update business manager and personnel through ProjectMember system
-	// Remove existing business manager and personnel roles
-	s.db.Where("project_id = ? AND role IN (?)", projectID, []models.MemberRole{
-		models.MemberRoleBusinessManager,
-		models.MemberRoleBusinessPersonnel,
-	}).Delete(&models.ProjectMember{})
-
-	// Add new business managers
-	for _, userID := range req.BusinessManagerIDs {
-		// Verify user exists
+	// Update business manager (通过 Project.BusinessManagerID 配置)
+	if len(req.BusinessManagerIDs) > 0 {
+		// 验证用户存在
 		var user models.User
-		if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
+		if err := s.db.First(&user, "id = ?", req.BusinessManagerIDs[0]).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue // Skip invalid user IDs
+				return nil, errors.New("business manager user not found")
 			}
 			return nil, err
 		}
-
-		// Check if user already has this role (should not happen after delete, but check anyway)
-		var existingMember models.ProjectMember
-		err := s.db.Where("project_id = ? AND user_id = ? AND role = ?", projectID, userID, models.MemberRoleBusinessManager).First(&existingMember).Error
-		if err == nil {
-			// Already exists, skip
-			continue
-		}
-
-		// Create new member record
-		member := &models.ProjectMember{
-			ProjectID: projectID,
-			UserID:    userID,
-			Role:      models.MemberRoleBusinessManager,
-			IsActive:  true,
-		}
-		if err := s.db.Create(member).Error; err != nil {
-			return nil, err
-		}
+		project.BusinessManagerID = &req.BusinessManagerIDs[0]
+	} else {
+		project.BusinessManagerID = nil
 	}
+
+	// Update project (client_id and business_manager_id)
+	updates := map[string]interface{}{
+		"client_id": project.ClientID,
+	}
+	if project.BusinessManagerID != nil {
+		updates["business_manager_id"] = project.BusinessManagerID
+	} else {
+		updates["business_manager_id"] = nil
+		}
+	if err := s.db.Model(&project).Updates(updates).Error; err != nil {
+			return nil, err
+	}
+
+	// Update business personnel through ProjectMember system
+	// Remove existing business personnel roles
+	s.db.Where("project_id = ? AND role = ?", projectID, models.MemberRoleBusinessPersonnel).Delete(&models.ProjectMember{})
 
 	// Add new business personnel
 	for _, userID := range req.BusinessPersonnelIDs {

@@ -18,10 +18,12 @@ import {
   EyeOutlined,
   DollarOutlined,
   SettingOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { projectService } from '@/services/project'
+import { useAuth } from '@/contexts/AuthContext'
 import ProjectForm from '@/components/project/ProjectForm'
 import type { Project, ProjectStatus } from '@/types'
 
@@ -31,6 +33,7 @@ const { Option } = Select
 const ProjectList = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { user: currentUser } = useAuth()
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus | undefined>()
   const [pagination, setPagination] = useState({
@@ -38,6 +41,9 @@ const ProjectList = () => {
     pageSize: 10,
     total: 0,
   })
+
+  // Check if current user is admin (same logic as BasicInfoTab)
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'project_manager'
   const [modalVisible, setModalVisible] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
 
@@ -227,6 +233,14 @@ const ProjectList = () => {
             >
               公司配置
             </Button>
+            {isAdmin && (
+              <Button
+                icon={<UserOutlined />}
+                onClick={() => navigate('/users')}
+              >
+                用户管理
+              </Button>
+            )}
             <Button
               type="primary"
               icon={<PlusOutlined />}

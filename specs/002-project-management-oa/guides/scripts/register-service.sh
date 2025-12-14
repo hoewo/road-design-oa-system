@@ -15,14 +15,14 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # 默认配置（可通过环境变量覆盖）
-API_GATEWAY_URL="${API_GATEWAY_URL:-http://localhost:8080}"
+API_GATEWAY_URL="${API_GATEWAY_URL:-http://nebula-auth-server:port}"
 AUTH_SERVER_URL="${AUTH_SERVER_URL:-${API_GATEWAY_URL}/auth-server}"
 SERVICE_REGISTRY_URL="${SERVICE_REGISTRY_URL:-${API_GATEWAY_URL}/service-registry}"
 
 # 业务服务配置（可通过环境变量或参数配置）
 SERVICE_NAME="${SERVICE_NAME:-}"
 SERVICE_HOST="${SERVICE_HOST:-localhost}"
-SERVICE_PORT="${SERVICE_PORT:-8080}"
+SERVICE_PORT="${SERVICE_PORT:-port}"
 SERVICE_URL="${SERVICE_URL:-}"
 
 # 管理员账号配置
@@ -68,7 +68,7 @@ show_usage() {
 选项:
   -n, --service-name NAME      业务服务名称（必填）
   -h, --service-host HOST      业务服务主机地址（默认: localhost）
-  -p, --service-port PORT      业务服务端口（默认: 8080）
+  -p, --service-port PORT      业务服务端口（默认: port）
   -u, --service-url URL        业务服务完整URL（可选，会自动构建）
   
   -e, --admin-email EMAIL      管理员邮箱（用于登录）
@@ -76,7 +76,7 @@ show_usage() {
   -c, --code CODE              验证码（如果不提供，会提示输入）
   -t, --code-type TYPE         验证码类型: email 或 sms（默认: email）
   
-  -g, --gateway-url URL        API网关地址（默认: http://localhost:8080）
+  -g, --gateway-url URL        API网关地址（默认: http://nebula-auth-server:port）
   -a, --auth-url URL           认证服务地址（默认: \${gateway-url}/auth-server）
   -r, --registry-url URL       服务注册中心地址（默认: \${gateway-url}/service-registry）
   
@@ -95,7 +95,7 @@ show_usage() {
   $0 -n my-service -h localhost -p 3000 -e admin@example.com
 
   # 使用手机号登录注册服务
-  $0 -n my-service -h 192.168.1.100 -p 8080 -P 13800138000 -t sms
+  $0 -n my-service -h business-server -p port -P 13800138000 -t sms
 
   # 使用已有Token注册服务
   $0 -n my-service -h localhost -p 3000 --token "eyJhbGc..." --user-id "uuid-here"

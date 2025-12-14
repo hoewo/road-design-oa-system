@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -29,6 +30,8 @@ const (
 	UserAppIDKey AuthContextKey = "user_app_id"
 	// UserSessionIDKey is the context key for session ID
 	UserSessionIDKey AuthContextKey = "user_session_id"
+	// UserIsAdminKey is the context key for is_admin flag (NebulaAuth管理员标识)
+	UserIsAdminKey AuthContextKey = "is_admin"
 )
 
 // AuthLevel 认证级别
@@ -142,7 +145,9 @@ func validateTokenSelfValidate(cfg *config.Config, tokenString string) (*NebulaA
 }
 
 // getUserFromGateway 在gateway模式下从Header读取用户信息
-func getUserFromGateway(c *gin.Context) (*NebulaAuthValidateResponse, error) {
+// 注意：gateway模式下不会收到X-User-IsAdmin header（出于安全考虑）
+// 需要通过调用User Service API获取管理员状态
+func getUserFromGateway(c *gin.Context, cfg *config.Config) (*NebulaAuthValidateResponse, error) {
 	userID := c.GetHeader("X-User-ID")
 	username := c.GetHeader("X-User-Username")
 	appID := c.GetHeader("X-User-AppID")
@@ -150,6 +155,52 @@ func getUserFromGateway(c *gin.Context) (*NebulaAuthValidateResponse, error) {
 
 	if userID == "" {
 		return nil, fmt.Errorf("未认证")
+	}
+
+	// 从Authorization Header提取Token，用于调用User Service API
+	authHeader := c.GetHeader("Authorization")
+	var isAdmin bool
+	
+	if authHeader != "" {
+		// 提取Token
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && parts[0] == "Bearer" {
+			token := parts[1]
+			// 调用User Service API获取管理员状态
+			// 注意：需要通过API Gateway访问，所以使用APIBaseURL
+			url := cfg.APIBaseURL + "/user-service/v1/user/profile"
+			
+			req, err := http.NewRequest("GET", url, nil)
+			if err == nil {
+				req.Header.Set("Authorization", "Bearer "+token)
+				req.Header.Set("Content-Type", "application/json")
+				
+				client := &http.Client{
+					Timeout: 5 * time.Second,
+				}
+				
+				resp, err := client.Do(req)
+				if err == nil {
+					defer resp.Body.Close()
+					
+					if resp.StatusCode == http.StatusOK {
+						body, err := io.ReadAll(resp.Body)
+						if err == nil {
+							var result struct {
+								Success bool `json:"success"`
+								Data    struct {
+									IsAdmin bool `json:"is_admin"`
+								} `json:"data"`
+							}
+							
+							if json.Unmarshal(body, &result) == nil && result.Success {
+								isAdmin = result.Data.IsAdmin
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// 注意：gateway模式下不会收到X-User-Role和X-User-IsAdmin（出于安全考虑）
@@ -161,7 +212,7 @@ func getUserFromGateway(c *gin.Context) (*NebulaAuthValidateResponse, error) {
 		AppID:     appID,
 		SessionID: sessionID,
 		Role:      "",    // 业务角色通过业务逻辑判断
-		IsAdmin:   false, // 管理员权限通过业务逻辑判断
+		IsAdmin:   isAdmin, // 通过调用User Service API获取
 	}, nil
 }
 
@@ -179,8 +230,8 @@ func AuthMiddleware(cfg *config.Config, level AuthLevel) gin.HandlerFunc {
 
 		// 根据认证模式获取用户信息
 		if cfg.AuthMode == "gateway" {
-			// Gateway模式：从Header读取用户信息
-			userInfo, err = getUserFromGateway(c)
+			// Gateway模式：从Header读取用户信息，并调用User Service API获取管理员状态
+			userInfo, err = getUserFromGateway(c, cfg)
 		} else {
 			// Self_validate模式：调用NebulaAuth API验证Token
 			authHeader := c.GetHeader("Authorization")
@@ -215,19 +266,14 @@ func AuthMiddleware(cfg *config.Config, level AuthLevel) gin.HandlerFunc {
 			return
 		}
 
-		// Admin级别需要验证管理员权限
-		if level == AuthLevelAdmin {
-			// 注意：gateway模式下不会收到IsAdmin header，需要通过业务逻辑判断
-			// 这里暂时允许通过，实际权限验证在业务层进行
-			// TODO: 实现管理员权限验证逻辑
-		}
-
 		// Store user information in context (使用UUID string类型)
 		c.Set(string(UserIDKey), userInfo.UserID)
 		c.Set(string(UsernameKey), userInfo.Username)
 		c.Set(string(UserAppIDKey), userInfo.AppID)
 		c.Set(string(UserSessionIDKey), userInfo.SessionID)
 		c.Set(string(UserRoleKey), userInfo.Role)
+		// 设置is_admin到Context（self_validate模式下从Token验证响应获取，gateway模式下通过API获取）
+		c.Set(string(UserIsAdminKey), userInfo.IsAdmin)
 
 		// Also set in request context for use in handlers
 		ctx := context.WithValue(c.Request.Context(), UserIDKey, userInfo.UserID)
@@ -235,7 +281,17 @@ func AuthMiddleware(cfg *config.Config, level AuthLevel) gin.HandlerFunc {
 		ctx = context.WithValue(ctx, UserAppIDKey, userInfo.AppID)
 		ctx = context.WithValue(ctx, UserSessionIDKey, userInfo.SessionID)
 		ctx = context.WithValue(ctx, UserRoleKey, userInfo.Role)
+		ctx = context.WithValue(ctx, UserIsAdminKey, userInfo.IsAdmin)
 		c.Request = c.Request.WithContext(ctx)
+
+		// Admin级别需要验证管理员权限
+		if level == AuthLevelAdmin {
+			// 检查是否是NebulaAuth管理员
+			if !userInfo.IsAdmin {
+				utils.SendErrorResponse(c, http.StatusForbidden, ErrorCodeForbidden, "需要管理员权限")
+				return
+			}
+		}
 
 		c.Next()
 	}
@@ -276,6 +332,33 @@ func GetUserRole(c *gin.Context) (string, bool) {
 
 	roleStr, ok := role.(string)
 	return roleStr, ok
+}
+
+// GetIsAdmin retrieves is_admin flag from context (NebulaAuth管理员标识)
+func GetIsAdmin(c *gin.Context) (bool, bool) {
+	isAdmin, exists := c.Get(string(UserIsAdminKey))
+	if !exists {
+		return false, false
+	}
+
+	admin, ok := isAdmin.(bool)
+	return admin, ok
+}
+
+// GetToken retrieves the Bearer token from Authorization header
+func GetToken(c *gin.Context) (string, bool) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		return "", false
+	}
+
+	// Extract token from "Bearer <token>"
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return "", false
+	}
+
+	return parts[1], true
 }
 
 // RequireRole creates a middleware that requires a specific role

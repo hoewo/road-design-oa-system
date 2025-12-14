@@ -12,9 +12,9 @@ import {
   Col,
 } from 'antd'
 import { EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons'
-import { useMutation, useQueryClient, QueryClient } from '@tanstack/react-query'
+import { useMutation, QueryClient } from '@tanstack/react-query'
 import { projectService } from '@/services/project'
-import { projectMemberService } from '@/services/projectMember'
+import { useAuth } from '@/contexts/AuthContext'
 import type {
   Project,
   ProjectMember,
@@ -27,7 +27,7 @@ const { TextArea } = Input
 const { Option } = Select
 
 interface BasicInfoTabProps {
-  projectId: number
+  projectId: string
   project: Project | undefined
   projectMembers: ProjectMember[] | undefined
   users: User[]
@@ -44,26 +44,58 @@ export const BasicInfoTab = ({
   onRefetch,
 }: BasicInfoTabProps) => {
   const [form] = Form.useForm()
+  const [managerForm] = Form.useForm()
   const [isEditing, setIsEditing] = useState(false)
+  const [isEditingManagers, setIsEditingManagers] = useState(false)
+  const { user: currentUser } = useAuth()
 
-  // Get current managers for form initialization
+  // 调试日志：Form 实例创建
+  useEffect(() => {
+    console.log('=== Form 实例创建 ===')
+    console.log('form 实例:', form)
+    console.log('managerForm 实例:', managerForm)
+    console.log('managerForm 是否已连接:', managerForm && typeof managerForm.getFieldsValue === 'function')
+  }, [])
+
+  // Check if current user can manage project managers
+  // Only project managers (role: 'project_manager') or admins (role: 'admin') can manage project managers
+  const canManageManagers =
+    currentUser?.role === 'project_manager' || currentUser?.role === 'admin'
+
+  // 调试日志：检查用户权限和状态
+  useEffect(() => {
+    console.log('=== BasicInfoTab 调试信息 ===')
+    console.log('1. currentUser:', currentUser)
+    console.log('2. currentUser?.role:', currentUser?.role)
+    console.log('3. canManageManagers:', canManageManagers)
+    console.log('4. isEditing:', isEditing)
+    console.log('5. isEditingManagers:', isEditingManagers)
+    console.log('6. project:', project)
+    console.log('7. project?.business_manager_id:', project?.business_manager_id)
+    console.log('8. project?.production_manager_id:', project?.production_manager_id)
+    console.log('==========================')
+  }, [currentUser, canManageManagers, isEditing, isEditingManagers, project])
+
+  // Get current managers from project model (preferred) or project members (fallback)
   const getCurrentBusinessManager = () => {
-    const manager = projectMembers
-      ?.filter((m) => m.role === 'business_manager' && m.is_active)
-      .find(() => true)
-    return manager?.user_id || undefined
+    // Get from project model (BusinessManagerID)
+    if (project?.business_manager_id) {
+      return project.business_manager_id
+    }
+    return undefined
   }
 
   const getCurrentProductionManager = () => {
-    const manager = projectMembers
-      ?.filter((m) => m.role === 'manager' && m.is_active)
-      .find(() => true)
-    return manager?.user_id || undefined
+    // Get from project model (ProductionManagerID)
+    if (project?.production_manager_id) {
+      return project.production_manager_id
+    }
+    return undefined
   }
 
   // Set form values when project is loaded
   useEffect(() => {
-    if (project && !isEditing) {
+    if (project && !isEditing && !isEditingManagers) {
       form.setFieldsValue({
         project_name: project.project_name,
         project_number: project.project_number,
@@ -74,10 +106,10 @@ export const BasicInfoTab = ({
         production_manager_id: getCurrentProductionManager(),
       })
     }
-  }, [project, form, isEditing, projectMembers])
+  }, [project, form, isEditing, isEditingManagers, projectMembers])
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateProjectRequest }) =>
+    mutationFn: ({ id, data }: { id: string | number; data: UpdateProjectRequest }) =>
       projectService.updateProject(id, data),
     onError: (error: any) => {
       message.error(error?.message || '项目更新失败')
@@ -102,6 +134,7 @@ export const BasicInfoTab = ({
 
   const handleCancel = () => {
     setIsEditing(false)
+    setIsEditingManagers(false)
     // Reset form to original values
     if (project) {
       form.setFieldsValue({
@@ -116,49 +149,88 @@ export const BasicInfoTab = ({
     }
   }
 
-  // Mutation for updating project members
-  const updateManagerMutation = useMutation({
-    mutationFn: async ({
-      role,
-      userId,
-    }: {
-      role: 'business_manager' | 'manager'
-      userId?: number
-    }) => {
-      // Get current active members with this role
-      const currentMembers =
-        projectMembers?.filter((m) => m.role === role && m.is_active) || []
-
-      // Deactivate all current members with this role
-      for (const member of currentMembers) {
-        await projectMemberService.update(member.id, { is_active: false })
-      }
-
-      // If a new user is selected, create or activate the member
-      if (userId) {
-        // Check if member already exists (even if inactive)
-        const existingMember = projectMembers?.find(
-          (m) => m.user_id === userId && m.role === role
-        )
-
-        if (existingMember) {
-          // Reactivate existing member
-          await projectMemberService.update(existingMember.id, {
-            is_active: true,
-            join_date: new Date().toISOString().split('T')[0],
+  const handleEditManagers = () => {
+    console.log('=== handleEditManagers 调用 ===')
+    console.log('isEditingManagers (调用前):', isEditingManagers)
+    console.log('managerForm 实例:', managerForm)
+    
+    // 先设置编辑状态，让 Form 元素渲染
+    setIsEditingManagers(true)
+    
+    // 使用 setTimeout 确保 Form 已经渲染后再设置值
+    setTimeout(() => {
+      console.log('setTimeout 回调执行，准备设置表单值')
+      if (project) {
+        const businessManagerId = getCurrentBusinessManager()
+        const productionManagerId = getCurrentProductionManager()
+        console.log('准备设置的值:', { businessManagerId, productionManagerId })
+        
+        try {
+          managerForm.setFieldsValue({
+            business_manager_id: businessManagerId,
+            production_manager_id: productionManagerId,
           })
-        } else {
-          // Create new member
-          await projectMemberService.create(projectId, {
-            user_id: userId,
-            role,
-            join_date: new Date().toISOString().split('T')[0],
-            is_active: true,
-          })
+          console.log('表单值设置成功')
+        } catch (error) {
+          console.error('设置表单值失败:', error)
         }
       }
-    },
-  })
+    }, 0)
+  }
+
+  const handleCancelManagers = () => {
+    console.log('=== handleCancelManagers 调用 ===')
+    setIsEditingManagers(false)
+    // 取消时不需要重置值，因为 Form 会被卸载
+    console.log('已退出负责人编辑模式')
+  }
+
+  const handleSaveManagers = async () => {
+    console.log('=== handleSaveManagers 调用 ===')
+    console.log('isEditingManagers:', isEditingManagers)
+    console.log('managerForm 实例:', managerForm)
+    
+    try {
+      // Get form values (only manager fields are needed)
+      console.log('准备获取表单值...')
+      const values = managerForm.getFieldsValue(['business_manager_id', 'production_manager_id'])
+      console.log('获取到的表单值:', values)
+      const updateData: UpdateProjectRequest = {}
+
+      // Only update managers
+      if (values.business_manager_id !== undefined) {
+        updateData.business_manager_id = values.business_manager_id || null
+      }
+      if (values.production_manager_id !== undefined) {
+        updateData.production_manager_id = values.production_manager_id || null
+      }
+
+      console.log('准备更新的数据:', updateData)
+      console.log('projectId:', projectId)
+
+      // Update project (only managers)
+      await updateMutation.mutateAsync({ id: projectId, data: updateData })
+      console.log('更新成功')
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['projectMembers', projectId] })
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] })
+
+      message.success('负责人配置更新成功')
+      setIsEditingManagers(false)
+      onRefetch()
+    } catch (error) {
+      console.error('Validation or save failed:', error)
+      // Form validation errors are handled by Ant Design Form
+      // Only show error message for API errors
+      if (error && typeof error === 'object' && 'message' in error) {
+        message.error((error as any).message || '保存失败')
+      }
+    }
+  }
+
+  // Note: Manager updates are now handled directly through project update API
+  // No need for separate project member mutations for managers
 
   const handleSave = async () => {
     try {
@@ -172,20 +244,16 @@ export const BasicInfoTab = ({
         updateData.start_date = values.start_date.format('YYYY-MM-DD')
       }
 
-      // Update project basic info
-      await updateMutation.mutateAsync({ id: projectId, data: updateData })
+      // Update managers directly through project update
+      if (values.business_manager_id !== undefined) {
+        updateData.business_manager_id = values.business_manager_id || null
+      }
+      if (values.production_manager_id !== undefined) {
+        updateData.production_manager_id = values.production_manager_id || null
+      }
 
-      // Update managers
-      await Promise.all([
-        updateManagerMutation.mutateAsync({
-          role: 'business_manager',
-          userId: values.business_manager_id,
-        }),
-        updateManagerMutation.mutateAsync({
-          role: 'manager',
-          userId: values.production_manager_id,
-        }),
-      ])
+      // Update project (including managers)
+      await updateMutation.mutateAsync({ id: projectId, data: updateData })
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['projectMembers', projectId] })
@@ -264,6 +332,7 @@ export const BasicInfoTab = ({
           </Form.Item>
         </Card>
 
+        {canManageManagers && (
         <Card title="负责人配置">
           <Row gutter={16}>
             <Col span={12}>
@@ -310,6 +379,7 @@ export const BasicInfoTab = ({
             </Col>
           </Row>
         </Card>
+        )}
 
         <div style={{ marginTop: 24, textAlign: 'right' }}>
           <Space>
@@ -320,9 +390,7 @@ export const BasicInfoTab = ({
               type="primary"
               icon={<SaveOutlined />}
               onClick={handleSave}
-              loading={
-                updateMutation.isPending || updateManagerMutation.isPending
-              }
+              loading={updateMutation.isPending}
             >
               保存
             </Button>
@@ -438,8 +506,113 @@ export const BasicInfoTab = ({
         )}
       </Card>
 
-      <Card title="负责人配置">
-        <Row gutter={16}>
+      {(() => {
+        console.log('=== 负责人配置 Card 渲染检查 ===')
+        console.log('- canManageManagers:', canManageManagers)
+        console.log('- currentUser:', currentUser)
+        console.log('- currentUser?.role:', currentUser?.role)
+        console.log('- 是否渲染 Card:', canManageManagers)
+        console.log('- isEditingManagers:', isEditingManagers)
+        console.log('================================')
+        return null
+      })()}
+      {canManageManagers ? (
+        <Card
+          title="负责人配置"
+          extra={
+            !isEditingManagers && (
+              <Button
+                type="primary"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={handleEditManagers}
+              >
+                编辑
+              </Button>
+            )
+          }
+        >
+          {isEditingManagers ? (
+            <>
+              {(() => {
+                console.log('=== 渲染负责人编辑表单 ===')
+                console.log('managerForm 实例:', managerForm)
+                console.log('managerForm 方法:', {
+                  getFieldsValue: typeof managerForm.getFieldsValue,
+                  setFieldsValue: typeof managerForm.setFieldsValue,
+                })
+                return null
+              })()}
+              <Form 
+                form={managerForm} 
+                layout="vertical"
+                onValuesChange={(changedValues, allValues) => {
+                  console.log('负责人表单值变化:', { changedValues, allValues })
+                }}
+              >
+                <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="business_manager_id" label="经营负责人">
+                    <Select
+                      placeholder="请选择经营负责人"
+                      allowClear
+                      showSearch
+                      filterOption={(input, option) => {
+                        const label = option?.label || option?.children
+                        return String(label || '')
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }}
+                    >
+                      {users.map((user) => (
+                        <Option key={user.id} value={user.id}>
+                          {user.real_name || user.username}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="production_manager_id" label="生产负责人">
+                    <Select
+                      placeholder="请选择生产负责人"
+                      allowClear
+                      showSearch
+                      filterOption={(input, option) => {
+                        const label = option?.label || option?.children
+                        return String(label || '')
+                          .toLowerCase()
+                          .includes(input.toLowerCase())
+                      }}
+                    >
+                      {users.map((user) => (
+                        <Option key={user.id} value={user.id}>
+                          {user.real_name || user.username}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <div style={{ marginTop: 16, textAlign: 'right' }}>
+                <Space>
+                  <Button icon={<CloseOutlined />} onClick={handleCancelManagers}>
+                    取消
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<SaveOutlined />}
+                    onClick={handleSaveManagers}
+                    loading={updateMutation.isPending}
+                  >
+                    保存
+                  </Button>
+                </Space>
+              </div>
+              </Form>
+            </>
+          ) : (
+            <Row gutter={16}>
           <Col span={12}>
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
@@ -453,10 +626,10 @@ export const BasicInfoTab = ({
                   borderRadius: '4px',
                 }}
               >
-                {projectMembers
-                  ?.filter((m) => m.role === 'business_manager' && m.is_active)
-                  .map((m) => m.user?.real_name || m.user?.username)
-                  .join('、') || '-'}
+                    {project?.business_manager
+                      ? project.business_manager.real_name ||
+                        project.business_manager.username
+                      : '-'}
               </div>
             </div>
           </Col>
@@ -473,15 +646,24 @@ export const BasicInfoTab = ({
                   borderRadius: '4px',
                 }}
               >
-                {projectMembers
-                  ?.filter((m) => m.role === 'manager' && m.is_active)
-                  .map((m) => m.user?.real_name || m.user?.username)
-                  .join('、') || '-'}
+                    {project?.production_manager
+                      ? project.production_manager.real_name ||
+                        project.production_manager.username
+                      : '-'}
               </div>
             </div>
           </Col>
         </Row>
+          )}
       </Card>
+      ) : (
+        <div style={{ padding: '16px', background: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px', marginBottom: 24 }}>
+          <strong>调试信息：负责人配置 Card 未显示</strong>
+          <div>canManageManagers: {String(canManageManagers)}</div>
+          <div>currentUser: {currentUser ? JSON.stringify(currentUser, null, 2) : 'null'}</div>
+          <div>currentUser?.role: {currentUser?.role || 'undefined'}</div>
+        </div>
+      )}
     </>
   )
 }

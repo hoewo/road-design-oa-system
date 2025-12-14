@@ -4,7 +4,12 @@
 
 OAuth服务API文档，提供OAuth2授权功能
 
-**Base URL**: `localhost:4434/oauth-server/v1`
+**Base URL**: `http://<oauth-server-host>:<oauth-server-port>/oauth-server/v1`
+
+**说明**：
+- `<oauth-server-host>` 和 `<oauth-server-port>` 需要根据实际部署环境替换
+- Docker 环境示例：`http://nebula-oauth-server:4434/oauth-server/v1`
+- 开发环境示例：`http://localhost:4434/oauth-server/v1`
 
 ---
 
@@ -22,11 +27,11 @@ OAuth服务API文档，提供OAuth2授权功能
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
+| auth_level | string |  |
 | message | string |  |
 | service | string |  |
 | status | string |  |
 | timestamp | integer |  |
-| auth_level | string |  |
 
 
 ---

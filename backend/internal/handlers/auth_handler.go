@@ -8,7 +8,6 @@ import (
 
 	"project-oa-backend/internal/config"
 	"project-oa-backend/internal/middleware"
-	"project-oa-backend/internal/models"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -49,11 +48,12 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 // GetCurrentUser returns the current authenticated user
 // @Summary Get current user
-// @Description Get information about the current authenticated user (from Header)
+// @Description Get information about the current authenticated user (from database)
 // @Tags 认证
 // @Security BearerAuth
 // @Success 200 {object} models.User
 // @Failure 401 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
 // @Router /auth/me [get]
 func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 	// Get user ID from Header (set by auth middleware)
@@ -63,26 +63,22 @@ func (h *AuthHandler) GetCurrentUser(c *gin.Context) {
 		return
 	}
 
-	// Get username from Header (if available)
-	username := c.GetHeader("X-User-Username")
-	if username == "" {
-		// Fallback to service lookup if header not available
-		user, err := h.authService.GetCurrentUser(userID)
-		if err != nil {
-			utils.HandleError(c, http.StatusNotFound, "User not found", err)
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"data":    user,
-		})
+	// Get token from Authorization header for calling NebulaAuth API
+	token, tokenExists := middleware.GetToken(c)
+	if !tokenExists {
+		utils.HandleError(c, http.StatusUnauthorized, "Token not found", nil)
 		return
 	}
 
-	// Build user info from Header (gateway mode)
-	user := &models.User{
-		ID:       userID,
-		Username: username,
+	// Get user from database or fetch from NebulaAuth if not found
+	user, err := h.authService.GetCurrentUser(userID, token)
+	if err != nil {
+		h.logger.Error("Failed to get current user",
+			zap.String("user_id", userID),
+			zap.Error(err),
+		)
+		utils.HandleError(c, http.StatusNotFound, "User not found", err)
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{

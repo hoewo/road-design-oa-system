@@ -7,10 +7,13 @@ import { BusinessPersonnelList } from '@/components/business/BusinessPersonnelLi
 import { PaymentRecordList } from '@/components/business/PaymentRecordList'
 import { InvoiceRecordList } from '@/components/business/InvoiceRecordList'
 import { ClientSelectModal } from '@/components/business/ClientSelectModal'
-import type { ProjectFinancial, ProjectBusiness } from '@/types'
+import { ProjectContactForm } from '@/components/business/ProjectContactForm'
+import { useQuery } from '@tanstack/react-query'
+import { projectContactService } from '@/services/projectContact'
+import type { ProjectFinancial, ProjectBusiness, ProjectContact } from '@/types'
 
 interface BusinessInfoTabProps {
-  projectId: number
+  projectId: string
   financialData: ProjectFinancial | undefined
   businessData: ProjectBusiness | undefined
 }
@@ -22,6 +25,14 @@ export const BusinessInfoTab = ({
 }: BusinessInfoTabProps) => {
   const [clientSelectModalVisible, setClientSelectModalVisible] =
     useState(false)
+  const [contactFormVisible, setContactFormVisible] = useState(false)
+
+  // Load project contact
+  const { data: projectContact } = useQuery({
+    queryKey: ['projectContact', projectId],
+    queryFn: () => projectContactService.getProjectContact(projectId),
+    enabled: !!projectId,
+  })
 
   // Calculate statistics for business tab
   const totalReceivable = financialData?.total_receivable || 0
@@ -108,7 +119,10 @@ export const BusinessInfoTab = ({
                   borderRadius: '4px',
                 }}
               >
-                {businessData?.contact_name || '-'}
+                {projectContact?.contact_name ||
+                  businessData?.project_contact?.contact_name ||
+                  businessData?.contact_name ||
+                  '-'}
               </div>
             </div>
           </Col>
@@ -125,8 +139,22 @@ export const BusinessInfoTab = ({
                   borderRadius: '4px',
                 }}
               >
-                {businessData?.contact_phone || '-'}
+                {projectContact?.contact_phone ||
+                  businessData?.project_contact?.contact_phone ||
+                  businessData?.contact_phone ||
+                  '-'}
               </div>
+            </div>
+          </Col>
+          <Col span={8}>
+            <div style={{ marginBottom: 16 }}>
+              <Button
+                type="link"
+                size="small"
+                onClick={() => setContactFormVisible(true)}
+              >
+                管理联系人
+              </Button>
             </div>
           </Col>
         </Row>
@@ -184,6 +212,17 @@ export const BusinessInfoTab = ({
         onSuccess={() => {
           setClientSelectModalVisible(false)
         }}
+      />
+
+      {/* 项目联系人表单 */}
+      <ProjectContactForm
+        projectId={projectId}
+        open={contactFormVisible}
+        onCancel={() => setContactFormVisible(false)}
+        onSuccess={() => {
+          setContactFormVisible(false)
+        }}
+        initialData={projectContact || undefined}
       />
     </>
   )

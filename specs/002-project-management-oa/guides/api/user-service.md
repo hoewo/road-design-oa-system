@@ -4,7 +4,77 @@
 
 用户服务API文档，提供用户管理功能
 
-**Base URL**: `localhost:3001/user-service/v1`
+**Base URL**: `http://<api-gateway-host>:<api-gateway-port>/user-service/v1`（通过 API Gateway）
+
+**重要提示**：
+- ⚠️ **必须通过 API Gateway 访问**：`user-service` 使用 `gateway` 认证模式，期望从 Header 读取用户信息
+- ✅ **正确地址**：`http://<api-gateway-host>:<api-gateway-port>/user-service/v1`（通过网关）
+- ❌ **错误地址**：`http://<user-service-host>:<user-service-port>/user-service/v1`（直接访问，会导致认证失败）
+- `<api-gateway-host>` 和 `<api-gateway-port>` 需要根据实际部署环境替换
+- Docker 环境示例：`http://nebula-api-gateway:8080/user-service/v1`
+- 开发环境示例：`http://<api-gateway-host>:<api-gateway-port>/user-service/v1`
+- 生产环境根据实际部署配置调整
+
+---
+
+## GET /admin/users/phone/{phone}
+
+**根据手机号查找用户**
+
+根据手机号查找用户信息
+
+### 请求参数
+
+| 参数名 | 位置 | 类型 | 必填 | 说明 |
+|--------|------|------|------|------|
+| phone | path | string | 是 | 手机号 |
+
+### 响应
+
+#### 状态码: 200 - 获取成功
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| cached | boolean |  |
+| data | User |  |
+| success | boolean |  |
+
+**User 结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| email | string |  |
+| is_active | boolean |  |
+| phone | string |  |
+| updated_at | string |  |
+| avatar_url | string |  |
+| created_at | string |  |
+| id | string |  |
+| is_admin | boolean |  |
+| is_verified | boolean |  |
+| username | string |  |
+
+
+#### 状态码: 400 - 请求错误
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| error | string |  |
+| success | boolean |  |
+
+#### 状态码: 404 - 用户不存在
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| error | string |  |
+| success | boolean |  |
+
 
 ---
 
@@ -28,24 +98,24 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| cached | boolean |  |
 | data | User |  |
 | success | boolean |  |
+| cached | boolean |  |
 
 **User 结构:**
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| avatar_url | string |  |
-| created_at | string |  |
-| email | string |  |
-| id | string |  |
-| is_admin | boolean |  |
 | is_verified | boolean |  |
-| updated_at | string |  |
 | username | string |  |
+| email | string |  |
 | is_active | boolean |  |
 | phone | string |  |
+| updated_at | string |  |
+| avatar_url | string |  |
+| created_at | string |  |
+| id | string |  |
+| is_admin | boolean |  |
 
 
 #### 状态码: 400 - 请求错误
@@ -84,40 +154,14 @@
 
 ### 响应
 
-#### 状态码: 200 - 更新成功
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| success | boolean |  |
-| data | User |  |
-| message | string |  |
-
-**User 结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| avatar_url | string |  |
-| created_at | string |  |
-| email | string |  |
-| id | string |  |
-| is_admin | boolean |  |
-| is_verified | boolean |  |
-| updated_at | string |  |
-| username | string |  |
-| is_active | boolean |  |
-| phone | string |  |
-
-
 #### 状态码: 400 - 请求错误
 
 **响应数据结构:**
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| error | string |  |
 | success | boolean |  |
+| error | string |  |
 
 #### 状态码: 404 - 用户不存在
 
@@ -125,8 +169,8 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| error | string |  |
 | success | boolean |  |
+| error | string |  |
 
 #### 状态码: 409 - 邮箱或手机号已被使用
 
@@ -136,6 +180,32 @@
 |--------|------|------|
 | error | string |  |
 | success | boolean |  |
+
+#### 状态码: 200 - 更新成功
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| data | User |  |
+| message | string |  |
+| success | boolean |  |
+
+**User 结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| created_at | string |  |
+| id | string |  |
+| is_admin | boolean |  |
+| is_verified | boolean |  |
+| username | string |  |
+| email | string |  |
+| is_active | boolean |  |
+| phone | string |  |
+| updated_at | string |  |
+| avatar_url | string |  |
+
 
 
 ---
@@ -198,6 +268,24 @@
 
 ### 响应
 
+#### 状态码: 400 - 请求错误
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| error | string |  |
+| success | boolean |  |
+
+#### 状态码: 409 - 用户已存在
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| error | string |  |
+| success | boolean |  |
+
 #### 状态码: 201 - 创建成功
 
 **响应数据结构:**
@@ -212,35 +300,17 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| is_active | boolean |  |
-| is_verified | boolean |  |
-| username | string |  |
 | avatar_url | string |  |
 | created_at | string |  |
 | email | string |  |
+| is_active | boolean |  |
 | is_admin | boolean |  |
-| phone | string |  |
+| is_verified | boolean |  |
 | updated_at | string |  |
+| username | string |  |
 | id | string |  |
+| phone | string |  |
 
-
-#### 状态码: 400 - 请求错误
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| success | boolean |  |
-| error | string |  |
-
-#### 状态码: 409 - 用户已存在
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| error | string |  |
-| success | boolean |  |
 
 
 ---
@@ -265,23 +335,23 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| success | boolean |  |
 | data | User |  |
+| success | boolean |  |
 
 **User 结构:**
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
 | updated_at | string |  |
-| id | string |  |
-| is_active | boolean |  |
-| is_verified | boolean |  |
 | username | string |  |
+| id | string |  |
+| phone | string |  |
 | avatar_url | string |  |
 | created_at | string |  |
 | email | string |  |
+| is_active | boolean |  |
 | is_admin | boolean |  |
-| phone | string |  |
+| is_verified | boolean |  |
 
 
 #### 状态码: 404 - 用户不存在
@@ -323,16 +393,16 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| id | string |  |
-| is_active | boolean |  |
-| is_verified | boolean |  |
-| username | string |  |
 | avatar_url | string |  |
 | created_at | string |  |
 | email | string |  |
+| is_active | boolean |  |
 | is_admin | boolean |  |
-| phone | string |  |
+| is_verified | boolean |  |
 | updated_at | string |  |
+| username | string |  |
+| id | string |  |
+| phone | string |  |
 
 
 #### 状态码: 404 - 用户不存在
@@ -368,16 +438,16 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
+| avatar_url | string |  |
+| created_at | string |  |
 | id | string |  |
+| phone | string |  |
+| username | string |  |
+| email | string |  |
 | is_active | boolean |  |
 | is_admin | boolean |  |
 | is_verified | boolean |  |
-| phone | string |  |
 | updated_at | string |  |
-| username | string |  |
-| avatar_url | string |  |
-| created_at | string |  |
-| email | string |  |
 
 
 #### 状态码: 401 - 未认证
@@ -421,24 +491,24 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
+| data | User |  |
 | message | string |  |
 | success | boolean |  |
-| data | User |  |
 
 **User 结构:**
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
+| updated_at | string |  |
+| avatar_url | string |  |
+| created_at | string |  |
 | id | string |  |
+| phone | string |  |
+| username | string |  |
+| email | string |  |
 | is_active | boolean |  |
 | is_admin | boolean |  |
 | is_verified | boolean |  |
-| phone | string |  |
-| updated_at | string |  |
-| username | string |  |
-| avatar_url | string |  |
-| created_at | string |  |
-| email | string |  |
 
 
 #### 状态码: 400 - 请求错误
@@ -447,8 +517,8 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| success | boolean |  |
 | error | string |  |
+| success | boolean |  |
 
 #### 状态码: 401 - 未认证
 
@@ -456,8 +526,8 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| error | string |  |
 | success | boolean |  |
+| error | string |  |
 
 
 ---
@@ -476,10 +546,80 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| data | []User |  |
 | success | boolean |  |
 | cached | boolean |  |
 | count | integer |  |
+| data | []User |  |
+
+#### 状态码: 500 - 服务器错误
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| success | boolean |  |
+| error | string |  |
+
+
+---
+
+## POST /admin/users
+
+**创建用户**
+
+管理员创建新用户，支持邮箱或手机号注册，可设置验证状态
+
+### 请求参数
+
+| 参数名 | 位置 | 类型 | 必填 | 说明 |
+|--------|------|------|------|------|
+| request | body |  | 是 | 创建用户请求 |
+
+### 响应
+
+#### 状态码: 201 - 创建成功
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| data | User |  |
+| message | string |  |
+| success | boolean |  |
+
+**User 结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| phone | string |  |
+| updated_at | string |  |
+| avatar_url | string |  |
+| created_at | string |  |
+| id | string |  |
+| is_admin | boolean |  |
+| is_verified | boolean |  |
+| username | string |  |
+| email | string |  |
+| is_active | boolean |  |
+
+
+#### 状态码: 400 - 请求错误
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| success | boolean |  |
+| error | string |  |
+
+#### 状态码: 409 - 用户已存在
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| error | string |  |
+| success | boolean |  |
 
 #### 状态码: 500 - 服务器错误
 
@@ -507,67 +647,6 @@
 
 ### 响应
 
-#### 状态码: 200 - 获取成功
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| cached | boolean |  |
-| data | User |  |
-| success | boolean |  |
-
-**User 结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| avatar_url | string |  |
-| created_at | string |  |
-| email | string |  |
-| id | string |  |
-| is_admin | boolean |  |
-| is_verified | boolean |  |
-| updated_at | string |  |
-| username | string |  |
-| is_active | boolean |  |
-| phone | string |  |
-
-
-#### 状态码: 400 - 请求错误
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| error | string |  |
-| success | boolean |  |
-
-#### 状态码: 404 - 用户不存在
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| error | string |  |
-| success | boolean |  |
-
-
----
-
-## GET /admin/users/phone/{phone}
-
-**根据手机号查找用户**
-
-根据手机号查找用户信息
-
-### 请求参数
-
-| 参数名 | 位置 | 类型 | 必填 | 说明 |
-|--------|------|------|------|------|
-| phone | path | string | 是 | 手机号 |
-
-### 响应
-
 #### 状态码: 400 - 请求错误
 
 **响应数据结构:**
@@ -592,24 +671,24 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
+| cached | boolean |  |
 | data | User |  |
 | success | boolean |  |
-| cached | boolean |  |
 
 **User 结构:**
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| updated_at | string |  |
-| username | string |  |
-| is_active | boolean |  |
-| phone | string |  |
-| avatar_url | string |  |
-| created_at | string |  |
-| email | string |  |
-| id | string |  |
 | is_admin | boolean |  |
 | is_verified | boolean |  |
+| username | string |  |
+| email | string |  |
+| is_active | boolean |  |
+| phone | string |  |
+| updated_at | string |  |
+| avatar_url | string |  |
+| created_at | string |  |
+| id | string |  |
 
 
 

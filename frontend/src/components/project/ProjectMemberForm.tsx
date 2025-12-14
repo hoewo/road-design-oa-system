@@ -8,13 +8,12 @@ import { projectMemberService } from '@/services/projectMember'
 import type { MemberRole, User } from '@/types'
 
 const ROLE_OPTIONS: { label: string; value: MemberRole }[] = [
-  { label: '项目负责人', value: 'manager' },
   { label: '专业设计人', value: 'designer' },
   { label: '专业参与人', value: 'participant' },
   { label: '专业复核人', value: 'reviewer' },
-  { label: '审核/审定', value: 'auditor' },
-  { label: '经营负责人', value: 'business_manager' },
-  { label: '经营人员', value: 'business_personnel' },
+  { label: '审核人', value: 'auditor' },
+  { label: '审定人', value: 'approver' },
+  { label: '经营参与人', value: 'business_personnel' },
 ]
 
 interface ProjectMemberFormProps {

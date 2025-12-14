@@ -18,7 +18,7 @@ import type { Client, ProjectBusiness } from '@/types'
 const { Option } = Select
 
 interface ClientSelectModalProps {
-  projectId: number
+  projectId: string | number
   open: boolean
   onCancel: () => void
   onSuccess?: () => void

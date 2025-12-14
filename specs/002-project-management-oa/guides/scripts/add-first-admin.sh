@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # NebulaAuth 添加首个管理员脚本
-# 参考: guides/adding-first-admin.md
+# 参考: guides/01-system-setup.md
 # 功能: 交互式创建或设置首个管理员用户
 
 set -e
@@ -280,22 +280,22 @@ main() {
   echo
   print_info "下一步："
   echo "  1. 发送验证码到邮箱: $email"
-  echo "     curl -X POST http://localhost:8080/auth-server/v1/public/send_verification \\"
+  echo "     curl -X POST http://nebula-auth-server:port/auth-server/v1/public/send_verification \\"
   echo "       -H 'Content-Type: application/json' \\"
   echo "       -d '{\"code_type\":\"email\",\"target\":\"$email\",\"purpose\":\"login\"}'"
   echo
   echo "  2. 使用验证码登录获取 JWT Token"
-  echo "     curl -X POST http://localhost:8080/auth-server/v1/public/login \\"
+  echo "     curl -X POST http://nebula-auth-server:port/auth-server/v1/public/login \\"
   echo "       -H 'Content-Type: application/json' \\"
   echo "       -d '{\"email\":\"$email\",\"code\":\"验证码\",\"code_type\":\"email\",\"purpose\":\"login\"}'"
   echo
   echo "  3. 使用 Token 访问管理员 API 进行验证"
-  echo "     curl -X GET http://localhost:8080/user-service/v1/admin/users \\"
+  echo "     curl -X GET http://nebula-auth-server:port/user-service/v1/admin/users \\"
   echo "       -H 'Authorization: Bearer <admin_token>'"
   echo
   print_warning "提示：系统使用验证码登录，无需设置密码。每次登录都需要先发送验证码。"
   echo
-  print_info "更多信息请参考: guides/adding-first-admin.md"
+  print_info "更多信息请参考: guides/01-system-setup.md"
   echo
 }
 

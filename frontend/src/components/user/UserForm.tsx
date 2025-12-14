@@ -18,7 +18,7 @@ import type { CreateUserRequest, UpdateUserRequest } from '@/services/user'
 const { Option } = Select
 
 interface UserFormProps {
-  userId?: number
+  userId?: number | string
   onSuccess?: (user?: User) => void
   onCancel?: () => void
 }
@@ -76,8 +76,8 @@ const UserForm = ({ userId, onSuccess, onCancel }: UserFormProps) => {
 
   // Update user mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateUserRequest }) =>
-      userService.updateUser(id, data),
+    mutationFn: ({ id, data }: { id: number | string; data: UpdateUserRequest }) =>
+      userService.updateUser(String(id), data),
     onSuccess: (updatedUser) => {
       message.success('用户更新成功')
       queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -126,11 +126,11 @@ const UserForm = ({ userId, onSuccess, onCancel }: UserFormProps) => {
 
   const roleOptions: { value: UserRole; label: string }[] = [
     { value: 'admin', label: '系统管理员' },
-    { value: 'manager', label: '项目经理' },
-    { value: 'business', label: '经营人员' },
-    { value: 'designer', label: '设计人员' },
-    { value: 'reviewer', label: '复核人员' },
+    { value: 'project_manager', label: '项目管理员' },
+    { value: 'business_manager', label: '经营负责人' },
+    { value: 'production_manager', label: '生产负责人' },
     { value: 'finance', label: '财务人员' },
+    { value: 'member', label: '普通成员' },
   ]
 
   if (loadingUser) {

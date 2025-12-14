@@ -9,17 +9,18 @@ export interface User {
   phone?: string
   is_active: boolean
   has_account?: boolean // 是否有账号
+  is_admin?: boolean // NebulaAuth管理员标识
   created_at: string
   updated_at: string
 }
 
 export type UserRole =
   | 'admin'
-  | 'manager'
-  | 'business'
-  | 'designer'
-  | 'reviewer'
+  | 'project_manager'
+  | 'business_manager'
+  | 'production_manager'
   | 'finance'
+  | 'member'
 
 // Project types
 export interface Project {
@@ -31,7 +32,11 @@ export interface Project {
   drawing_unit?: string
   status: ProjectStatus
   client_id?: string // UUID string (optional)
-  manager_id?: string // UUID string (optional)
+  manager_id?: string // UUID string (optional) // 保留向后兼容
+  business_manager_id?: string // UUID string (optional) // 经营负责人ID
+  production_manager_id?: string // UUID string (optional) // 生产负责人ID
+  business_manager?: User // 经营负责人信息
+  production_manager?: User // 生产负责人信息
   management_fee_ratio?: number | null // 管理费比例（可选，null表示使用公司默认值）
   created_at: string
   updated_at: string
@@ -47,16 +52,26 @@ export type ProjectStatus =
 
 // Client types
 export interface Client {
-  id: number
+  id: string // UUID string
   client_name: string
-  contact_name?: string
-  contact_phone?: string
   email?: string
   address?: string
   tax_number?: string
   bank_account?: string
   bank_name?: string
   is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+// Project Contact types
+export interface ProjectContact {
+  id: string // UUID string
+  project_id: string // UUID string
+  client_id?: string // UUID string (optional)
+  client?: Client // 关联的甲方信息
+  contact_name: string
+  contact_phone?: string
   created_at: string
   updated_at: string
 }
@@ -93,6 +108,8 @@ export interface UpdateProjectRequest {
   drawing_unit?: string
   status?: ProjectStatus
   management_fee_ratio?: number | null // 管理费比例（可选，null表示使用公司默认值）
+  business_manager_id?: string | null // 经营负责人ID（可选，null表示清除）
+  production_manager_id?: string | null // 生产负责人ID（可选，null表示清除）
 }
 
 export interface CreateClientRequest {
@@ -232,13 +249,26 @@ export interface CreateExpertFeePaymentRequest {
 
 // Project Business types
 export interface ProjectBusiness {
-  project_id: number
-  client_id?: number
+  project_id: string // UUID string
+  client_id?: string // UUID string
   client?: Client
-  contact_name: string
-  contact_phone: string
-  business_manager_ids: number[]
-  business_personnel_ids: number[]
+  project_contact?: ProjectContact // 项目联系人信息
+  business_manager_ids: string[] // UUID strings
+  business_personnel_ids: string[] // UUID strings
+}
+
+// Bidding Info types
+export interface BiddingInfo {
+  id: string // UUID string
+  project_id: string // UUID string
+  tender_file_id?: string // UUID string
+  tender_file?: File
+  bid_file_id?: string // UUID string
+  bid_file?: File
+  award_notice_file_id?: string // UUID string
+  award_notice_file?: File
+  created_at: string
+  updated_at: string
 }
 
 export interface UpdateProjectBusinessRequest {
@@ -251,25 +281,25 @@ export interface UpdateProjectBusinessRequest {
 
 // Project Member types
 export type MemberRole =
-  | 'manager'
   | 'designer'
   | 'participant'
   | 'reviewer'
   | 'auditor'
-  | 'business_manager'
+  | 'approver'
+  | 'business_personnel'
   | 'business_personnel'
 
 export interface ProjectMemberUserSummary {
-  id: number
+  id: string // UUID string
   username: string
   real_name: string
   role: string
 }
 
 export interface ProjectMember {
-  id: number
-  project_id: number
-  user_id: number
+  id: string // UUID string
+  project_id: string // UUID string
+  user_id: string // UUID string
   role: MemberRole
   join_date: string
   leave_date?: string
@@ -280,7 +310,7 @@ export interface ProjectMember {
 }
 
 export interface CreateProjectMemberRequest {
-  user_id: number
+  user_id: string // UUID string
   role: MemberRole
   join_date: string
   leave_date?: string
@@ -304,7 +334,7 @@ export type FileCategory =
   | 'other'
 
 export interface File {
-  id: number
+  id: string // UUID string
   file_name: string
   original_name: string
   file_path: string
@@ -313,8 +343,8 @@ export interface File {
   mime_type: string
   category: FileCategory
   description?: string
-  project_id: number
-  uploader_id: number
+  project_id: string // UUID string
+  uploader_id: string // UUID string
   uploader?: User
   created_at: string
   updated_at: string

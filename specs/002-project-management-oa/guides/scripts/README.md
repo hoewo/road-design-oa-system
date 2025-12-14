@@ -33,7 +33,7 @@ export POSTGRES_PASSWORD=your_password
 - ✅ 自动验证设置结果
 - ✅ 友好的彩色输出和错误提示
 
-**更多信息**: 参考 [添加首个管理员指南](../adding-first-admin.md)
+**更多信息**: 参考 [系统部署与初始化](../01-system-setup.md#步骤三创建首个管理员)
 
 #### `init-admin.sql` - SQL 初始化脚本
 
@@ -51,7 +51,7 @@ docker-compose exec -T postgres psql -U nebula_admin -d nebula_auth < guides/scr
 psql -U nebula_admin -d nebula_auth -f guides/scripts/init-admin.sql
 ```
 
-**更多信息**: 参考 [添加首个管理员指南](../adding-first-admin.md)
+**更多信息**: 参考 [系统部署与初始化](../01-system-setup.md#步骤三创建首个管理员)
 
 ### 🚀 服务注册脚本
 
@@ -71,8 +71,8 @@ psql -U nebula_admin -d nebula_auth -f guides/scripts/init-admin.sql
 # 使用手机号登录
 ./guides/scripts/register-service.sh \
   -n my-service \
-  -h 192.168.1.100 \
-  -p 8080 \
+  -h business-server \
+  -p port \
   -P 13800138000 \
   -t sms
 
@@ -95,13 +95,13 @@ export SERVICE_PORT=3000
 **参数说明**:
 - `-n, --service-name`: 业务服务名称（必填）
 - `-h, --service-host`: 业务服务主机地址（默认: localhost）
-- `-p, --service-port`: 业务服务端口（默认: 8080）
+- `-p, --service-port`: 业务服务端口（默认: port）
 - `-u, --service-url`: 业务服务完整URL（可选，会自动构建）
 - `-e, --admin-email`: 管理员邮箱（用于登录）
 - `-P, --admin-phone`: 管理员手机号（用于登录，与邮箱二选一）
 - `-c, --code`: 验证码（如果不提供，会提示输入）
 - `-t, --code-type`: 验证码类型: email 或 sms（默认: email）
-- `-g, --gateway-url`: API网关地址（默认: http://localhost:8080）
+- `-g, --gateway-url`: API网关地址（默认: http://nebula-auth-server:port）
 - `-a, --auth-url`: 认证服务地址
 - `-r, --registry-url`: 服务注册中心地址
 - `--token`: 直接使用管理员Token（跳过登录）
@@ -117,7 +117,7 @@ export SERVICE_PORT=3000
 
 **完整帮助**: 运行 `./guides/scripts/register-service.sh --help` 查看详细说明
 
-**更多信息**: 参考 [AI 快速参考 - 服务注册](../ai-quick-reference.md#2-注册服务到-nebulaauth)
+**更多信息**: 参考 [服务注册与集成](../05-service-registration.md#方法一使用注册脚本推荐)
 
 ## 🎯 使用场景
 
@@ -132,8 +132,8 @@ export SERVICE_PORT=3000
    ```bash
    ./guides/scripts/register-service.sh \
      -n your-service \
-     -h your-host \
-     -p 8080 \
+     -h business-server \
+     -p port \
      -e admin@example.com
    ```
 
@@ -162,10 +162,10 @@ export API_GATEWAY_URL=$GATEWAY_URL
 
 ## 🔗 相关文档
 
-- [添加首个管理员指南](../adding-first-admin.md)
-- [AI 快速参考](../ai-quick-reference.md)
-- [开发者详细指南](../developer-guide.md)
-- [服务注册 API 文档](../api/service-registry.md)
+- [系统部署与初始化](../01-system-setup.md) - 系统初始化指南
+- [服务注册与集成](../05-service-registration.md) - 服务注册指南
+- [脚本使用指南](../tools/scripts-guide.md) - 所有脚本的详细说明
+- [服务注册 API 文档](../api/service-registry.md) - API 文档
 
 ---
 

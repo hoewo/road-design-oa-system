@@ -43,6 +43,8 @@ type UpdateProjectRequest struct {
 	DrawingUnit        *string               `json:"drawing_unit"`
 	Status             *models.ProjectStatus `json:"status"`
 	ManagementFeeRatio *float64              `json:"management_fee_ratio"` // 管理费比例（可选，nil表示使用公司默认值）
+	BusinessManagerID  *string               `json:"business_manager_id"` // 经营负责人ID
+	ProductionManagerID *string              `json:"production_manager_id"` // 生产负责人ID
 }
 
 // ListProjectsParams represents parameters for listing projects
@@ -117,7 +119,7 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 	}
 
 	// Load associations
-	s.db.Preload("Client").Preload("Manager").Preload("ProjectContact").First(project, "id = ?", project.ID)
+	s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(project, "id = ?", project.ID)
 
 	return project, nil
 }
@@ -125,7 +127,7 @@ func (s *ProjectService) CreateProject(req *CreateProjectRequest) (*models.Proje
 // GetProject retrieves a project by ID (UUID string)
 func (s *ProjectService) GetProject(id string) (*models.Project, error) {
 	var project models.Project
-	if err := s.db.Preload("Client").Preload("Manager").Preload("ProjectContact").First(&project, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(&project, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -162,6 +164,8 @@ func (s *ProjectService) ListProjects(params *ListProjectsParams) ([]models.Proj
 	if err := query.
 		Preload("Client").
 		Preload("Manager").
+		Preload("BusinessManager").
+		Preload("ProductionManager").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(params.Size).
@@ -170,6 +174,25 @@ func (s *ProjectService) ListProjects(params *ListProjectsParams) ([]models.Proj
 	}
 
 	return projects, total, nil
+}
+
+// CanManageProjectManagers checks if a user can manage project managers (business manager and production manager)
+// Only project managers (RoleProjectManager) or admins (RoleAdmin) can manage project managers
+func (s *ProjectService) CanManageProjectManagers(userID string) (bool, error) {
+	var user models.User
+	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, errors.New("user not found")
+		}
+		return false, err
+	}
+
+	// Only project managers or admins can manage project managers
+	if user.Role == models.RoleProjectManager || user.Role == models.RoleAdmin {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // UpdateProject updates an existing project (UUID string)
@@ -217,12 +240,39 @@ func (s *ProjectService) UpdateProject(id string, req *UpdateProjectRequest) (*m
 		updates["management_fee_ratio"] = nil
 	}
 
+	// Handle business manager ID and production manager ID
+	// Note: Permission check should be done in handler layer, not service layer
+	// Service layer only validates data integrity
+	if req.BusinessManagerID != nil {
+		// Validate manager exists
+		var manager models.User
+		if err := s.db.First(&manager, "id = ?", *req.BusinessManagerID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("business manager not found")
+			}
+			return nil, err
+		}
+		updates["business_manager_id"] = *req.BusinessManagerID
+	}
+
+	if req.ProductionManagerID != nil {
+		// Validate manager exists
+		var manager models.User
+		if err := s.db.First(&manager, "id = ?", *req.ProductionManagerID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, errors.New("production manager not found")
+			}
+			return nil, err
+		}
+		updates["production_manager_id"] = *req.ProductionManagerID
+	}
+
 	if err := s.db.Model(&project).Updates(updates).Error; err != nil {
 		return nil, err
 	}
 
 	// Reload with associations
-	s.db.Preload("Client").Preload("Manager").Preload("ProjectContact").First(&project, "id = ?", id)
+	s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(&project, "id = ?", id)
 
 	return &project, nil
 }

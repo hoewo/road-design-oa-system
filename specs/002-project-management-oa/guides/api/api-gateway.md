@@ -4,7 +4,7 @@
 
 API网关文档，提供统一入口和路由转发功能
 
-**Base URL**: `localhost:8080/`
+**Base URL**: `nebula-auth-server:port/`
 
 ---
 

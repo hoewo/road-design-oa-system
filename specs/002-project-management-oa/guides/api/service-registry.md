@@ -4,7 +4,12 @@
 
 服务注册中心API文档，提供服务注册与发现功能
 
-**Base URL**: `localhost:4435/service-registry/v1`
+**Base URL**: `http://<service-registry-host>:<service-registry-port>/service-registry/v1`
+
+**说明**：
+- `<service-registry-host>` 和 `<service-registry-port>` 需要根据实际部署环境替换
+- Docker 环境示例：`http://nebula-service-registry:4435/service-registry/v1`
+- 开发环境示例：`http://localhost:4435/service-registry/v1`
 
 ---
 
@@ -63,15 +68,15 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| id | integer |  |
-| port | integer |  |
-| updated_at | string |  |
-| server_name | string |  |
-| status | string | active, inactive, deleted |
-| url | string |  |
-| user_id | string |  |
 | created_at | string |  |
 | host | string |  |
+| id | integer |  |
+| port | integer |  |
+| server_name | string |  |
+| url | string |  |
+| status | string | active, inactive, deleted |
+| updated_at | string |  |
+| user_id | string |  |
 
 
 #### 状态码: 400 - 请求错误
@@ -111,14 +116,14 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| status | string | active, inactive, deleted |
 | url | string |  |
+| status | string | active, inactive, deleted |
+| updated_at | string |  |
 | user_id | string |  |
 | created_at | string |  |
 | host | string |  |
 | id | integer |  |
 | port | integer |  |
-| updated_at | string |  |
 | server_name | string |  |
 
 
@@ -154,22 +159,22 @@
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| service | ServiceRegistry |  |
 | message | string |  |
+| service | ServiceRegistry |  |
 
 **ServiceRegistry 结构:**
 
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
-| server_name | string |  |
-| status | string | active, inactive, deleted |
 | url | string |  |
+| status | string | active, inactive, deleted |
+| updated_at | string |  |
 | user_id | string |  |
 | created_at | string |  |
 | host | string |  |
 | id | integer |  |
 | port | integer |  |
-| updated_at | string |  |
+| server_name | string |  |
 
 
 #### 状态码: 400 - 请求错误
@@ -197,14 +202,6 @@
 
 ### 响应
 
-#### 状态码: 400 - 请求错误
-
-**响应数据结构:**
-
-| 字段名 | 类型 | 说明 |
-|--------|------|------|
-| error | string |  |
-
 #### 状态码: 200 - 删除成功
 
 **响应数据结构:**
@@ -212,6 +209,14 @@
 | 字段名 | 类型 | 说明 |
 |--------|------|------|
 | message | string |  |
+
+#### 状态码: 400 - 请求错误
+
+**响应数据结构:**
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| error | string |  |
 
 
 ---
