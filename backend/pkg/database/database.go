@@ -57,6 +57,11 @@ func Migrate() error {
 		return fmt.Errorf("failed to migrate user roles: %w", err)
 	}
 
+	// 删除旧的role列（如果存在）
+	if err := dropOldRoleColumn(); err != nil {
+		return fmt.Errorf("failed to drop old role column: %w", err)
+	}
+
 	// 使用事务进行迁移，但不回滚已存在的表
 	// GORM AutoMigrate 是幂等的，多次执行是安全的
 	err := DB.AutoMigrate(
@@ -174,6 +179,48 @@ func migrateUserRoles() error {
 	}
 
 	log.Println("User roles migration completed successfully")
+	return nil
+}
+
+// dropOldRoleColumn 删除旧的role列（如果存在）
+func dropOldRoleColumn() error {
+	// 检查role列是否存在
+	var roleExists bool
+	err := DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'users' 
+			AND column_name = 'role'
+		)
+	`).Scan(&roleExists).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check role column: %w", err)
+	}
+
+	// 如果role列不存在，跳过
+	if !roleExists {
+		log.Println("Old role column does not exist, skipping drop")
+		return nil
+	}
+
+	// 确保所有用户都有roles值（防止删除role列后出现问题）
+	if err := DB.Exec(`
+		UPDATE users 
+		SET roles = ARRAY['member']::text[]
+		WHERE roles IS NULL
+	`).Error; err != nil {
+		return fmt.Errorf("failed to ensure all users have roles: %w", err)
+	}
+
+	// 删除旧的role列
+	if err := DB.Exec(`ALTER TABLE users DROP COLUMN IF EXISTS role`).Error; err != nil {
+		return fmt.Errorf("failed to drop old role column: %w", err)
+	}
+
+	log.Println("Old role column dropped successfully")
 	return nil
 }
 
