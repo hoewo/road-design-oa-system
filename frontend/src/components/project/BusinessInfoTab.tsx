@@ -8,6 +8,7 @@ import { PaymentRecordList } from '@/components/business/PaymentRecordList'
 import { InvoiceRecordList } from '@/components/business/InvoiceRecordList'
 import { ClientSelectModal } from '@/components/business/ClientSelectModal'
 import { useQuery } from '@tanstack/react-query'
+import { permissionService } from '@/services/permission'
 import { projectContactService } from '@/services/projectContact'
 import type { ProjectFinancial, ProjectBusiness, ProjectContact } from '@/types'
 
@@ -24,6 +25,13 @@ export const BusinessInfoTab = ({
 }: BusinessInfoTabProps) => {
   const [clientSelectModalVisible, setClientSelectModalVisible] =
     useState(false)
+
+  // 检查权限：是否可以管理项目经营信息
+  const { data: canManageBusinessInfo } = useQuery({
+    queryKey: ['canManageBusinessInfo', projectId],
+    queryFn: () => permissionService.canManageBusinessInfo(projectId),
+    enabled: !!projectId,
+  })
 
   // Load project contact
   const { data: projectContact } = useQuery({
@@ -78,13 +86,15 @@ export const BusinessInfoTab = ({
       <Card
         title="甲方信息"
         extra={
-          <Button
-            type="link"
-            size="small"
-            onClick={() => setClientSelectModalVisible(true)}
-          >
-            选择/创建甲方
-          </Button>
+          canManageBusinessInfo === true && (
+            <Button
+              type="link"
+              size="small"
+              onClick={() => setClientSelectModalVisible(true)}
+            >
+              选择/创建甲方
+            </Button>
+          )
         }
         style={{ marginBottom: 24 }}
       >

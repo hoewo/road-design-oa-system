@@ -85,19 +85,10 @@ func (h *BiddingHandler) CreateOrUpdateBiddingInfo(c *gin.Context) {
 		return
 	}
 
-	// Permission check: Only BusinessManager or Admin can manage bidding info
+	// 获取用户ID
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		utils.HandleError(c, http.StatusUnauthorized, "Unauthorized", nil)
-		return
-	}
-	canManage, err := h.biddingService.CanManageBiddingInfo(userID)
-	if err != nil {
-		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permissions", err)
-		return
-	}
-	if !canManage {
-		utils.HandleError(c, http.StatusForbidden, "Only business managers or administrators can manage bidding information", nil)
 		return
 	}
 
@@ -107,7 +98,8 @@ func (h *BiddingHandler) CreateOrUpdateBiddingInfo(c *gin.Context) {
 		return
 	}
 
-	biddingInfo, err := h.biddingService.CreateOrUpdateBiddingInfo(projectID, &req)
+	// 权限检查在Service层进行
+	biddingInfo, err := h.biddingService.CreateOrUpdateBiddingInfo(projectID, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create or update bidding info",
 			zap.Error(err),
@@ -212,23 +204,15 @@ func (h *BiddingHandler) DeleteBiddingInfo(c *gin.Context) {
 		return
 	}
 
-	// Permission check: Only BusinessManager or Admin can manage bidding info
+	// 获取用户ID
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
 		utils.HandleError(c, http.StatusUnauthorized, "Unauthorized", nil)
 		return
 	}
-	canManage, err := h.biddingService.CanManageBiddingInfo(userID)
-	if err != nil {
-		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permissions", err)
-		return
-	}
-	if !canManage {
-		utils.HandleError(c, http.StatusForbidden, "Only business managers or administrators can manage bidding information", nil)
-		return
-	}
 
-	if err := h.biddingService.DeleteBiddingInfo(projectID); err != nil {
+	// 权限检查在Service层进行
+	if err := h.biddingService.DeleteBiddingInfo(projectID, userID); err != nil {
 		h.logger.Error("Failed to delete bidding info",
 			zap.Error(err),
 			zap.String("project_id", projectID),

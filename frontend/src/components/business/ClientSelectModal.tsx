@@ -47,11 +47,11 @@ export const ClientSelectModal = ({
     enabled: !!projectId && open,
   })
 
-  // 获取项目经营信息
+  // 获取项目经营信息 - 所有用户都可以查看
   const { data: businessData } = useQuery({
     queryKey: ['projectBusiness', projectId],
     queryFn: () => businessService.getProjectBusiness(projectId),
-    enabled: !!projectId && open && canManage === true,
+    enabled: !!projectId && open,
   })
 
   // 加载甲方列表
@@ -129,39 +129,62 @@ export const ClientSelectModal = ({
     setCreateClientModalVisible(true)
   }
 
-  // 如果正在检查权限，显示加载状态
-  if (checkingPermission) {
-    return (
-      <Modal
-        title="选择/创建甲方"
-        open={open}
-        onCancel={onCancel}
-        footer={null}
-        width={600}
-        destroyOnHidden
-      >
-        <div style={{ textAlign: 'center', padding: '20px' }}>检查权限中...</div>
-      </Modal>
-    )
-  }
-
-  // 如果没有权限，显示提示信息
+  // 如果没有权限，显示只读信息
   if (canManage === false) {
     return (
       <Modal
-        title="选择/创建甲方"
+        title="甲方信息"
         open={open}
         onCancel={onCancel}
         footer={null}
         width={600}
         destroyOnHidden
       >
-        <Alert
-          message="无权限"
-          description="您没有权限管理此项目的经营信息。只有项目管理员、系统管理员或该项目的经营负责人可以管理甲方信息。"
-          type="warning"
-          showIcon
-        />
+        <div style={{ padding: '20px 0' }}>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>甲方名称</div>
+            <div
+              style={{
+                padding: '10px',
+                border: '2px solid #e0e0e0',
+                background: '#f9f9f9',
+                borderRadius: '4px',
+              }}
+            >
+              {businessData?.client?.client_name || '-'}
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>联系人姓名</div>
+            <div
+              style={{
+                padding: '10px',
+                border: '2px solid #e0e0e0',
+                background: '#f9f9f9',
+                borderRadius: '4px',
+              }}
+            >
+              {businessData?.project_contact?.contact_name ||
+                businessData?.contact_name ||
+                '-'}
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: 8 }}>联系人电话</div>
+            <div
+              style={{
+                padding: '10px',
+                border: '2px solid #e0e0e0',
+                background: '#f9f9f9',
+                borderRadius: '4px',
+              }}
+            >
+              {businessData?.project_contact?.contact_phone ||
+                businessData?.contact_phone ||
+                '-'}
+            </div>
+          </div>
+        </div>
       </Modal>
     )
   }

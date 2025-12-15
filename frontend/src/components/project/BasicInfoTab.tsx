@@ -59,6 +59,8 @@ export const BasicInfoTab = ({
   // Only project managers (role: 'project_manager') or admins (role: 'admin') can manage project managers
   // 使用权限服务工具函数进行权限检查
   const canManageManagers = permissionService.utils.canManageProjectManagers(currentUser)
+  // 检查是否可以编辑项目基本信息（项目管理员或系统管理员）
+  const canEditProject = permissionService.utils.canManageProjectManagers(currentUser)
 
   // 获取可用于配置经营负责人的用户列表（根据权限过滤）
   const { data: businessManagerOptions = [] } = useQuery({
@@ -418,9 +420,11 @@ export const BasicInfoTab = ({
       <Card
         title="基本信息"
         extra={
-          <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
-            编辑
-          </Button>
+          canEditProject && (
+            <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
+              编辑
+            </Button>
+          )
         }
         style={{ marginBottom: 24 }}
       >

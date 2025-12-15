@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"gorm.io/gorm"
@@ -12,13 +13,15 @@ import (
 
 // BiddingService handles bidding information-related operations
 type BiddingService struct {
-	db *gorm.DB
+	db                *gorm.DB
+	permissionService *PermissionService
 }
 
 // NewBiddingService creates a new bidding service
 func NewBiddingService() *BiddingService {
 	return &BiddingService{
-		db: database.DB,
+		db:                database.DB,
+		permissionService: NewPermissionService(),
 	}
 }
 
@@ -47,7 +50,17 @@ func (s *BiddingService) GetBiddingInfo(projectID string) (*models.BiddingInfo, 
 }
 
 // CreateOrUpdateBiddingInfo creates or updates bidding info for a project
-func (s *BiddingService) CreateOrUpdateBiddingInfo(projectID string, req *CreateOrUpdateBiddingInfoRequest) (*models.BiddingInfo, error) {
+// userID: 操作用户ID，用于权限检查
+func (s *BiddingService) CreateOrUpdateBiddingInfo(projectID string, userID string, req *CreateOrUpdateBiddingInfoRequest) (*models.BiddingInfo, error) {
+	// 权限检查：经营负责人、项目管理员、系统管理员可以管理项目经营信息
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canManage {
+		return nil, errors.New("权限不足：无法管理项目经营信息")
+	}
+
 	// Verify project exists
 	var project models.Project
 	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
@@ -102,7 +115,16 @@ func (s *BiddingService) CreateOrUpdateBiddingInfo(projectID string, req *Create
 }
 
 // CreateExpertFeePayment creates an expert fee payment record using FinancialRecord
+// createdByID: 创建用户ID，用于权限检查
 func (s *BiddingService) CreateExpertFeePayment(projectID string, createdByID string, expertName string, amount float64, occurredAt time.Time, paymentMethod string, description string) (*models.FinancialRecord, error) {
+	// 权限检查：经营负责人、项目管理员、系统管理员可以管理项目经营信息
+	canManage, err := s.permissionService.CanManageBusinessInfo(createdByID, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canManage {
+		return nil, errors.New("权限不足：无法管理项目经营信息")
+	}
 	// Use FinancialService to create the expert fee payment
 	financialService := NewFinancialService()
 	req := &CreateFinancialRecordRequest{
@@ -119,7 +141,17 @@ func (s *BiddingService) CreateExpertFeePayment(projectID string, createdByID st
 }
 
 // DeleteBiddingInfo deletes bidding info for a project
-func (s *BiddingService) DeleteBiddingInfo(projectID string) error {
+// userID: 操作用户ID，用于权限检查
+func (s *BiddingService) DeleteBiddingInfo(projectID string, userID string) error {
+	// 权限检查：经营负责人、项目管理员、系统管理员可以管理项目经营信息
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, projectID)
+	if err != nil {
+		return fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canManage {
+		return errors.New("权限不足：无法管理项目经营信息")
+	}
+
 	// Verify project exists
 	var project models.Project
 	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
@@ -137,22 +169,4 @@ func (s *BiddingService) DeleteBiddingInfo(projectID string) error {
 	return nil
 }
 
-// CanManageBiddingInfo checks if the given user has permission to manage bidding info.
-// Only BusinessManager or Admin roles can manage bidding info.
-func (s *BiddingService) CanManageBiddingInfo(userID string) (bool, error) {
-	var user models.User
-	if err := s.db.First(&user, "id = ?", userID).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, errors.New("user not found")
-		}
-		return false, err
-	}
-	// Check if user has business manager or admin role
-	for _, role := range user.Roles {
-		if role == string(models.RoleBusinessManager) || role == string(models.RoleAdmin) {
-			return true, nil
-		}
-	}
-	return false, nil
-}
 

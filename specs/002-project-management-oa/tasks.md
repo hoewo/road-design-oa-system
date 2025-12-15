@@ -2,9 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
-**Last Updated**: 2025-01-30  
+**Last Updated**: 2025-01-31  
 **Status**: In Progress  
-**Total Tasks**: 487
+**Total Tasks**: 490
 
 ## Summary
 
@@ -608,6 +608,9 @@
 - [X] T125 [US5] 更新ProjectMemberHandler支持经营参与人管理 backend/internal/handlers/project_member_handler.go
 - [X] T126 [US5] 更新前端项目成员管理组件 frontend/src/components/business/BusinessPersonnelList.tsx
 - [X] T127 [US5] 实现经营参与人选择组件 frontend/src/components/business/BusinessPersonnelList.tsx
+- [X] T487 [US5] 更新ProjectMemberService使用权限服务：在配置经营参与人时调用权限服务检查权限（CanManageProjectMembers，memberRole为business_personnel）backend/internal/services/project_member_service.go
+- [X] T488 [US5] 更新ProjectMemberHandler使用权限服务：在经营参与人管理Handler中调用权限服务 backend/internal/handlers/project_member_handler.go
+- [X] T489 [US5] 更新前端经营参与人管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、删除按钮等），所有用户可查看内容 frontend/src/components/business/BusinessPersonnelList.tsx
 
 ---
 
@@ -633,9 +636,9 @@
 - [X] T135 [US6] 实现招投标文件上传UI frontend/src/components/business/BiddingFileList.tsx
 - [X] T136 [US6] 实现专家费支付表单 frontend/src/components/business/ExpertFeeForm.tsx
 - [X] T137 [US6] 更新前端项目经营信息页面集成招投标管理 frontend/src/components/project/BusinessInfoTab.tsx
-- [ ] T414 [US6] 更新BiddingService使用权限服务：在管理招投标信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/bidding_service.go
-- [ ] T415 [US6] 更新BiddingHandler使用权限服务：在招投标管理Handler中调用权限服务 backend/internal/handlers/bidding_handler.go
-- [ ] T416 [US6] 更新前端招投标管理组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/BiddingFileList.tsx
+- [X] T414 [US6] 更新BiddingService使用权限服务：在管理招投标信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/bidding_service.go
+- [X] T415 [US6] 更新BiddingHandler使用权限服务：在招投标管理Handler中调用权限服务 backend/internal/handlers/bidding_handler.go
+- [X] T416 [US6] 更新前端招投标管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/business/BiddingFileList.tsx
 
 ---
 
@@ -718,7 +721,7 @@
 - [ ] T146 [US7] 更新前端项目经营信息页面集成合同管理 frontend/src/pages/ProjectBusiness.tsx
 - [ ] T417 [US7] 更新ContractService使用权限服务：在管理合同信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_service.go
 - [ ] T418 [US7] 更新ContractHandler使用权限服务：在合同管理Handler中调用权限服务 backend/internal/handlers/contract_handler.go
-- [ ] T419 [US7] 更新前端合同管理组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ContractForm.tsx
+- [ ] T419 [US7] 更新前端合同管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ContractForm.tsx
 
 ---
 
@@ -745,7 +748,7 @@
 - [ ] T155 [US8] 更新前端合同详情页面集成补充协议管理 frontend/src/components/business/ContractDetail.tsx
 - [ ] T420 [US8] 更新ContractAmendmentService使用权限服务：在管理补充协议时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_amendment_service.go
 - [ ] T421 [US8] 更新ContractAmendmentHandler使用权限服务：在补充协议管理Handler中调用权限服务 backend/internal/handlers/contract_amendment_handler.go
-- [ ] T422 [US8] 更新前端补充协议管理组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ContractAmendmentForm.tsx
+- [ ] T422 [US8] 更新前端补充协议管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ContractAmendmentForm.tsx
 
 ---
 
@@ -770,7 +773,7 @@
 - [ ] T162 [US9] 更新前端项目经营信息页面集成支付记录管理 frontend/src/pages/ProjectBusiness.tsx
 - [ ] T423 [US9] 更新FinancialService使用权限服务：在记录甲方支付时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
 - [ ] T424 [US9] 更新FinancialHandler使用权限服务：在甲方支付记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T425 [US9] 更新前端甲方支付表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ClientPaymentForm.tsx
+- [ ] T425 [US9] 更新前端甲方支付表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ClientPaymentForm.tsx
 
 ---
 
@@ -796,7 +799,7 @@
 - [ ] T170 [US10] 更新前端项目经营信息页面集成开票记录管理 frontend/src/pages/ProjectBusiness.tsx
 - [ ] T426 [US10] 更新FinancialService使用权限服务：在记录我方开票时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
 - [ ] T427 [US10] 更新FinancialHandler使用权限服务：在我方开票记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T428 [US10] 更新前端我方开票表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/OurInvoiceForm.tsx
+- [ ] T428 [US10] 更新前端我方开票表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/OurInvoiceForm.tsx
 
 ---
 
@@ -822,7 +825,7 @@
 - [ ] T178 [US11] 更新前端项目经营信息页面集成奖金管理 frontend/src/pages/ProjectBusiness.tsx
 - [ ] T429 [US11] 更新FinancialService使用权限服务：在分配经营奖金时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
 - [ ] T430 [US11] 更新FinancialHandler使用权限服务：在经营奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T431 [US11] 更新前端经营奖金表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/BusinessBonusForm.tsx
+- [ ] T431 [US11] 更新前端经营奖金表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/BusinessBonusForm.tsx
 
 ---
 
@@ -849,7 +852,7 @@
 - [ ] T187 [US12] 更新前端项目经营信息页面集成统计展示 frontend/src/pages/ProjectBusiness.tsx
 - [ ] T432 [US12] 更新ProjectBusinessService使用权限服务：在查看经营信息统计时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_business_service.go
 - [ ] T433 [US12] 更新ProjectBusinessHandler使用权限服务：在经营信息统计Handler中调用权限服务 backend/internal/handlers/project_business_handler.go
-- [ ] T434 [US12] 更新前端经营信息统计组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/BusinessStatistics.tsx
+- [ ] T434 [US12] 更新前端经营信息统计组件：使用权限服务检查权限，无权限时隐藏编辑入口（如有），所有用户可查看统计内容 frontend/src/components/business/BusinessStatistics.tsx
 
 ---
 
@@ -877,7 +880,7 @@
 - [ ] T174 [US13] 更新前端项目生产信息页面集成人员配置 frontend/src/pages/ProjectProduction.tsx
 - [ ] T435 [US13] 更新ProjectMemberService使用权限服务：在配置生产人员时调用权限服务检查权限（CanManageProjectMembers，memberRole为生产人员角色）backend/internal/services/project_member_service.go
 - [ ] T436 [US13] 更新ProjectMemberHandler使用权限服务：在生产人员配置Handler中调用权限服务 backend/internal/handlers/project_member_handler.go
-- [ ] T437 [US13] 更新前端生产人员配置组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ProductionPersonnelManager.tsx
+- [ ] T437 [US13] 更新前端生产人员配置组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionPersonnelManager.tsx
 
 ---
 
@@ -906,7 +909,7 @@
 - [ ] T185 [US14] 更新前端项目生产信息页面集成批复审计管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T438 [US14] 更新ProductionApprovalService使用权限服务：在管理批复审计信息时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_approval_service.go
 - [ ] T439 [US14] 更新ProductionApprovalHandler使用权限服务：在批复审计管理Handler中调用权限服务 backend/internal/handlers/production_approval_handler.go
-- [ ] T440 [US14] 更新前端批复审计表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ApprovalForm.tsx
+- [ ] T440 [US14] 更新前端批复审计表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ApprovalForm.tsx
 
 ---
 
@@ -933,7 +936,7 @@
 - [ ] T194 [US15] 更新前端项目生产信息页面集成方案阶段文件管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T441 [US15] 更新ProductionFileService使用权限服务：在管理方案阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T442 [US15] 更新ProductionFileHandler使用权限服务：在方案阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T443 [US15] 更新前端方案阶段文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/SchemeFileUpload.tsx
+- [ ] T443 [US15] 更新前端方案阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/SchemeFileUpload.tsx
 
 ---
 
@@ -956,7 +959,7 @@
 - [ ] T199 [US16] 更新前端项目生产信息页面集成初步设计阶段文件管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T444 [US16] 更新ProductionFileService使用权限服务：在管理初步设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T445 [US16] 更新ProductionFileHandler使用权限服务：在初步设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T446 [US16] 更新前端初步设计阶段文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/PreliminaryFileUpload.tsx
+- [ ] T446 [US16] 更新前端初步设计阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/PreliminaryFileUpload.tsx
 
 ---
 
@@ -979,7 +982,7 @@
 - [ ] T204 [US17] 更新前端项目生产信息页面集成施工图设计阶段文件管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T447 [US17] 更新ProductionFileService使用权限服务：在管理施工图设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T448 [US17] 更新ProductionFileHandler使用权限服务：在施工图设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T449 [US17] 更新前端施工图设计阶段文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ConstructionFileUpload.tsx
+- [ ] T449 [US17] 更新前端施工图设计阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/ConstructionFileUpload.tsx
 
 ---
 
@@ -1002,7 +1005,7 @@
 - [ ] T209 [US18] 更新前端项目生产信息页面集成变更洽商文件管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T450 [US18] 更新ProductionFileService使用权限服务：在管理变更洽商文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T451 [US18] 更新ProductionFileHandler使用权限服务：在变更洽商文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T452 [US18] 更新前端变更洽商文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ChangeFileUpload.tsx
+- [ ] T452 [US18] 更新前端变更洽商文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/ChangeFileUpload.tsx
 
 ---
 
@@ -1025,7 +1028,7 @@
 - [ ] T214 [US19] 更新前端项目生产信息页面集成竣工验收文件管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T453 [US19] 更新ProductionFileService使用权限服务：在管理竣工验收文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T454 [US19] 更新ProductionFileHandler使用权限服务：在竣工验收文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T455 [US19] 更新前端竣工验收文件上传组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/CompletionFileUpload.tsx
+- [ ] T455 [US19] 更新前端竣工验收文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/CompletionFileUpload.tsx
 
 ---
 
@@ -1057,7 +1060,7 @@
 - [ ] T228 [US20] 更新前端项目生产信息页面集成成本管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T456 [US20] 更新FinancialService使用权限服务：在记录生产成本时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
 - [ ] T457 [US20] 更新FinancialHandler使用权限服务：在生产成本记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T458 [US20] 更新前端生产成本表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ProductionCostForm.tsx
+- [ ] T458 [US20] 更新前端生产成本表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionCostForm.tsx
 
 ---
 
@@ -1177,7 +1180,7 @@
 - [ ] T242 [US21] 更新前端项目生产信息页面集成对外委托管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T459 [US21] 更新ExternalCommissionService使用权限服务：在管理对外委托时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/external_commission_service.go
 - [ ] T460 [US21] 更新ExternalCommissionHandler使用权限服务：在对外委托管理Handler中调用权限服务 backend/internal/handlers/external_commission_handler.go
-- [ ] T461 [US21] 更新前端对外委托表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ExternalCommissionForm.tsx
+- [ ] T461 [US21] 更新前端对外委托表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ExternalCommissionForm.tsx
 
 ---
 
@@ -1203,7 +1206,7 @@
 - [ ] T250 [US22] 更新前端项目生产信息页面集成生产奖金管理 frontend/src/pages/ProjectProduction.tsx
 - [ ] T462 [US22] 更新FinancialService使用权限服务：在分配生产奖金时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
 - [ ] T463 [US22] 更新FinancialHandler使用权限服务：在生产奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T464 [US22] 更新前端生产奖金表单组件：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/production/ProductionBonusForm.tsx
+- [ ] T464 [US22] 更新前端生产奖金表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionBonusForm.tsx
 
 ---
 
@@ -1238,7 +1241,7 @@
 - [ ] T264 [US23] 实现发票信息列表展示 frontend/src/components/financial/InvoiceSummary.tsx
 - [ ] T265 [US23] 实现支付信息列表展示 frontend/src/components/financial/PaymentSummary.tsx
 - [ ] T266 [US23] 实现未收金额统计展示 frontend/src/components/financial/UnpaidAmountSummary.tsx
-- [ ] T469 [US23] 更新前端公司收入管理页面：使用权限服务检查权限（CanManageCompanyRevenue），无权限时显示提示信息 frontend/src/pages/CompanyRevenue.tsx
+- [ ] T469 [US23] 更新前端公司收入管理页面：使用权限服务检查权限（CanManageCompanyRevenue），无权限时拒绝访问并显示提示信息（完全不可访问模式）frontend/src/pages/CompanyRevenue.tsx
 - [ ] T268 [US23] 更新前端公司收入管理页面 frontend/src/pages/CompanyRevenue.tsx
 
 ---
@@ -1275,7 +1278,7 @@
 - [ ] T285 [US24] 实现文件搜索筛选（项目、文件类型、上传时间）frontend/src/components/file/FileSearch.tsx
 - [ ] T286 [US24] 创建前端文件管理页面 frontend/src/pages/FileManagement.tsx
 - [ ] T287 [US24] 更新前端路由集成文件管理页面 frontend/src/App.tsx
-- [ ] T472 [US24] 更新前端文件管理页面：使用权限服务检查权限（CanAccessProject），无权限时显示提示信息 frontend/src/pages/FileManagement.tsx
+- [ ] T472 [US24] 更新前端文件管理页面：使用权限服务检查权限（CanAccessProject），无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看文件列表 frontend/src/pages/FileManagement.tsx
 
 ---
 
@@ -1410,14 +1413,14 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 357/487 (73%)
+**任务进度**: 357/490 (73%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
 - Phase 2.9: 8个任务（负责人配置改造，确保符合User Story 3要求）
 - Phase 2.10: 23个任务（统一权限管理机制，新增权限服务、权限中间件和权限检查辅助函数，包含3个权限服务方法：CanManageBusinessInfo、CanManageProductionInfo、CanManageCompanyRevenue）
 - Phase 3: 49个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务，新增6个管理员编辑用户任务）+ 14个用户角色多选支持任务（T473-T486）
-- Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）+ 8个权限集成任务（US4: T409-T413, US6: T414-T416）
+- Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）+ 11个权限集成任务（US4: T409-T413, US5: T487-T489, US6: T414-T416）
 - Phase 9-14: 50个任务（US7-US12）+ 18个权限集成任务（T417-T434）
 - Phase 15-22: 64个任务（US13-US20）+ 24个权限集成任务（T435-T458）
 - Phase 23-24: 22个任务（US21-US22）+ 6个权限集成任务（T459-T464）
@@ -1425,5 +1428,5 @@
 - Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 487个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能）
+**总计**: 490个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能；新增3个US5权限集成任务：T487-T489，为配置经营参与人功能补充权限控制；更新所有前端权限集成任务描述，明确无权限用户交互规则：可查看但隐藏编辑入口 vs 完全不可访问）
 

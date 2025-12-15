@@ -1,9 +1,10 @@
 # Implementation Plan: 道路设计公司项目管理系统
 
-**Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-01-28 | **Spec**: [spec.md](./spec.md)
+**Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-01-31 | **Spec**: [spec.md](./spec.md)
 
 **最新更新**：
-- 添加了管理员编辑用户功能设计（支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库）
+- 2025-01-31: 添加了无权限用户交互规则（分层规则）设计，明确了可查看但隐藏编辑入口 vs 完全不可访问的实现方式
+- 2025-01-28: 添加了管理员编辑用户功能设计（支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库）
 **Input**: Feature specification from `/specs/002-project-management-oa/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
@@ -734,6 +735,12 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
 - 支持双重权限检查（用户角色 + 项目成员角色）
 - 提供清晰的权限检查接口，业务代码只需调用统一接口
 
+**重要说明**：
+- **经营负责人和生产负责人是项目级别的角色**，不存在全局的经营负责人或生产负责人角色
+- 用户角色（UserRole）中虽然可能包含"经营负责人"和"生产负责人"角色，但这些角色仅用于在配置项目负责人时进行用户过滤
+- 实际的经营负责人和生产负责人通过项目的 BusinessManagerID 和 ProductionManagerID 字段确定，是项目级别的配置
+- 权限检查时，应该检查用户是否是特定项目的负责人（通过 Project.BusinessManagerID 或 Project.ProductionManagerID），而不是检查用户角色
+
 **架构设计**：
 
 1. **权限服务（Permission Service）**：
@@ -813,24 +820,94 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
    const (
        RoleLevelSystemAdmin = 4  // 系统管理员
        RoleLevelProjectManager = 3  // 项目管理员/财务人员
-       RoleLevelManager = 2  // 经营负责人/生产负责人
        RoleLevelMember = 1  // 普通成员
    )
    ```
+   **注意**：经营负责人和生产负责人不在用户角色权限等级中，它们是项目级别的角色，通过项目的 BusinessManagerID 和 ProductionManagerID 字段确定。
 
    **配置项目成员权限检查**：
    - 系统管理员：可以配置所有类型的项目成员
    - 项目管理员：可以配置所有类型的项目成员
-   - 项目经营负责人：可以配置经营参与人
-   - 项目生产负责人：可以配置生产人员（设计人、参与人、复核人、审核人、审定人）
+   - **项目的经营负责人**（通过 Project.BusinessManagerID 判断）：可以配置经营参与人
+   - **项目的生产负责人**（通过 Project.ProductionManagerID 判断）：可以配置生产人员（设计人、参与人、复核人、审核人、审定人）
+   - **注意**：经营负责人和生产负责人是项目级别的，不存在全局角色
 
    **选择项目成员时的用户过滤**：
    - 项目成员（MemberRole）配置：可以选择所有用户，不需要角色过滤
    - 项目负责人配置：需要根据角色过滤，支持向上兼容
-     - 经营负责人：可选择有经营负责人、项目管理员、系统管理员角色的用户
-     - 生产负责人：可选择有生产负责人、项目管理员、系统管理员角色的用户
+     - 经营负责人：可选择有经营负责人用户角色、项目管理员、系统管理员角色的用户
+     - 生产负责人：可选择有生产负责人用户角色、项目管理员、系统管理员角色的用户
+   - **注意**：虽然用户角色中可能有"经营负责人"和"生产负责人"角色，但这些角色仅用于在配置项目负责人时进行用户过滤，实际的经营负责人和生产负责人是项目级别的，通过项目的 BusinessManagerID 和 ProductionManagerID 字段确定
 
-5. **业务代码使用方式**：
+5. **无权限用户交互规则（分层规则）**：
+
+   **设计原则**：
+   - 采用分层权限控制策略，不同模块采用不同的交互模式
+   - 前端根据权限状态动态控制UI元素的显示/隐藏，而不是禁用
+
+   **分层规则实现**：
+
+   **规则1：可查看但隐藏编辑入口**
+   - **适用范围**：项目详情（基本信息、经营信息、生产信息）、文件管理、项目列表等模块
+   - **前端实现**：
+     - 无权限用户可以查看所有内容（列表、详情、文件等）
+     - 系统完全隐藏所有编辑入口（添加、编辑、删除按钮/链接等）
+     - 不显示禁用状态的按钮或"无权限操作"提示文本
+     - 使用条件渲染（`{canManage && <Button>...</Button>}`）而不是禁用属性
+   - **后端实现**：
+     - GET接口（查看）不进行权限检查，所有用户都可以访问
+     - POST/PUT/DELETE接口（编辑）进行权限检查，无权限返回403错误
+   - **示例代码**：
+     ```tsx
+     // 前端：条件渲染，完全隐藏编辑按钮
+     const { data: canManage } = useQuery({
+       queryKey: ['canManageBusinessInfo', projectId],
+       queryFn: () => permissionService.canManageBusinessInfo(projectId),
+     })
+     
+     return (
+       <Card
+         title="经营参与人"
+         extra={
+           canManage === true && (
+             <Button onClick={handleAdd}>添加参与人</Button>
+           )
+         }
+       >
+         {/* 内容始终显示 */}
+       </Card>
+     )
+     ```
+
+   **规则2：完全不可访问**
+   - **适用范围**：公司收入管理等敏感模块
+   - **前端实现**：
+     - 无权限用户完全不可访问，路由层面拦截
+     - 显示权限不足提示页面
+   - **后端实现**：
+     - 所有接口（包括GET）都进行权限检查
+     - 无权限返回403错误，前端路由守卫拦截
+   - **示例代码**：
+     ```tsx
+     // 前端：路由守卫
+     const { data: canAccess } = useQuery({
+       queryKey: ['canAccessCompanyRevenue'],
+       queryFn: () => permissionService.canAccessCompanyRevenue(),
+     })
+     
+     if (canAccess === false) {
+       return <Alert message="您没有权限访问公司收入信息" type="error" />
+     }
+     ```
+
+   **规则3：项目列表过滤**
+   - **适用范围**：项目列表页面
+   - **实现**：
+     - 后端根据用户权限过滤项目列表
+     - 只返回用户有权限访问的项目
+     - 前端无需额外处理，直接显示返回的项目列表
+
+6. **业务代码使用方式**：
 
    **方式1：在Handler中调用权限服务**（推荐）：
    ```go
@@ -858,7 +935,7 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
    )
    ```
 
-6. **项目结构更新**：
+7. **项目结构更新**：
 
    ```
    backend/internal/
@@ -874,7 +951,21 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
        └── ...
    ```
 
-7. **实现要求**：
+   ```
+   frontend/src/
+   ├── services/
+   │   ├── permission.ts            # 权限服务（调用后端权限API）
+   │   └── ...
+   ├── components/
+   │   ├── business/
+   │   │   ├── BusinessPersonnelList.tsx  # 使用条件渲染隐藏编辑入口
+   │   │   ├── BiddingFileList.tsx       # 使用条件渲染隐藏编辑入口
+   │   │   └── ...
+   │   └── ...
+   └── ...
+   ```
+
+8. **实现要求**：
 
    - ✅ 所有权限检查逻辑集中在 `permission_service.go`
    - ✅ 业务代码不直接进行权限判断，统一调用权限服务
@@ -882,8 +973,11 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
    - ✅ 支持权限等级判断（向上兼容）
    - ✅ 提供清晰的错误信息
    - ✅ 支持缓存用户权限信息（提高性能）
+   - ✅ 前端采用条件渲染隐藏编辑入口，而不是禁用按钮
+   - ✅ GET接口（查看）不进行权限检查，POST/PUT/DELETE接口（编辑）进行权限检查
+   - ✅ 敏感模块（如公司收入）所有接口都进行权限检查
 
-8. **测试要求**：
+9. **测试要求**：
 
    - ✅ 单元测试：测试各种权限检查场景
    - ✅ 集成测试：测试权限检查与业务逻辑的集成

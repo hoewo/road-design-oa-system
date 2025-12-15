@@ -45,6 +45,8 @@ const ProjectList = () => {
 
   // Check if current user can create project (only project managers can create projects)
   const canCreateProject = permissionService.utils.canCreateProject(currentUser)
+  // Check if current user can manage projects (edit/delete) - only project managers or admins
+  const canManageProjects = permissionService.utils.canManageProjectManagers(currentUser)
   const [modalVisible, setModalVisible] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
 
@@ -145,38 +147,42 @@ const ProjectList = () => {
           >
             查看
           </Button>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingProject(record)
-              setModalVisible(true)
-            }}
-          >
-            编辑
-          </Button>
-          <Button
-            type="link"
-            size="small"
-            danger
-            icon={<DeleteOutlined />}
-            loading={deleteMutation.isPending}
-            onClick={() => {
-              Modal.confirm({
-                title: '确认删除',
-                content: '确定要删除该项目吗？此操作不可恢复。',
-                okText: '确定',
-                cancelText: '取消',
-                okType: 'danger',
-                onOk: () => {
-                  deleteMutation.mutate(record.id)
-                },
-              })
-            }}
-          >
-            删除
-          </Button>
+          {canManageProjects && (
+            <>
+              <Button
+                type="link"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setEditingProject(record)
+                  setModalVisible(true)
+                }}
+              >
+                编辑
+              </Button>
+              <Button
+                type="link"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                loading={deleteMutation.isPending}
+                onClick={() => {
+                  Modal.confirm({
+                    title: '确认删除',
+                    content: '确定要删除该项目吗？此操作不可恢复。',
+                    okText: '确定',
+                    cancelText: '取消',
+                    okType: 'danger',
+                    onOk: () => {
+                      deleteMutation.mutate(record.id)
+                    },
+                  })
+                }}
+              >
+                删除
+              </Button>
+            </>
+          )}
         </Space>
       ),
     },

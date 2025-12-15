@@ -18,6 +18,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { biddingService } from '@/services/bidding'
 import { fileService } from '@/services/file'
+import { permissionService } from '@/services/permission'
 import { ExpertFeeForm } from '@/components/business/ExpertFeeForm'
 import type { File } from '@/types'
 import dayjs from 'dayjs'
@@ -43,7 +44,14 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
 
-  // 获取招投标信息
+  // 检查权限：是否可以管理项目经营信息（包括招投标信息）
+  const { data: canManage } = useQuery({
+    queryKey: ['canManageBusinessInfo', projectId],
+    queryFn: () => permissionService.canManageBusinessInfo(projectId),
+    enabled: !!projectId,
+  })
+
+  // 获取招投标信息 - 所有用户都可以查看
   const { data: biddingInfo } = useQuery({
     queryKey: ['biddingInfo', projectId],
     queryFn: () => biddingService.getBiddingInfo(projectId),
@@ -204,15 +212,17 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
                       {dayjs(file.created_at).format('YYYY-MM-DD')}
                     </span>
                   </div>
-                  <Button
-                    type="link"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-          onClick={() => handleDelete(type)}
-                  >
-                    删除
-                  </Button>
+                  {canManage === true && (
+                    <Button
+                      type="link"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleDelete(type)}
+                    >
+                      删除
+                    </Button>
+                  )}
                 </div>
     )
   }
@@ -222,14 +232,16 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
       <Card
         title="招投标信息"
         extra={
-          <Button
-            type="primary"
-            size="small"
-            icon={<UploadOutlined />}
-            onClick={() => setUploadModalVisible(true)}
-          >
-            上传文件
-          </Button>
+          canManage === true && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<UploadOutlined />}
+              onClick={() => setUploadModalVisible(true)}
+            >
+              上传文件
+            </Button>
+          )
         }
       >
         <Space direction="vertical" style={{ width: '100%' }} size="large">
@@ -268,7 +280,7 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
                   <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>专家费支付</span>
-              <ExpertFeeForm projectId={projectId} />
+              <ExpertFeeForm projectId={projectId} canManage={canManage === true} />
                 </div>
               <div
                 style={{

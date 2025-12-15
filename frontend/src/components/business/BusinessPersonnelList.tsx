@@ -14,6 +14,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { projectMemberService } from '@/services/projectMember'
 import { userService } from '@/services/user'
+import { permissionService } from '@/services/permission'
 import type { User, ProjectMember } from '@/types'
 
 const { Option } = Select
@@ -29,7 +30,14 @@ export const BusinessPersonnelList = ({
   const [form] = Form.useForm()
   const queryClient = useQueryClient()
 
-  // 获取项目成员（经营参与人）
+  // 检查权限：是否可以管理项目经营信息（包括配置经营参与人）
+  const { data: canManage, isLoading: checkingPermission } = useQuery({
+    queryKey: ['canManageBusinessInfo', projectId],
+    queryFn: () => permissionService.canManageBusinessInfo(projectId),
+    enabled: !!projectId,
+  })
+
+  // 获取项目成员（经营参与人）- 所有用户都可以查看
   const { data: projectMembers } = useQuery({
     queryKey: ['projectMembers', projectId],
     queryFn: () => projectMemberService.list(projectId),
@@ -141,7 +149,8 @@ export const BusinessPersonnelList = ({
   const existingUserIds = businessPersonnel.map((m) => m.user_id)
   const availableUsers = users.filter((user) => !existingUserIds.includes(user.id))
 
-  const columns = [
+  // 根据权限动态设置列，无权限时完全隐藏操作列
+  const baseColumns = [
     {
       title: '姓名',
       dataIndex: 'name',
@@ -152,39 +161,51 @@ export const BusinessPersonnelList = ({
       dataIndex: 'role',
       key: 'role',
     },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_: any, record: any) => (
-        <Space>
-            <Popconfirm
-              title="确定要删除该参与人吗？"
-            onConfirm={() => handleRemove(record.memberId)}
-              okText="确定"
-              cancelText="取消"
-            >
-              <Button type="link" danger icon={<DeleteOutlined />}>
-                删除
-              </Button>
-            </Popconfirm>
-        </Space>
-      ),
-    },
   ]
+
+  const actionColumn = {
+    title: '操作',
+    key: 'action',
+    render: (_: any, record: any) => (
+      <Space>
+        <Popconfirm
+          title="确定要删除该参与人吗？"
+          onConfirm={() => handleRemove(record.memberId)}
+          okText="确定"
+          cancelText="取消"
+        >
+          <Button 
+            type="link" 
+            danger 
+            icon={<DeleteOutlined />}
+          >
+            删除
+          </Button>
+        </Popconfirm>
+      </Space>
+    ),
+  }
+
+  // 只有有权限时才添加操作列
+  const columns = canManage === true 
+    ? [...baseColumns, actionColumn]
+    : baseColumns
 
   return (
     <>
       <Card
         title="经营参与人"
         extra={
-          <Button
-            type="primary"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => setAddModalVisible(true)}
-          >
-            添加参与人
-          </Button>
+          canManage === true && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => setAddModalVisible(true)}
+            >
+              添加参与人
+            </Button>
+          )
         }
       >
         <Table

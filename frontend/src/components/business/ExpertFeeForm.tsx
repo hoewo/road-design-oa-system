@@ -25,11 +25,13 @@ const { TextArea } = Input
 interface ExpertFeeFormProps {
   projectId: string
   onSuccess?: () => void
+  canManage?: boolean // 是否可以管理（编辑）
 }
 
 export const ExpertFeeForm = ({
   projectId,
   onSuccess,
+  canManage = true,
 }: ExpertFeeFormProps) => {
   const [form] = Form.useForm()
   const [modalVisible, setModalVisible] = useState(false)
@@ -67,6 +69,11 @@ export const ExpertFeeForm = ({
     }
 
     createMutation.mutate(data)
+  }
+
+  // 如果没有权限，完全隐藏按钮
+  if (canManage !== true) {
+    return null
   }
 
   return (
