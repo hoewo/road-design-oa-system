@@ -242,13 +242,15 @@ const ProjectList = () => {
                 用户管理
               </Button>
             )}
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            >
-              新建项目
-            </Button>
+            {canCreateProject && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+              >
+                新建项目
+              </Button>
+            )}
           </Space>
         }
       >

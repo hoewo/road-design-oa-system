@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"project-oa-backend/internal/middleware"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -79,20 +80,30 @@ func (h *ProjectBusinessHandler) UpdateProjectBusiness(c *gin.Context) {
 		return
 	}
 
+	// 获取当前用户ID（用于权限检查）
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
 	var req services.UpdateProjectBusinessRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	business, err := h.businessService.UpdateProjectBusiness(id, &req)
+	business, err := h.businessService.UpdateProjectBusiness(id, &req, userID)
 	if err != nil {
 		h.logger.Error("Failed to update project business",
 			zap.Error(err),
 			zap.String("project_id", id),
+			zap.String("user_id", userID),
 		)
 		if err.Error() == "project not found" || err.Error() == "client not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update project business", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to update project business", err)
 		}

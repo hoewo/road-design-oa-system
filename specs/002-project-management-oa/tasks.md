@@ -582,11 +582,11 @@
 - [X] T119 [US4] 更新前端甲方选择组件 frontend/src/components/business/ClientSelectModal.tsx
 - [X] T120 [US4] 实现项目联系人表单组件 frontend/src/components/business/ProjectContactForm.tsx
 - [X] T121 [US4] 更新前端项目经营信息页面集成联系人管理 frontend/src/components/project/BusinessInfoTab.tsx
-- [ ] T409 [US4] 更新ClientService使用权限服务：在管理甲方信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/client_service.go
-- [ ] T410 [US4] 更新ProjectContactService使用权限服务：在管理项目联系人时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_contact_service.go
-- [ ] T411 [US4] 更新ClientHandler使用权限服务：在甲方管理Handler中调用权限服务 backend/internal/handlers/client_handler.go
-- [ ] T412 [US4] 更新ProjectContactHandler使用权限服务：在项目联系人Handler中调用权限服务 backend/internal/handlers/project_contact_handler.go
-- [ ] T413 [US4] 更新前端甲方管理页面：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ClientSelectModal.tsx
+- [X] T409 [US4] 更新ClientService使用权限服务：在管理甲方信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/client_service.go
+- [X] T410 [US4] 更新ProjectContactService使用权限服务：在管理项目联系人时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_contact_service.go
+- [X] T411 [US4] 更新ClientHandler使用权限服务：在甲方管理Handler中调用权限服务 backend/internal/handlers/client_handler.go
+- [X] T412 [US4] 更新ProjectContactHandler使用权限服务：在项目联系人Handler中调用权限服务 backend/internal/handlers/project_contact_handler.go
+- [X] T413 [US4] 更新前端甲方管理页面：使用权限服务检查权限，无权限时显示提示信息 frontend/src/components/business/ClientSelectModal.tsx
 
 ---
 

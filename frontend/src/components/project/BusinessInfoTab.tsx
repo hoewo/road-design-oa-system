@@ -7,7 +7,6 @@ import { BusinessPersonnelList } from '@/components/business/BusinessPersonnelLi
 import { PaymentRecordList } from '@/components/business/PaymentRecordList'
 import { InvoiceRecordList } from '@/components/business/InvoiceRecordList'
 import { ClientSelectModal } from '@/components/business/ClientSelectModal'
-import { ProjectContactForm } from '@/components/business/ProjectContactForm'
 import { useQuery } from '@tanstack/react-query'
 import { projectContactService } from '@/services/projectContact'
 import type { ProjectFinancial, ProjectBusiness, ProjectContact } from '@/types'
@@ -25,7 +24,6 @@ export const BusinessInfoTab = ({
 }: BusinessInfoTabProps) => {
   const [clientSelectModalVisible, setClientSelectModalVisible] =
     useState(false)
-  const [contactFormVisible, setContactFormVisible] = useState(false)
 
   // Load project contact
   const { data: projectContact } = useQuery({
@@ -146,17 +144,6 @@ export const BusinessInfoTab = ({
               </div>
             </div>
           </Col>
-          <Col span={8}>
-            <div style={{ marginBottom: 16 }}>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => setContactFormVisible(true)}
-              >
-                管理联系人
-              </Button>
-            </div>
-          </Col>
         </Row>
       </Card>
 
@@ -204,7 +191,7 @@ export const BusinessInfoTab = ({
         </Card>
       </div>
 
-      {/* 甲方选择模态框 */}
+      {/* 甲方选择模态框（包含联系人管理功能） */}
       <ClientSelectModal
         projectId={projectId}
         open={clientSelectModalVisible}
@@ -212,17 +199,6 @@ export const BusinessInfoTab = ({
         onSuccess={() => {
           setClientSelectModalVisible(false)
         }}
-      />
-
-      {/* 项目联系人表单 */}
-      <ProjectContactForm
-        projectId={projectId}
-        open={contactFormVisible}
-        onCancel={() => setContactFormVisible(false)}
-        onSuccess={() => {
-          setContactFormVisible(false)
-        }}
-        initialData={projectContact || undefined}
       />
     </>
   )

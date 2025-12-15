@@ -93,8 +93,9 @@ func (r *Router) SetupRoutes(
 		// 权限相关路由
 		permissions := user.Group("/permissions")
 		{
-			permissions.GET("/can-create-project", permissionHandler.CheckCreateProjectPermission)
-			permissions.GET("/can-manage-project-managers", permissionHandler.CheckManageProjectManagersPermission)
+		permissions.GET("/can-create-project", permissionHandler.CheckCreateProjectPermission)
+		permissions.GET("/can-manage-project-managers", permissionHandler.CheckManageProjectManagersPermission)
+		permissions.GET("/can-manage-business-info", permissionHandler.CheckManageBusinessInfoPermission)
 			permissions.GET("/available-users-for-manager", permissionHandler.GetAvailableUsersForManagerRole)
 			permissions.GET("/available-users-for-member", permissionHandler.GetAvailableUsersForMemberRole)
 		}

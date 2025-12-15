@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"project-oa-backend/internal/middleware"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -33,25 +34,48 @@ func NewClientHandler(logger *zap.Logger) *ClientHandler {
 // @Accept json
 // @Produce json
 // @Param request body services.CreateClientRequest true "Client information"
+// @Param project_id query string false "Project ID (optional, for permission check)"
 // @Success 201 {object} models.Client
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
 // @Router /clients [post]
 func (h *ClientHandler) CreateClient(c *gin.Context) {
+	// 获取当前用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	// 从查询参数获取 projectID（如果存在）
+	projectID := c.Query("project_id")
+	var projectIDPtr *string
+	if projectID != "" {
+		projectIDPtr = &projectID
+	}
+
 	var req services.CreateClientRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	client, err := h.clientService.CreateClient(&req)
+	client, err := h.clientService.CreateClient(&req, userID, projectIDPtr)
 	if err != nil {
 		h.logger.Error("Failed to create client",
 			zap.Error(err),
 			zap.String("client_name", req.ClientName),
+			zap.String("user_id", userID),
+			zap.String("project_id", projectID),
 		)
 		// Check if error is due to duplicate client name
 		if err.Error() == "甲方名称已存在，请使用已存在的甲方" {
 			utils.HandleError(c, http.StatusConflict, "甲方名称已存在，请使用已存在的甲方", err)
+			return
+		}
+		// Check if error is due to permission denied
+		if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
 			return
 		}
 		utils.HandleError(c, http.StatusBadRequest, "Failed to create client", err)
@@ -61,6 +85,7 @@ func (h *ClientHandler) CreateClient(c *gin.Context) {
 	h.logger.Info("Client created successfully",
 		zap.String("client_id", client.ID),
 		zap.String("client_name", client.ClientName),
+		zap.String("user_id", userID),
 	)
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -154,8 +179,10 @@ func (h *ClientHandler) ListClients(c *gin.Context) {
 // @Produce json
 // @Param id path string true "Client ID (UUID)"
 // @Param request body services.UpdateClientRequest true "Client update information"
+// @Param project_id query string false "Project ID (optional, for permission check)"
 // @Success 200 {object} models.Client
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /clients/{id} [put]
 func (h *ClientHandler) UpdateClient(c *gin.Context) {
@@ -165,21 +192,42 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 		return
 	}
 
+	// 获取当前用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	// 从查询参数获取 projectID（如果存在）
+	projectID := c.Query("project_id")
+	var projectIDPtr *string
+	if projectID != "" {
+		projectIDPtr = &projectID
+	}
+
 	var req services.UpdateClientRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
 		return
 	}
 
-	client, err := h.clientService.UpdateClient(id, &req)
+	client, err := h.clientService.UpdateClient(id, &req, userID, projectIDPtr)
 	if err != nil {
 		h.logger.Error("Failed to update client",
 			zap.Error(err),
 			zap.String("client_id", id),
+			zap.String("user_id", userID),
+			zap.String("project_id", projectID),
 		)
 		// Check if error is due to duplicate client name
 		if err.Error() == "甲方名称已存在，请使用已存在的甲方" {
 			utils.HandleError(c, http.StatusConflict, "甲方名称已存在，请使用已存在的甲方", err)
+			return
+		}
+		// Check if error is due to permission denied
+		if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
 			return
 		}
 		utils.HandleError(c, http.StatusBadRequest, "Failed to update client", err)
@@ -188,6 +236,7 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 
 	h.logger.Info("Client updated successfully",
 		zap.String("client_id", client.ID),
+		zap.String("user_id", userID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{
@@ -203,8 +252,10 @@ func (h *ClientHandler) UpdateClient(c *gin.Context) {
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Client ID (UUID)"
+// @Param project_id query string false "Project ID (optional, for permission check)"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /clients/{id} [delete]
 func (h *ClientHandler) DeleteClient(c *gin.Context) {
@@ -214,17 +265,39 @@ func (h *ClientHandler) DeleteClient(c *gin.Context) {
 		return
 	}
 
-	if err := h.clientService.DeleteClient(id); err != nil {
+	// 获取当前用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	// 从查询参数获取 projectID（如果存在）
+	projectID := c.Query("project_id")
+	var projectIDPtr *string
+	if projectID != "" {
+		projectIDPtr = &projectID
+	}
+
+	if err := h.clientService.DeleteClient(id, userID, projectIDPtr); err != nil {
 		h.logger.Error("Failed to delete client",
 			zap.Error(err),
 			zap.String("client_id", id),
+			zap.String("user_id", userID),
+			zap.String("project_id", projectID),
 		)
+		// Check if error is due to permission denied
+		if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
+			return
+		}
 		utils.HandleError(c, http.StatusBadRequest, "Failed to delete client", err)
 		return
 	}
 
 	h.logger.Info("Client deleted successfully",
 		zap.String("client_id", id),
+		zap.String("user_id", userID),
 	)
 
 	c.JSON(http.StatusOK, gin.H{

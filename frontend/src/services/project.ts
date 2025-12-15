@@ -51,15 +51,18 @@ export const projectService = {
     return get<Client>(`/user/clients/${id}`)
   },
 
-  createClient: async (data: CreateClientRequest): Promise<Client> => {
-    return post<Client>('/user/clients', data)
+  createClient: async (data: CreateClientRequest, projectId?: string | number): Promise<Client> => {
+    const params = projectId ? { project_id: projectId } : undefined
+    return post<Client>('/user/clients', data, params)
   },
 
   updateClient: async (
     id: string | number,
-    data: Partial<CreateClientRequest>
+    data: Partial<CreateClientRequest>,
+    projectId?: string | number
   ): Promise<Client> => {
-    return put<Client>(`/user/clients/${id}`, data)
+    const params = projectId ? { project_id: projectId } : undefined
+    return put<Client>(`/user/clients/${id}`, data, params)
   },
 
   deleteClient: async (id: string | number): Promise<void> => {

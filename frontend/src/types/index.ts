@@ -115,8 +115,6 @@ export interface UpdateProjectRequest {
 
 export interface CreateClientRequest {
   client_name: string
-  contact_name?: string
-  contact_phone?: string
   email?: string
   address?: string
   tax_number?: string

@@ -499,6 +499,7 @@ export const ProjectBusinessForm = ({
         destroyOnHidden
       >
         <ClientForm
+          projectId={projectId}
           onSuccess={() => {
             // Reload clients after creation
             projectService

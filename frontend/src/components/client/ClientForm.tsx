@@ -6,11 +6,12 @@ import type { Client, CreateClientRequest } from '@/types'
 
 interface ClientFormProps {
   clientId?: number
+  projectId?: string | number // 项目ID（可选，用于权限检查）
   onSuccess?: () => void
   onCancel?: () => void
 }
 
-const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
+const ClientForm = ({ clientId, projectId, onSuccess, onCancel }: ClientFormProps) => {
   const [form] = Form.useForm()
 
   // Load client data if editing
@@ -27,8 +28,6 @@ const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
     if (client) {
       form.setFieldsValue({
         client_name: client.client_name,
-        contact_name: client.contact_name,
-        contact_phone: client.contact_phone,
         email: client.email,
         address: client.address,
         tax_number: client.tax_number,
@@ -42,7 +41,7 @@ const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
   // Create client mutation
   const createMutation = useMutation({
     mutationFn: (data: CreateClientRequest) =>
-      projectService.createClient(data),
+      projectService.createClient(data, projectId),
     onSuccess: () => {
       message.success('甲方创建成功')
       queryClient.invalidateQueries({ queryKey: ['clients'] })
@@ -70,7 +69,7 @@ const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
     }: {
       id: number
       data: Partial<CreateClientRequest>
-    }) => projectService.updateClient(id, data),
+    }) => projectService.updateClient(id, data, projectId),
     onSuccess: () => {
       message.success('甲方更新成功')
       queryClient.invalidateQueries({ queryKey: ['clients'] })
@@ -121,19 +120,6 @@ const ClientForm = ({ clientId, onSuccess, onCancel }: ClientFormProps) => {
             rules={[{ required: true, message: '请输入甲方名称' }]}
           >
             <Input placeholder="请输入甲方名称" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item name="contact_name" label="联系人">
-            <Input placeholder="请输入联系人" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item name="contact_phone" label="联系电话">
-            <Input placeholder="请输入联系电话" />
           </Form.Item>
         </Col>
         <Col span={12}>

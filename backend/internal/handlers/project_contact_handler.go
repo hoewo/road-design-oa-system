@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"project-oa-backend/internal/middleware"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -26,13 +27,20 @@ func NewProjectContactHandler(logger *zap.Logger) *ProjectContactHandler {
 
 // GetProjectContact 获取项目联系人
 func (h *ProjectContactHandler) GetProjectContact(c *gin.Context) {
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	contact, err := h.service.GetProjectContact(projectID)
+	// 获取当前用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	contact, err := h.service.GetProjectContact(projectID, userID)
 	if err != nil {
 		if err.Error() == "project contact not found" {
 			c.JSON(http.StatusOK, gin.H{
@@ -41,9 +49,14 @@ func (h *ProjectContactHandler) GetProjectContact(c *gin.Context) {
 			})
 			return
 		}
+		if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
+			return
+		}
 		h.logger.Error("Failed to get project contact",
 			zap.Error(err),
 			zap.String("project_id", projectID),
+			zap.String("user_id", userID),
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to get project contact", err)
 		return
@@ -63,9 +76,16 @@ type CreateOrUpdateProjectContactRequest struct {
 }
 
 func (h *ProjectContactHandler) CreateOrUpdateProjectContact(c *gin.Context) {
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	// 获取当前用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
 		return
 	}
 
@@ -75,14 +95,17 @@ func (h *ProjectContactHandler) CreateOrUpdateProjectContact(c *gin.Context) {
 		return
 	}
 
-	contact, err := h.service.CreateOrUpdateProjectContact(projectID, req.ClientID, req.ContactName, req.ContactPhone)
+	contact, err := h.service.CreateOrUpdateProjectContact(projectID, req.ClientID, req.ContactName, req.ContactPhone, userID)
 	if err != nil {
 		h.logger.Error("Failed to create or update project contact",
 			zap.Error(err),
 			zap.String("project_id", projectID),
+			zap.String("user_id", userID),
 		)
 		if err.Error() == "project not found" || err.Error() == "client not found" {
 			utils.HandleError(c, http.StatusNotFound, err.Error(), err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
 		} else {
 			utils.HandleError(c, http.StatusInternalServerError, "Failed to create or update project contact", err)
 		}
@@ -97,19 +120,29 @@ func (h *ProjectContactHandler) CreateOrUpdateProjectContact(c *gin.Context) {
 
 // DeleteProjectContact 删除项目联系人
 func (h *ProjectContactHandler) DeleteProjectContact(c *gin.Context) {
-	projectID := c.Param("projectId")
+	projectID := c.Param("id")
 	if projectID == "" {
 		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
 		return
 	}
 
-	if err := h.service.DeleteProjectContact(projectID); err != nil {
+	// 获取当前用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	if err := h.service.DeleteProjectContact(projectID, userID); err != nil {
 		h.logger.Error("Failed to delete project contact",
 			zap.Error(err),
 			zap.String("project_id", projectID),
+			zap.String("user_id", userID),
 		)
 		if err.Error() == "project contact not found" {
 			utils.HandleError(c, http.StatusNotFound, "Project contact not found", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information for this project" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), err)
 		} else {
 			utils.HandleError(c, http.StatusInternalServerError, "Failed to delete project contact", err)
 		}

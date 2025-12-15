@@ -87,8 +87,8 @@ export const get = async <T>(url: string): Promise<T> => {
   return response.data.data || response.data
 }
 
-export const post = async <T>(url: string, data?: any): Promise<T> => {
-  const response = await api.post<any>(url, data)
+export const post = async <T>(url: string, data?: any, params?: any): Promise<T> => {
+  const response = await api.post<any>(url, data, { params })
   // Handle both {success: true, data: ...} and {data: ...} formats
   if (response.data.success !== undefined) {
     return response.data.data
@@ -96,8 +96,8 @@ export const post = async <T>(url: string, data?: any): Promise<T> => {
   return response.data.data || response.data
 }
 
-export const put = async <T>(url: string, data?: any): Promise<T> => {
-  const response = await api.put<any>(url, data)
+export const put = async <T>(url: string, data?: any, params?: any): Promise<T> => {
+  const response = await api.put<any>(url, data, { params })
   // Handle both {success: true, data: ...} and {data: ...} formats
   if (response.data.success !== undefined) {
     return response.data.data

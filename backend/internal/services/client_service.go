@@ -13,13 +13,15 @@ import (
 
 // ClientService handles client-related operations
 type ClientService struct {
-	db *gorm.DB
+	db                *gorm.DB
+	permissionService *PermissionService
 }
 
 // NewClientService creates a new client service
 func NewClientService() *ClientService {
 	return &ClientService{
-		db: database.DB,
+		db:                database.DB,
+		permissionService: NewPermissionService(),
 	}
 }
 
@@ -54,7 +56,20 @@ type ListClientsParams struct {
 }
 
 // CreateClient creates a new client
-func (s *ClientService) CreateClient(req *CreateClientRequest) (*models.Client, error) {
+// projectID is optional: if provided, checks permission to manage business info for that project
+// if not provided, allows creation (assumes permission checked at handler level)
+func (s *ClientService) CreateClient(req *CreateClientRequest, userID string, projectID *string) (*models.Client, error) {
+	// 如果提供了 projectID，检查权限
+	if projectID != nil && *projectID != "" {
+		canManage, err := s.permissionService.CanManageBusinessInfo(userID, *projectID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check permission: %w", err)
+		}
+		if !canManage {
+			return nil, errors.New("permission denied: you do not have permission to manage business information for this project")
+		}
+	}
+
 	// Validate client name uniqueness
 	var existingClient models.Client
 	if err := s.db.Where("client_name = ?", req.ClientName).First(&existingClient).Error; err == nil {
@@ -130,7 +145,20 @@ func (s *ClientService) ListClients(params *ListClientsParams) ([]models.Client,
 }
 
 // UpdateClient updates an existing client (UUID string)
-func (s *ClientService) UpdateClient(id string, req *UpdateClientRequest) (*models.Client, error) {
+// projectID is optional: if provided, checks permission to manage business info for that project
+// if not provided, allows update (assumes permission checked at handler level)
+func (s *ClientService) UpdateClient(id string, req *UpdateClientRequest, userID string, projectID *string) (*models.Client, error) {
+	// 如果提供了 projectID，检查权限
+	if projectID != nil && *projectID != "" {
+		canManage, err := s.permissionService.CanManageBusinessInfo(userID, *projectID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check permission: %w", err)
+		}
+		if !canManage {
+			return nil, errors.New("permission denied: you do not have permission to manage business information for this project")
+		}
+	}
+
 	var client models.Client
 	if err := s.db.First(&client, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -182,7 +210,20 @@ func (s *ClientService) UpdateClient(id string, req *UpdateClientRequest) (*mode
 }
 
 // DeleteClient deletes a client (UUID string)
-func (s *ClientService) DeleteClient(id string) error {
+// projectID is optional: if provided, checks permission to manage business info for that project
+// if not provided, allows delete (assumes permission checked at handler level)
+func (s *ClientService) DeleteClient(id string, userID string, projectID *string) error {
+	// 如果提供了 projectID，检查权限
+	if projectID != nil && *projectID != "" {
+		canManage, err := s.permissionService.CanManageBusinessInfo(userID, *projectID)
+		if err != nil {
+			return fmt.Errorf("failed to check permission: %w", err)
+		}
+		if !canManage {
+			return errors.New("permission denied: you do not have permission to manage business information for this project")
+		}
+	}
+
 	var client models.Client
 	if err := s.db.First(&client, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

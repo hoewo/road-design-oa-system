@@ -22,8 +22,9 @@ export const permissionService = {
    */
   canCreateProject: async (): Promise<boolean> => {
     try {
-      const response = await get<PermissionCheckResponse>('/user/permissions/can-create-project')
-      return response.data?.can_create ?? false
+      // get 函数已经提取了 response.data.data，所以返回的是 {can_create: true} 格式
+      const response = await get<{ can_create: boolean }>('/user/permissions/can-create-project')
+      return response?.can_create ?? false
     } catch (error) {
       console.error('Failed to check create project permission:', error)
       return false
@@ -35,10 +36,29 @@ export const permissionService = {
    */
   canManageProjectManagers: async (): Promise<boolean> => {
     try {
-      const response = await get<PermissionCheckResponse>('/user/permissions/can-manage-project-managers')
-      return response.data?.can_manage ?? false
+      // get 函数已经提取了 response.data.data，所以返回的是 {can_manage: true} 格式
+      const response = await get<{ can_manage: boolean }>('/user/permissions/can-manage-project-managers')
+      return response?.can_manage ?? false
     } catch (error) {
       console.error('Failed to check manage project managers permission:', error)
+      return false
+    }
+  },
+
+  /**
+   * 检查用户是否可以管理项目经营信息
+   * @param projectId 项目ID
+   */
+  canManageBusinessInfo: async (projectId: string | number): Promise<boolean> => {
+    try {
+      // get 函数已经提取了 response.data.data，所以返回的是 {can_manage: true} 格式
+      const response = await get<{ can_manage: boolean }>(
+        `/user/permissions/can-manage-business-info?project_id=${projectId}`
+      )
+      return response?.can_manage ?? false
+    } catch (error) {
+      console.error('Failed to check manage business info permission:', error)
+      // 如果权限检查失败，返回 false 而不是抛出错误
       return false
     }
   },
