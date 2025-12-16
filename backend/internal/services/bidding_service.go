@@ -72,7 +72,7 @@ func (s *BiddingService) CreateOrUpdateBiddingInfo(projectID string, userID stri
 
 	// Check if bidding info already exists
 	var biddingInfo models.BiddingInfo
-	err := s.db.Where("project_id = ?", projectID).First(&biddingInfo).Error
+	err = s.db.Where("project_id = ?", projectID).First(&biddingInfo).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		// Create new bidding info
@@ -138,6 +138,20 @@ func (s *BiddingService) CreateExpertFeePayment(projectID string, createdByID st
 	}
 
 	return financialService.CreateFinancialRecord(projectID, createdByID, req)
+}
+
+// GetExpertFeePayments retrieves all expert fee payment records for a project
+// 通过FinancialRecord查询，financial_type=expert_fee
+func (s *BiddingService) GetExpertFeePayments(projectID string) ([]models.FinancialRecord, error) {
+	var records []models.FinancialRecord
+	if err := s.db.Where("project_id = ? AND financial_type = ?", projectID, models.FinancialTypeExpertFee).
+		Preload("CreatedBy").
+		Order("occurred_at DESC, created_at DESC").
+		Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	return records, nil
 }
 
 // DeleteBiddingInfo deletes bidding info for a project

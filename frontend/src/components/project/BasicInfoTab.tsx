@@ -421,9 +421,9 @@ export const BasicInfoTab = ({
         title="基本信息"
         extra={
           canEditProject && (
-            <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
-              编辑
-            </Button>
+          <Button type="primary" icon={<EditOutlined />} onClick={handleEdit}>
+            编辑
+          </Button>
           )
         }
         style={{ marginBottom: 24 }}

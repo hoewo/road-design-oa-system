@@ -20,6 +20,7 @@ import { biddingService } from '@/services/bidding'
 import { fileService } from '@/services/file'
 import { permissionService } from '@/services/permission'
 import { ExpertFeeForm } from '@/components/business/ExpertFeeForm'
+import { ExpertFeePaymentList } from '@/components/business/ExpertFeePaymentList'
 import type { File } from '@/types'
 import dayjs from 'dayjs'
 
@@ -213,15 +214,15 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
                     </span>
                   </div>
                   {canManage === true && (
-                    <Button
-                      type="link"
-                      danger
-                      size="small"
-                      icon={<DeleteOutlined />}
-                      onClick={() => handleDelete(type)}
-                    >
-                      删除
-                    </Button>
+                  <Button
+                    type="link"
+                    danger
+                    size="small"
+                    icon={<DeleteOutlined />}
+          onClick={() => handleDelete(type)}
+                  >
+                    删除
+                  </Button>
                   )}
                 </div>
     )
@@ -233,14 +234,14 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
         title="招投标信息"
         extra={
           canManage === true && (
-            <Button
-              type="primary"
-              size="small"
-              icon={<UploadOutlined />}
-              onClick={() => setUploadModalVisible(true)}
-            >
-              上传文件
-            </Button>
+          <Button
+            type="primary"
+            size="small"
+            icon={<UploadOutlined />}
+            onClick={() => setUploadModalVisible(true)}
+          >
+            上传文件
+          </Button>
           )
         }
       >
@@ -277,23 +278,14 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
           <Divider />
 
           {/* 专家费支付 */}
-                  <div>
+          <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>专家费支付</span>
               <ExpertFeeForm projectId={projectId} canManage={canManage === true} />
-                </div>
-              <div
-                style={{
-                  padding: '10px',
-                  border: '2px solid #e0e0e0',
-                  background: '#f9f9f9',
-                  borderRadius: '4px',
-                color: '#666',
-                fontSize: '14px',
-                }}
-              >
-              点击上方按钮记录专家费支付信息
-              </div>
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <ExpertFeePaymentList projectId={projectId} canManage={canManage === true} />
+            </div>
           </div>
         </Space>
       </Card>
@@ -333,7 +325,6 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
             <Upload
               beforeUpload={() => false}
               maxCount={1}
-              accept=".pdf,.doc,.docx"
             >
               <Button icon={<UploadOutlined />}>选择文件</Button>
             </Upload>

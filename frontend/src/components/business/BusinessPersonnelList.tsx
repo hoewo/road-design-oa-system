@@ -164,26 +164,26 @@ export const BusinessPersonnelList = ({
   ]
 
   const actionColumn = {
-    title: '操作',
-    key: 'action',
-    render: (_: any, record: any) => (
-      <Space>
-        <Popconfirm
-          title="确定要删除该参与人吗？"
-          onConfirm={() => handleRemove(record.memberId)}
-          okText="确定"
-          cancelText="取消"
-        >
+      title: '操作',
+      key: 'action',
+      render: (_: any, record: any) => (
+        <Space>
+            <Popconfirm
+              title="确定要删除该参与人吗？"
+            onConfirm={() => handleRemove(record.memberId)}
+              okText="确定"
+              cancelText="取消"
+            >
           <Button 
             type="link" 
             danger 
             icon={<DeleteOutlined />}
           >
-            删除
-          </Button>
-        </Popconfirm>
-      </Space>
-    ),
+                删除
+              </Button>
+            </Popconfirm>
+        </Space>
+      ),
   }
 
   // 只有有权限时才添加操作列
@@ -197,14 +197,14 @@ export const BusinessPersonnelList = ({
         title="经营参与人"
         extra={
           canManage === true && (
-            <Button
-              type="primary"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setAddModalVisible(true)}
-            >
-              添加参与人
-            </Button>
+          <Button
+            type="primary"
+            size="small"
+            icon={<PlusOutlined />}
+            onClick={() => setAddModalVisible(true)}
+          >
+            添加参与人
+          </Button>
           )
         }
       >

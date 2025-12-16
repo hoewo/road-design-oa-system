@@ -87,13 +87,13 @@ export const BusinessInfoTab = ({
         title="甲方信息"
         extra={
           canManageBusinessInfo === true && (
-            <Button
-              type="link"
-              size="small"
-              onClick={() => setClientSelectModalVisible(true)}
-            >
-              选择/创建甲方
-            </Button>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => setClientSelectModalVisible(true)}
+          >
+            选择/创建甲方
+          </Button>
           )
         }
         style={{ marginBottom: 24 }}

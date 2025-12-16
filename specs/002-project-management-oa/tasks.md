@@ -4,7 +4,7 @@
 **Date**: 2025-01-28  
 **Last Updated**: 2025-01-31  
 **Status**: In Progress  
-**Total Tasks**: 490
+**Total Tasks**: 496
 
 ## Summary
 
@@ -639,6 +639,12 @@
 - [X] T414 [US6] 更新BiddingService使用权限服务：在管理招投标信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/bidding_service.go
 - [X] T415 [US6] 更新BiddingHandler使用权限服务：在招投标管理Handler中调用权限服务 backend/internal/handlers/bidding_handler.go
 - [X] T416 [US6] 更新前端招投标管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/business/BiddingFileList.tsx
+- [X] T642 [US6] 实现查询专家费支付记录列表接口：在BiddingService中添加GetExpertFeePayments方法，通过FinancialRecord查询（financial_type=expert_fee）backend/internal/services/bidding_service.go
+- [X] T643 [US6] 实现查询专家费支付记录Handler：在BiddingHandler中添加GetExpertFeePayments方法 backend/internal/handlers/bidding_handler.go
+- [X] T644 [US6] 添加查询专家费支付记录路由：在router中添加GET /projects/:id/bidding/expert-fee路由 backend/internal/router/router.go
+- [X] T645 [US6] 实现前端专家费支付记录列表组件：创建ExpertFeePaymentList组件，显示专家费支付记录列表（专家姓名、金额、支付方式、支付日期、备注等）frontend/src/components/business/ExpertFeePaymentList.tsx
+- [X] T646 [US6] 更新biddingService添加查询方法：添加getExpertFeePayments方法 frontend/src/services/bidding.ts
+- [X] T647 [US6] 更新BiddingFileList组件集成记录列表：在专家费支付部分显示记录列表，替换或补充现有的提示文本 frontend/src/components/business/BiddingFileList.tsx
 
 ---
 
@@ -1413,7 +1419,7 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 357/490 (73%)
+**任务进度**: 364/496 (73%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
@@ -1428,5 +1434,5 @@
 - Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 490个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能；新增3个US5权限集成任务：T487-T489，为配置经营参与人功能补充权限控制；更新所有前端权限集成任务描述，明确无权限用户交互规则：可查看但隐藏编辑入口 vs 完全不可访问）
+**总计**: 496个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能；新增3个US5权限集成任务：T487-T489，为配置经营参与人功能补充权限控制；更新所有前端权限集成任务描述，明确无权限用户交互规则：可查看但隐藏编辑入口 vs 完全不可访问；新增6个US6专家费支付记录列表显示任务：T642-T647，补充专家费支付记录的查询和显示功能）
 

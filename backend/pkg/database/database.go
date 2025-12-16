@@ -84,6 +84,7 @@ func Migrate() error {
 		&models.ExternalCommission{},
 		&models.ProductionCost{},
 		&models.CompanyConfig{},
+		&models.BiddingInfo{}, // 招投标信息实体
 	)
 
 	if err != nil {

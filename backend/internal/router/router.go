@@ -48,6 +48,7 @@ func (r *Router) SetupRoutes(
 	disciplineHandler *handlers.DisciplineHandler,
 	biddingHandler *handlers.BiddingHandler,
 	permissionHandler *handlers.PermissionHandler,
+	fileHandler *handlers.FileHandler,
 ) {
 	r.logger = logger
 
@@ -122,7 +123,11 @@ func (r *Router) SetupRoutes(
 			projects.GET("/:id/bidding", biddingHandler.GetBiddingInfo)
 			projects.PUT("/:id/bidding", biddingHandler.CreateOrUpdateBiddingInfo)
 			projects.DELETE("/:id/bidding", biddingHandler.DeleteBiddingInfo)
+			projects.GET("/:id/bidding/expert-fee", biddingHandler.GetExpertFeePayments)
 			projects.POST("/:id/bidding/expert-fee", biddingHandler.CreateExpertFeePayment)
+
+			// File upload route (general purpose)
+			projects.POST("/:id/files", fileHandler.UploadFile)
 
 			// Project member routes
 			projects.GET("/:id/members", projectMemberHandler.ListMembers)

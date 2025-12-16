@@ -186,6 +186,39 @@ func (h *BiddingHandler) CreateExpertFeePayment(c *gin.Context) {
 		})
 }
 
+// GetExpertFeePayments handles retrieving expert fee payment records for a project
+// @Summary Get expert fee payments by project ID
+// @Description Get all expert fee payment records for a specific project
+// @Tags 招投标管理
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Success 200 {array} models.FinancialRecord
+// @Failure 400 {object} utils.ErrorResponse
+// @Router /projects/{id}/bidding/expert-fee [get]
+func (h *BiddingHandler) GetExpertFeePayments(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	records, err := h.biddingService.GetExpertFeePayments(projectID)
+	if err != nil {
+		h.logger.Error("Failed to get expert fee payments",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get expert fee payments", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    records,
+	})
+}
+
 // DeleteBiddingInfo handles deleting bidding info for a project
 // @Summary Delete bidding info
 // @Description Delete bidding information for a project

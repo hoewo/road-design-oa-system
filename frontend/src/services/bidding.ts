@@ -1,4 +1,4 @@
-import { get, post } from './api'
+import { get, post, put } from './api'
 import type { BiddingInfo, FinancialRecord } from '@/types'
 
 export interface CreateOrUpdateBiddingInfoRequest {
@@ -37,7 +37,17 @@ export const biddingService = {
     projectId: string,
     data: CreateOrUpdateBiddingInfoRequest
   ): Promise<BiddingInfo> => {
-    return post<BiddingInfo>(`/user/projects/${projectId}/bidding`, data)
+    return put<BiddingInfo>(`/user/projects/${projectId}/bidding`, data)
+  },
+
+  // Get expert fee payments for a project
+  getExpertFeePayments: async (
+    projectId: string
+  ): Promise<FinancialRecord[]> => {
+    const response = await get<FinancialRecord[]>(
+      `/user/projects/${projectId}/bidding/expert-fee`
+    )
+    return response || []
   },
 
   // Create expert fee payment

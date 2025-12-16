@@ -368,26 +368,68 @@ export interface SearchFilesResponse {
 }
 
 // Financial Record types
-export type FinancialType = 'receivable' | 'invoice' | 'payment' | 'expense'
+export type FinancialType = 
+  | 'receivable' 
+  | 'invoice' 
+  | 'payment' 
+  | 'expense'
+  | 'bonus'
+  | 'cost'
+  | 'client_payment'
+  | 'our_invoice'
+  | 'expert_fee'
+  | 'commission_payment'
+  | 'vendor_invoice'
 export type FeeType = 'design_fee' | 'survey_fee' | 'consultation_fee'
+export type FinancialDirection = 'income' | 'expense'
 
 export interface FinancialRecord {
-  id: number
-  record_type: FinancialType
-  fee_type: FeeType
-  receivable_amount: number
-  invoice_number?: string
-  invoice_date?: string
-  invoice_amount: number
-  payment_date?: string
-  payment_amount: number
-  unpaid_amount: number
+  id: string // UUID string
+  project_id: string // UUID string
+  financial_type: FinancialType
+  direction: FinancialDirection
+  amount: number
+  occurred_at: string // ISO date string
+  // 奖金类型字段
+  bonus_category?: 'business' | 'production'
+  recipient_id?: string // UUID string
+  recipient?: User
+  // 成本类型字段
+  cost_category?: 'taxi' | 'accommodation' | 'public_transport'
+  mileage?: number
+  // 甲方支付/我方开票类型字段
+  client_id?: string // UUID string
+  client?: Client
+  related_payment_id?: string // UUID string
+  // 专家费类型字段
+  payment_method?: 'cash' | 'transfer'
+  expert_name?: string
+  // 委托支付/对方开票类型字段
+  commission_type?: 'person' | 'company'
+  vendor_name?: string
+  vendor_score?: number
+  related_commission_id?: string // UUID string
+  // 文件关联
+  invoice_file_id?: string // UUID string
+  invoice_file?: File
+  // 通用字段
   description?: string
-  project_id: number
-  created_by_id: number
+  created_by_id: string // UUID string
   created_by?: User
+  updated_by_id?: string // UUID string
+  updated_by?: User
   created_at: string
   updated_at: string
+  // 向后兼容的旧字段（保留用于兼容）
+  record_type?: FinancialType
+  fee_type?: FeeType
+  receivable_amount?: number
+  invoice_number?: string
+  invoice_date?: string
+  invoice_amount?: number
+  payment_date?: string
+  payment_amount?: number
+  unpaid_amount?: number
 }
 
 export interface CreateFinancialRecordRequest {
