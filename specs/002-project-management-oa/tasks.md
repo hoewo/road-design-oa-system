@@ -2,9 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
-**Last Updated**: 2025-01-31  
+**Last Updated**: 2025-02-01  
 **Status**: In Progress  
-**Total Tasks**: 496
+**Total Tasks**: 509 (已完成: 509)
 
 ## Summary
 
@@ -22,6 +22,8 @@
 - **用户创建流程优化**（T378-T382）：支持邮箱和手机号二选一，实现完整的查询流程（本地DB → NebulaAuth → 创建）
 - **管理员编辑用户功能**（T383-T388）：实现管理员编辑用户信息功能，支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库
 - **统一权限管理机制**（T389-T408）：建立统一的权限管理机制，避免权限判断代码分散到各个业务模块。实现权限服务、权限中间件和权限检查辅助函数，所有业务代码通过统一接口进行权限判断
+- **招投标文件多文件支持**（T648-T653）：修改BiddingInfo模型为数组字段，支持每种类型（招标文件、投标文件、中标通知书）多个文件上传
+- **专家费支付编辑和删除功能**（T654-T660）：实现专家费支付记录的编辑和删除功能，支持修改所有字段（专家姓名、金额、支付方式、支付日期、备注）
 
 **关键改造点**:
 1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
@@ -617,12 +619,12 @@
 ## Phase 8: User Story 6 - 招投标阶段管理 (P1)
 
 ### Story Goal
-经营负责人能够管理项目的招投标阶段信息，包括上传招标文件、投标文件、中标通知书，以及记录专家费支付信息。
+经营负责人能够管理项目的招投标阶段信息，包括上传招标文件、投标文件、中标通知书（每种类型支持多个文件），以及记录、编辑和删除专家费支付信息。
 
 ### Independent Test Criteria
-- 经营负责人可以上传招投标文件
-- 专家费支付信息可以记录
-- 招投标信息可以查看
+- 经营负责人可以上传多个招投标文件（每种类型支持多个文件）
+- 专家费支付信息可以记录、编辑和删除
+- 招投标信息可以查看（按文件类型分组显示多个文件）
 
 ### Implementation Tasks
 
@@ -645,6 +647,19 @@
 - [X] T645 [US6] 实现前端专家费支付记录列表组件：创建ExpertFeePaymentList组件，显示专家费支付记录列表（专家姓名、金额、支付方式、支付日期、备注等）frontend/src/components/business/ExpertFeePaymentList.tsx
 - [X] T646 [US6] 更新biddingService添加查询方法：添加getExpertFeePayments方法 frontend/src/services/bidding.ts
 - [X] T647 [US6] 更新BiddingFileList组件集成记录列表：在专家费支付部分显示记录列表，替换或补充现有的提示文本 frontend/src/components/business/BiddingFileList.tsx
+- [X] T648 [US6] 更新BiddingInfo模型为数组字段：将TenderFileID、BidFileID、AwardNoticeFileID改为数组字段（TenderFileIDs、BidFileIDs、AwardNoticeFileIDs），使用pq.StringArray类型 backend/internal/models/bidding_info.go
+- [X] T649 [US6] 创建数据库迁移脚本：将bidding_info表的单文件字段迁移为数组字段，现有数据转换为数组格式（包含单个元素）scripts/migrations/009_migrate_bidding_files_to_array.sql
+- [X] T650 [US6] 更新BiddingService支持数组字段：修改CreateOrUpdateBiddingInfo方法，支持接收和处理文件ID数组 backend/internal/services/bidding_service.go
+- [X] T651 [US6] 更新BiddingHandler支持数组字段：修改CreateOrUpdateBiddingInfo请求结构，支持数组格式的文件ID列表 backend/internal/handlers/bidding_handler.go
+- [X] T652 [US6] 更新前端BiddingFileList组件支持多文件：修改文件上传逻辑，支持多选上传，按类型分组显示多个文件 frontend/src/components/business/BiddingFileList.tsx
+- [X] T653 [US6] 更新前端biddingService支持数组：修改createOrUpdateBiddingInfo方法，发送数组格式的文件ID列表 frontend/src/services/bidding.ts
+- [X] T654 [US6] 实现专家费支付记录更新接口：在BiddingService中添加UpdateExpertFeePayment方法，支持更新所有字段（专家姓名、金额、支付方式、支付日期、备注）backend/internal/services/bidding_service.go
+- [X] T655 [US6] 实现专家费支付记录删除接口：在BiddingService中添加DeleteExpertFeePayment方法，支持删除专家费支付记录 backend/internal/services/bidding_service.go
+- [X] T656 [US6] 实现专家费支付记录更新Handler：在BiddingHandler中添加UpdateExpertFeePayment方法，处理PUT请求 backend/internal/handlers/bidding_handler.go
+- [X] T657 [US6] 实现专家费支付记录删除Handler：在BiddingHandler中添加DeleteExpertFeePayment方法，处理DELETE请求 backend/internal/handlers/bidding_handler.go
+- [X] T658 [US6] 添加专家费支付编辑和删除路由：在router中添加PUT和DELETE路由 /projects/:id/bidding/expert-fee/:record_id backend/internal/router/router.go
+- [X] T659 [US6] 更新前端biddingService添加编辑和删除方法：添加updateExpertFeePayment和deleteExpertFeePayment方法 frontend/src/services/bidding.ts
+- [X] T660 [US6] 更新ExpertFeePaymentList组件添加编辑和删除功能：添加编辑和删除按钮（仅对有权限用户显示），实现编辑表单和删除确认对话框 frontend/src/components/business/ExpertFeePaymentList.tsx
 
 ---
 

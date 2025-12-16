@@ -48,6 +48,9 @@ export const ExpertFeeForm = ({
       queryClient.invalidateQueries({
         queryKey: ['projectFinancial', projectId],
       })
+      queryClient.invalidateQueries({
+        queryKey: ['expertFeePayments', projectId],
+      })
       form.resetFields()
       setModalVisible(false)
       onSuccess?.()

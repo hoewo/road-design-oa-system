@@ -1,8 +1,9 @@
 # Implementation Plan: 道路设计公司项目管理系统
 
-**Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-01-31 | **Spec**: [spec.md](./spec.md)
+**Branch**: `002-project-management-oa` | **Date**: 2025-01-28 | **Last Updated**: 2025-02-01 | **Spec**: [spec.md](./spec.md)
 
 **最新更新**：
+- 2025-02-01: 添加了招投标文件多文件支持设计（数组字段存储多个文件ID），添加了专家费支付编辑和删除功能设计
 - 2025-01-31: 添加了无权限用户交互规则（分层规则）设计，明确了可查看但隐藏编辑入口 vs 完全不可访问的实现方式
 - 2025-01-28: 添加了管理员编辑用户功能设计（支持编辑所有用户信息，同步更新NebulaAuth和OA本地数据库）
 **Input**: Feature specification from `/specs/002-project-management-oa/spec.md`
@@ -383,7 +384,7 @@ database:
 2. **项目**：项目基本信息
 3. **甲方**：项目委托方（仅包含甲方基本信息，不包含联系人信息）
 4. **项目联系人**：甲方在特定项目中的联系人，作为独立实体存在，包含联系人姓名和联系电话。每个项目可以有一个项目联系人，关联到项目的甲方。相同甲方在不同项目上可以有不同的项目联系人
-5. **招投标信息**：招投标阶段信息
+5. **招投标信息**：招投标阶段信息，支持每种类型（招标文件、投标文件、中标通知书）多个文件上传，通过数组字段（如 `TenderFileIDs []string`）存储多个文件ID。专家费支付信息通过财务记录实体管理，支持编辑和删除操作
 6. **合同**：主合同信息
 7. **补充协议**：合同补充协议，关联到主合同
 8. **财务记录**：统一的财务记录实体（替代所有财务相关实体）
@@ -727,6 +728,106 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
 - ✅ **处理已存在用户**：支持用户已在NebulaAuth存在但OA本地数据库不存在的情况
 
 详细设计见：`research.md` 第12节
+
+### 招投标文件多文件支持设计
+
+**问题**: 当前招投标信息每个类型（招标文件、投标文件、中标通知书）只能存储一个文件，实际业务中可能需要上传多个文件。
+
+**解决方案**: 修改 `BiddingInfo` 数据模型，使用数组字段存储多个文件ID，支持每种类型上传多个文件。
+
+**数据模型设计**：
+
+```go
+// backend/internal/models/bidding_info.go
+type BiddingInfo struct {
+    ID                string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+    ProjectID         string    `json:"project_id" gorm:"type:uuid;not null;uniqueIndex"`
+    Project           Project   `json:"project" gorm:"foreignKey:ProjectID"`
+
+    // 招投标文件（数组字段，支持多个文件）
+    TenderFileIDs      pq.StringArray `json:"tender_file_ids" gorm:"type:text[]"`      // PostgreSQL 数组类型
+    TenderFiles        []File         `json:"tender_files,omitempty" gorm:"foreignKey:ID;references:TenderFileIDs"`
+    BidFileIDs         pq.StringArray `json:"bid_file_ids" gorm:"type:text[]"`          // PostgreSQL 数组类型
+    BidFiles           []File         `json:"bid_files,omitempty" gorm:"foreignKey:ID;references:BidFileIDs"`
+    AwardNoticeFileIDs pq.StringArray `json:"award_notice_file_ids" gorm:"type:text[]"` // PostgreSQL 数组类型
+    AwardNoticeFiles   []File         `json:"award_notice_files,omitempty" gorm:"foreignKey:ID;references:AwardNoticeFileIDs"`
+
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+```
+
+**技术要点**：
+1. **PostgreSQL 数组支持**：使用 `pq.StringArray`（PostgreSQL 驱动提供的数组类型）存储文件ID数组
+2. **GORM 处理**：GORM 支持 PostgreSQL 数组类型，需要在数据库迁移时确保数组类型正确创建
+3. **查询优化**：查询时使用 `Preload` 预加载关联的文件实体，避免 N+1 查询问题
+
+**API 设计**：
+
+```go
+// 更新招投标信息（支持添加多个文件）
+PUT /project-oa/v1/user/projects/{id}/bidding
+{
+  "tender_file_ids": ["uuid1", "uuid2"],      // 数组，支持多个文件
+  "bid_file_ids": ["uuid3", "uuid4"],        // 数组，支持多个文件
+  "award_notice_file_ids": ["uuid5"]         // 数组，支持多个文件
+}
+```
+
+**前端实现**：
+- 文件上传组件支持多选
+- 文件列表按类型分组显示，每种类型显示多个文件
+- 支持删除单个文件（从数组中移除对应ID）
+
+**数据库迁移**：
+- 需要将现有的单文件字段迁移到数组字段
+- 迁移脚本将现有 `TenderFileID` 转换为 `TenderFileIDs` 数组（包含单个元素）
+
+### 专家费支付编辑和删除功能设计
+
+**问题**: 当前专家费支付记录只支持创建和查看，不支持编辑和删除，实际业务中可能需要修改或删除错误的记录。
+
+**解决方案**: 为专家费支付记录添加编辑和删除功能，支持修改所有字段（专家姓名、金额、支付方式、支付日期、备注），支持删除记录。
+
+**数据模型**：
+- 专家费支付记录通过 `FinancialRecord` 实体管理（`financial_type = 'expert_fee'`）
+- 已有字段支持编辑：`expert_name`、`amount`、`payment_method`、`occurred_at`、`description`
+
+**API 设计**：
+
+```go
+// 编辑专家费支付记录
+PUT /project-oa/v1/user/projects/{project_id}/bidding/expert-fee/{record_id}
+{
+  "expert_name": "专家姓名",
+  "amount": 1000.00,
+  "payment_method": "cash",  // "cash" | "transfer"
+  "occurred_at": "2025-02-01T00:00:00Z",
+  "description": "备注信息"
+}
+
+// 删除专家费支付记录
+DELETE /project-oa/v1/user/projects/{project_id}/bidding/expert-fee/{record_id}
+```
+
+**权限控制**：
+- 只有有权限管理经营信息的用户才能编辑和删除专家费支付记录
+- 使用 `PermissionService.CanManageBusinessInfo` 进行权限检查
+
+**前端实现**：
+- 在 `ExpertFeePaymentList` 组件中添加"编辑"和"删除"按钮（仅对有权限用户显示）
+- 编辑功能：点击"编辑"按钮打开编辑表单，预填充现有数据
+- 删除功能：点击"删除"按钮显示确认对话框，确认后删除记录
+
+**实现位置**：
+- **后端**：
+  - `backend/internal/services/bidding_service.go`：添加 `UpdateExpertFeePayment` 和 `DeleteExpertFeePayment` 方法
+  - `backend/internal/handlers/bidding_handler.go`：添加 `UpdateExpertFeePayment` 和 `DeleteExpertFeePayment` 处理器
+  - `backend/internal/router/router.go`：添加 PUT 和 DELETE 路由
+- **前端**：
+  - `frontend/src/services/bidding.ts`：添加 `updateExpertFeePayment` 和 `deleteExpertFeePayment` 方法
+  - `frontend/src/components/business/ExpertFeePaymentList.tsx`：添加编辑和删除功能
+  - `frontend/src/components/business/ExpertFeeForm.tsx`：支持编辑模式（传入现有记录数据）
 
 ### 统一权限管理机制设计
 

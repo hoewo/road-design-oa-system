@@ -52,18 +52,38 @@ func Migrate() error {
 
 	log.Println("Starting database migration...")
 
-	// 先执行用户角色迁移（从单个role字段迁移到roles数组）
+	// 启用UUID扩展
+	if err := DB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; err != nil {
+		log.Printf("Warning: Failed to create uuid-ossp extension (may already exist): %v", err)
+	}
+
+	// ============================================
+	// 阶段1: 表结构迁移（在AutoMigrate之前执行）
+	// 这些迁移会改变表结构，需要在AutoMigrate之前完成
+	// ============================================
+
+	// 1.1 用户角色迁移（从单个role字段迁移到roles数组）
 	if err := migrateUserRoles(); err != nil {
 		return fmt.Errorf("failed to migrate user roles: %w", err)
 	}
 
-	// 删除旧的role列（如果存在）
+	// 1.2 删除旧的role列（如果存在）
 	if err := dropOldRoleColumn(); err != nil {
 		return fmt.Errorf("failed to drop old role column: %w", err)
 	}
 
-	// 使用事务进行迁移，但不回滚已存在的表
-	// GORM AutoMigrate 是幂等的，多次执行是安全的
+	// 1.3 招投标信息表结构迁移（从单文件字段到数组字段）
+	// 注意：必须在AutoMigrate之前执行，因为AutoMigrate会根据模型创建数组字段
+	// 如果表已存在且是旧结构，需要先迁移表结构
+	if err := migrateBiddingInfoToArray(); err != nil {
+		return fmt.Errorf("failed to migrate bidding info to array: %w", err)
+	}
+
+	// ============================================
+	// 阶段2: 表结构创建/更新（使用GORM AutoMigrate）
+	// AutoMigrate 会根据模型定义创建/更新表结构
+	// 注意：AutoMigrate 只会添加字段，不会删除字段
+	// ============================================
 	err := DB.AutoMigrate(
 		&models.User{},
 		&models.Project{},
@@ -84,7 +104,7 @@ func Migrate() error {
 		&models.ExternalCommission{},
 		&models.ProductionCost{},
 		&models.CompanyConfig{},
-		&models.BiddingInfo{}, // 招投标信息实体
+		&models.BiddingInfo{}, // 招投标信息实体（如果表不存在，会创建数组字段）
 	)
 
 	if err != nil {
@@ -96,6 +116,31 @@ func Migrate() error {
 			return nil
 		}
 		return fmt.Errorf("failed to migrate database: %w", err)
+	}
+
+	// ============================================
+	// 阶段3: 数据迁移（在表结构创建后执行）
+	// 这些迁移会移动或转换数据，需要在表结构就绪后执行
+	// ============================================
+
+	// 3.1 迁移联系人数据（从clients表到project_contacts表）
+	if err := migrateContactData(); err != nil {
+		return fmt.Errorf("failed to migrate contact data: %w", err)
+	}
+
+	// 3.2 迁移财务记录数据（从Bonus、ExpertFeePayment、ProductionCost到FinancialRecord）
+	if err := migrateFinancialRecords(); err != nil {
+		return fmt.Errorf("failed to migrate financial records: %w", err)
+	}
+
+	// ============================================
+	// 阶段4: 初始化默认数据
+	// 在表结构创建后，初始化必要的默认数据
+	// ============================================
+
+	// 4.1 初始化专业字典默认数据
+	if err := initializeDisciplines(); err != nil {
+		return fmt.Errorf("failed to initialize disciplines: %w", err)
 	}
 
 	log.Println("Database migration completed successfully")
@@ -160,7 +205,7 @@ func migrateUserRoles() error {
 		}
 	}
 
-	// Step 3: 为剩余的NULL值设置默认值
+	// Step 3: 为剩余的NULL值设置默认值（如果role列不存在，也需要设置默认值）
 	if err := DB.Exec(`
 		UPDATE users 
 		SET roles = ARRAY['member']::text[]
@@ -201,13 +246,14 @@ func dropOldRoleColumn() error {
 		return fmt.Errorf("failed to check role column: %w", err)
 	}
 
-	// 如果role列不存在，跳过
+	// 如果role列不存在，跳过删除操作
 	if !roleExists {
 		log.Println("Old role column does not exist, skipping drop")
 		return nil
 	}
 
-	// 确保所有用户都有roles值（防止删除role列后出现问题）
+	// 注意：roles默认值已在migrateUserRoles()中设置，这里不需要重复设置
+	// 但为了确保数据完整性，再次检查并设置（幂等操作）
 	if err := DB.Exec(`
 		UPDATE users 
 		SET roles = ARRAY['member']::text[]
@@ -244,6 +290,287 @@ func containsIgnorableError(errMsg string) bool {
 		}
 	}
 	return false
+}
+
+// migrateContactData 迁移联系人数据从clients表到project_contacts表
+func migrateContactData() error {
+	// 检查clients表是否有contact_name或contact_phone列
+	var hasContactName, hasContactPhone bool
+	DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'clients' 
+			AND column_name = 'contact_name'
+		)
+	`).Scan(&hasContactName)
+	DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'clients' 
+			AND column_name = 'contact_phone'
+		)
+	`).Scan(&hasContactPhone)
+
+	// 如果clients表没有这些列，说明已经迁移过了，跳过
+	if !hasContactName && !hasContactPhone {
+		log.Println("Contact data already migrated, skipping")
+		return nil
+	}
+
+	log.Println("Migrating contact data from clients to project_contacts...")
+
+	// 迁移联系人数据
+	if err := DB.Exec(`
+		INSERT INTO project_contacts (project_id, client_id, contact_name, contact_phone, created_at, updated_at)
+		SELECT
+			p.id AS project_id,
+			p.client_id,
+			COALESCE(c.contact_name, '') AS contact_name,
+			COALESCE(c.contact_phone, '') AS contact_phone,
+			CURRENT_TIMESTAMP AS created_at,
+			CURRENT_TIMESTAMP AS updated_at
+		FROM projects p
+		INNER JOIN clients c ON p.client_id = c.id
+		WHERE p.client_id IS NOT NULL
+		  AND (c.contact_name IS NOT NULL OR c.contact_phone IS NOT NULL)
+		ON CONFLICT (project_id) DO NOTHING
+	`).Error; err != nil {
+		return fmt.Errorf("failed to migrate contact data: %w", err)
+	}
+
+	log.Println("Contact data migration completed")
+	return nil
+}
+
+// migrateFinancialRecords 迁移财务记录数据（从Bonus、ExpertFeePayment、ProductionCost到FinancialRecord）
+func migrateFinancialRecords() error {
+	log.Println("Migrating financial records...")
+
+	// 迁移Bonus数据
+	if err := DB.Exec(`
+		INSERT INTO financial_records (
+			id, project_id, financial_type, direction, amount, occurred_at,
+			bonus_category, recipient_id, description, created_by_id, created_at, updated_at
+		)
+		SELECT
+			id, project_id, 'bonus'::text, 'expense'::text, amount,
+			COALESCE(created_at, NOW()),
+			CASE
+				WHEN bonus_type = 'business' THEN 'business'::text
+				WHEN bonus_type = 'production' THEN 'production'::text
+				ELSE NULL
+			END,
+			user_id, description, created_by_id, created_at, updated_at
+		FROM bonuses
+		WHERE NOT EXISTS (
+			SELECT 1 FROM financial_records WHERE financial_records.id = bonuses.id
+		)
+	`).Error; err != nil {
+		// 如果bonuses表不存在，忽略错误
+		if !strings.Contains(err.Error(), "does not exist") {
+			log.Printf("Warning: Failed to migrate bonus data: %v", err)
+		}
+	}
+
+	// 迁移ExpertFeePayment数据
+	if err := DB.Exec(`
+		INSERT INTO financial_records (
+			id, project_id, financial_type, direction, amount, occurred_at,
+			payment_method, expert_name, description, created_by_id, created_at, updated_at
+		)
+		SELECT
+			id, project_id, 'expert_fee'::text, 'expense'::text, amount,
+			COALESCE(created_at, NOW()),
+			payment_method::text, expert_name, description, created_by_id, created_at, updated_at
+		FROM expert_fee_payments
+		WHERE NOT EXISTS (
+			SELECT 1 FROM financial_records WHERE financial_records.id = expert_fee_payments.id
+		)
+	`).Error; err != nil {
+		// 如果expert_fee_payments表不存在，忽略错误
+		if !strings.Contains(err.Error(), "does not exist") {
+			log.Printf("Warning: Failed to migrate expert fee payment data: %v", err)
+		}
+	}
+
+	// 迁移ProductionCost数据
+	if err := DB.Exec(`
+		INSERT INTO financial_records (
+			id, project_id, financial_type, direction, amount, occurred_at,
+			cost_category, description, created_by_id, created_at, updated_at
+		)
+		SELECT
+			id, project_id, 'cost'::text, 'expense'::text, amount,
+			COALESCE(incurred_at, created_at, NOW()),
+			CASE
+				WHEN cost_type = 'travel' THEN 'taxi'::text
+				WHEN cost_type = 'accommodation' THEN 'accommodation'::text
+				WHEN cost_type = 'vehicle' THEN 'taxi'::text
+				WHEN cost_type = 'labor' THEN 'other'::text
+				WHEN cost_type = 'material' THEN 'other'::text
+				WHEN cost_type = 'other' THEN 'other'::text
+				ELSE 'other'::text
+			END,
+			description, created_by_id, created_at, updated_at
+		FROM production_costs
+		WHERE NOT EXISTS (
+			SELECT 1 FROM financial_records WHERE financial_records.id = production_costs.id
+		)
+	`).Error; err != nil {
+		// 如果production_costs表不存在，忽略错误
+		if !strings.Contains(err.Error(), "does not exist") {
+			log.Printf("Warning: Failed to migrate production cost data: %v", err)
+		}
+	}
+
+	log.Println("Financial records migration completed")
+	return nil
+}
+
+// initializeDisciplines 初始化专业字典默认数据
+func initializeDisciplines() error {
+	log.Println("Initializing default disciplines...")
+
+	defaultDisciplines := []struct {
+		name        string
+		description string
+	}{
+		{"道路工程", "道路工程设计专业"},
+		{"桥梁工程", "桥梁工程设计专业"},
+		{"隧道工程", "隧道工程设计专业"},
+		{"交通工程", "交通工程设计专业"},
+		{"给排水工程", "给排水工程设计专业"},
+		{"电气工程", "电气工程设计专业"},
+		{"景观工程", "景观工程设计专业"},
+		{"岩土工程", "岩土工程设计专业"},
+		{"工程经济", "工程经济专业"},
+		{"工程测量", "工程测量专业"},
+	}
+
+	for _, d := range defaultDisciplines {
+		// GORM会自动将?占位符转换为PostgreSQL的$1, $2格式
+		if err := DB.Exec(`
+			INSERT INTO disciplines (name, description, is_active, created_at, updated_at)
+			VALUES ($1, $2, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+			ON CONFLICT (name) DO NOTHING
+		`, d.name, d.description).Error; err != nil {
+			log.Printf("Warning: Failed to insert discipline %s: %v", d.name, err)
+		}
+	}
+
+	log.Println("Default disciplines initialized")
+	return nil
+}
+
+// migrateBiddingInfoToArray 迁移bidding_info表从单文件字段到数组字段
+func migrateBiddingInfoToArray() error {
+	// 检查数组字段是否已存在
+	var hasArrayFields bool
+	err := DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'bidding_info' 
+			AND column_name = 'tender_file_ids'
+		)
+	`).Scan(&hasArrayFields).Error
+
+	if err != nil {
+		// 如果bidding_info表不存在，忽略错误（会在AutoMigrate中创建）
+		if strings.Contains(err.Error(), "does not exist") {
+			return nil
+		}
+		return fmt.Errorf("failed to check bidding_info array fields: %w", err)
+	}
+
+	// 如果数组字段已存在，跳过迁移
+	if hasArrayFields {
+		log.Println("Bidding info array fields already exist, skipping migration")
+		return nil
+	}
+
+	// 检查单文件字段是否存在
+	var hasSingleFields bool
+	err = DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'bidding_info' 
+			AND column_name = 'tender_file_id'
+		)
+	`).Scan(&hasSingleFields).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check bidding_info single fields: %w", err)
+	}
+
+	// 如果单文件字段不存在，说明表还没有创建或已经迁移过，跳过
+	if !hasSingleFields {
+		log.Println("Bidding info single fields do not exist, skipping migration")
+		return nil
+	}
+
+	log.Println("Migrating bidding_info from single file fields to array fields...")
+
+	// Step 1: 添加新的数组列
+	if err := DB.Exec(`
+		ALTER TABLE bidding_info 
+		ADD COLUMN IF NOT EXISTS tender_file_ids TEXT[],
+		ADD COLUMN IF NOT EXISTS bid_file_ids TEXT[],
+		ADD COLUMN IF NOT EXISTS award_notice_file_ids TEXT[]
+	`).Error; err != nil {
+		return fmt.Errorf("failed to add array columns: %w", err)
+	}
+
+	// Step 2: 迁移现有数据
+	if err := DB.Exec(`
+		UPDATE bidding_info 
+		SET tender_file_ids = CASE 
+			WHEN tender_file_id IS NOT NULL THEN ARRAY[tender_file_id::TEXT]
+			ELSE ARRAY[]::TEXT[]
+		END,
+		bid_file_ids = CASE 
+			WHEN bid_file_id IS NOT NULL THEN ARRAY[bid_file_id::TEXT]
+			ELSE ARRAY[]::TEXT[]
+		END,
+		award_notice_file_ids = CASE 
+			WHEN award_notice_file_id IS NOT NULL THEN ARRAY[award_notice_file_id::TEXT]
+			ELSE ARRAY[]::TEXT[]
+		END
+		WHERE tender_file_ids IS NULL OR bid_file_ids IS NULL OR award_notice_file_ids IS NULL
+	`).Error; err != nil {
+		return fmt.Errorf("failed to migrate data: %w", err)
+	}
+
+	// Step 3: 删除旧的外键约束
+	DB.Exec(`ALTER TABLE bidding_info DROP CONSTRAINT IF EXISTS fk_bidding_info_tender_file`)
+	DB.Exec(`ALTER TABLE bidding_info DROP CONSTRAINT IF EXISTS fk_bidding_info_bid_file`)
+	DB.Exec(`ALTER TABLE bidding_info DROP CONSTRAINT IF EXISTS fk_bidding_info_award_notice_file`)
+
+	// Step 4: 删除旧的索引
+	DB.Exec(`DROP INDEX IF EXISTS idx_bidding_info_tender_file_id`)
+	DB.Exec(`DROP INDEX IF EXISTS idx_bidding_info_bid_file_id`)
+	DB.Exec(`DROP INDEX IF EXISTS idx_bidding_info_award_notice_file_id`)
+
+	// Step 5: 删除旧的列
+	if err := DB.Exec(`
+		ALTER TABLE bidding_info 
+		DROP COLUMN IF EXISTS tender_file_id,
+		DROP COLUMN IF EXISTS bid_file_id,
+		DROP COLUMN IF EXISTS award_notice_file_id
+	`).Error; err != nil {
+		return fmt.Errorf("failed to drop old columns: %w", err)
+	}
+
+	// Step 6: 添加注释
+	DB.Exec(`COMMENT ON COLUMN bidding_info.tender_file_ids IS '招标文件ID数组，支持多个文件'`)
+	DB.Exec(`COMMENT ON COLUMN bidding_info.bid_file_ids IS '投标文件ID数组，支持多个文件'`)
+	DB.Exec(`COMMENT ON COLUMN bidding_info.award_notice_file_ids IS '中标通知书文件ID数组，支持多个文件'`)
+
+	log.Println("Bidding info array migration completed")
+	return nil
 }
 
 func Close() error {

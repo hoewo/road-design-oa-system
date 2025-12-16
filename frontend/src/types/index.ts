@@ -260,12 +260,12 @@ export interface ProjectBusiness {
 export interface BiddingInfo {
   id: string // UUID string
   project_id: string // UUID string
-  tender_file_id?: string // UUID string
-  tender_file?: File
-  bid_file_id?: string // UUID string
-  bid_file?: File
-  award_notice_file_id?: string // UUID string
-  award_notice_file?: File
+  tender_file_ids?: string[] // UUID string数组，支持多个文件
+  tender_files?: File[] // 关联查询的文件详情
+  bid_file_ids?: string[] // UUID string数组，支持多个文件
+  bid_files?: File[] // 关联查询的文件详情
+  award_notice_file_ids?: string[] // UUID string数组，支持多个文件
+  award_notice_files?: File[] // 关联查询的文件详情
   created_at: string
   updated_at: string
 }

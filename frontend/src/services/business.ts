@@ -7,8 +7,6 @@ import type {
   CreateContractRequest,
   ContractAmendment,
   CreateContractAmendmentRequest,
-  ExpertFeePayment,
-  CreateExpertFeePaymentRequest,
   ApiResponse,
   File,
   SearchFilesParams,
@@ -134,49 +132,6 @@ export const businessService = {
     await del<void>(
       `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`
     )
-  },
-
-  // Expert Fee Payments
-  getExpertFeePayments: async (
-    projectId: string | number
-  ): Promise<ExpertFeePayment[]> => {
-    const response = await get<ExpertFeePayment[]>(
-      `/user/projects/${projectId}/expert-fee-payments`
-    )
-    return response || []
-  },
-
-  createExpertFeePayment: async (
-    projectId: string | number,
-    data: CreateExpertFeePaymentRequest
-  ): Promise<ExpertFeePayment> => {
-    const response = await post<ExpertFeePayment>(
-      `/user/projects/${projectId}/expert-fee-payments`,
-      data
-    )
-    return response
-  },
-
-  getExpertFeePayment: async (paymentId: number): Promise<ExpertFeePayment> => {
-    const response = await get<ExpertFeePayment>(
-      `/user/expert-fee-payments/${paymentId}`
-    )
-    return response
-  },
-
-  updateExpertFeePayment: async (
-    paymentId: number,
-    data: Partial<CreateExpertFeePaymentRequest>
-  ): Promise<ExpertFeePayment> => {
-    const response = await put<ExpertFeePayment>(
-      `/user/expert-fee-payments/${paymentId}`,
-      data
-    )
-    return response
-  },
-
-  deleteExpertFeePayment: async (paymentId: number): Promise<void> => {
-    await del<void>(`/user/expert-fee-payments/${paymentId}`)
   },
 
   // Contract Files

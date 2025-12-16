@@ -1047,6 +1047,152 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  # 专家费支付管理
+  /user/projects/{id}/bidding/expert-fee:
+    get:
+      tags:
+        - 招投标管理
+      summary: 获取项目专家费支付记录列表
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 专家费支付记录列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FinancialRecord'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    post:
+      tags:
+        - 招投标管理
+      summary: 创建专家费支付记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpertFeePaymentRequest'
+      responses:
+        '201':
+          description: 专家费支付记录创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FinancialRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /user/projects/{id}/bidding/expert-fee/{record_id}:
+    put:
+      tags:
+        - 招投标管理
+      summary: 更新专家费支付记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: record_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpertFeePaymentRequest'
+      responses:
+        '200':
+          description: 专家费支付记录更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/FinancialRecord'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    delete:
+      tags:
+        - 招投标管理
+      summary: 删除专家费支付记录
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: record_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: 专家费支付记录删除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   # 项目生产信息
   /user/projects/{id}/production:
     get:
@@ -2746,12 +2892,36 @@ components:
           $ref: '#/components/schemas/UUID'
         project_id:
           $ref: '#/components/schemas/UUID'
-        tender_file_id:
+        tender_file_ids:
+          type: array
+          items:
           $ref: '#/components/schemas/UUID'
-        bid_file_id:
+          description: 招标文件ID数组，支持多个文件
+        tender_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+          description: 招标文件详情（关联查询）
+        bid_file_ids:
+          type: array
+          items:
           $ref: '#/components/schemas/UUID'
-        award_notice_file_id:
+          description: 投标文件ID数组，支持多个文件
+        bid_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+          description: 投标文件详情（关联查询）
+        award_notice_file_ids:
+          type: array
+          items:
           $ref: '#/components/schemas/UUID'
+          description: 中标通知书文件ID数组，支持多个文件
+        award_notice_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/File'
+          description: 中标通知书文件详情（关联查询）
         created_at:
           $ref: '#/components/schemas/DateTime'
         updated_at:
@@ -2760,12 +2930,74 @@ components:
     UpdateBiddingInfoRequest:
       type: object
       properties:
-        tender_file_id:
+        tender_file_ids:
+          type: array
+          items:
           $ref: '#/components/schemas/UUID'
-        bid_file_id:
+          description: 招标文件ID数组，支持多个文件
+        bid_file_ids:
+          type: array
+          items:
           $ref: '#/components/schemas/UUID'
-        award_notice_file_id:
+          description: 投标文件ID数组，支持多个文件
+        award_notice_file_ids:
+          type: array
+          items:
           $ref: '#/components/schemas/UUID'
+          description: 中标通知书文件ID数组，支持多个文件
+    
+    CreateExpertFeePaymentRequest:
+      type: object
+      required:
+        - expert_name
+        - amount
+        - occurred_at
+        - payment_method
+      properties:
+        expert_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: 专家姓名
+        amount:
+          type: number
+          format: float
+          minimum: 0
+          description: 支付金额
+        occurred_at:
+          $ref: '#/components/schemas/DateTime'
+          description: 支付日期
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+          description: 支付方式（现金/转账）
+        description:
+          type: string
+          description: 备注信息（可选）
+    
+    UpdateExpertFeePaymentRequest:
+      type: object
+      properties:
+        expert_name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          description: 专家姓名
+        amount:
+          type: number
+          format: float
+          minimum: 0
+          description: 支付金额
+        occurred_at:
+          $ref: '#/components/schemas/DateTime'
+          description: 支付日期
+        payment_method:
+          type: string
+          enum: [cash, transfer]
+          description: 支付方式（现金/转账）
+        description:
+          type: string
+          description: 备注信息
     
     # 项目生产信息
     ProjectProduction:

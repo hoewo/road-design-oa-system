@@ -217,21 +217,24 @@ type ProjectContact struct {
 ### 5. BiddingInfo (招投标信息)
 
 ```go
+import "github.com/lib/pq"
+
 type BiddingInfo struct {
     ID              string    `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
     ProjectID       string    `json:"project_id" gorm:"type:uuid;not null;uniqueIndex"`
     Project         Project   `json:"project" gorm:"foreignKey:ProjectID"`
     
-    // 招投标文件（通过File实体关联）
-    TenderFileID    *string   `json:"tender_file_id" gorm:"type:uuid"`
-    TenderFile      *File     `json:"tender_file,omitempty" gorm:"foreignKey:TenderFileID"`
-    BidFileID       *string   `json:"bid_file_id" gorm:"type:uuid"`
-    BidFile         *File     `json:"bid_file,omitempty" gorm:"foreignKey:BidFileID"`
-    AwardNoticeFileID *string `json:"award_notice_file_id" gorm:"type:uuid"`
-    AwardNoticeFile *File     `json:"award_notice_file,omitempty" gorm:"foreignKey:AwardNoticeFileID"`
+    // 招投标文件（数组字段，支持多个文件，通过File实体关联）
+    TenderFileIDs      pq.StringArray `json:"tender_file_ids" gorm:"type:text[]"`      // PostgreSQL 数组类型
+    TenderFiles        []File         `json:"tender_files,omitempty" gorm:"-"`         // 关联查询，不存储
+    BidFileIDs         pq.StringArray `json:"bid_file_ids" gorm:"type:text[]"`          // PostgreSQL 数组类型
+    BidFiles           []File         `json:"bid_files,omitempty" gorm:"-"`             // 关联查询，不存储
+    AwardNoticeFileIDs pq.StringArray `json:"award_notice_file_ids" gorm:"type:text[]"` // PostgreSQL 数组类型
+    AwardNoticeFiles   []File         `json:"award_notice_files,omitempty" gorm:"-"`     // 关联查询，不存储
     
     // 专家费支付（通过FinancialRecord关联，financial_type=expert_fee）
     // 不在此实体中直接存储，通过ProjectID和FinancialType查询
+    // 支持编辑和删除操作
     
     CreatedAt       time.Time `json:"created_at"`
     UpdatedAt       time.Time `json:"updated_at"`
@@ -241,11 +244,19 @@ type BiddingInfo struct {
 **Validation Rules**:
 - ProjectID: 必填，必须是有效的项目ID
 - 一个项目只能有一条招投标信息（uniqueIndex约束）
+- 文件ID数组：每个数组元素必须是有效的UUID格式
 
 **Business Rules**:
 - 招投标信息与项目一对一关系
-- 专家费支付通过FinancialRecord实体管理（financial_type=expert_fee）
+- 每种文件类型（招标文件、投标文件、中标通知书）支持多个文件上传
 - 文件通过File实体关联，支持上传、下载、删除
+- 专家费支付通过FinancialRecord实体管理（financial_type=expert_fee），支持创建、编辑、删除操作
+- 查询时使用 `Preload` 预加载关联的文件实体，避免 N+1 查询问题
+
+**数据库迁移注意事项**:
+- 需要将现有的单文件字段（`TenderFileID`、`BidFileID`、`AwardNoticeFileID`）迁移到数组字段
+- 迁移脚本将现有单文件ID转换为数组格式（包含单个元素）
+- PostgreSQL 数组类型需要确保数据库支持 `text[]` 类型
 
 ### 6. Contract (合同)
 

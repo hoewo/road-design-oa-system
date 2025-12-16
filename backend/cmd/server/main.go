@@ -69,7 +69,6 @@ func main() {
 	productionCostHandler := handlers.NewProductionCostHandler(logger)
 	contractHandler := handlers.NewContractHandler(cfg, logger)
 	contractAmendmentHandler := handlers.NewContractAmendmentHandler(logger)
-	expertFeePaymentHandler := handlers.NewExpertFeePaymentHandler(logger)
 	financialHandler := handlers.NewFinancialHandler(logger)
 	bonusHandler := handlers.NewBonusHandler(logger)
 	userHandler := handlers.NewUserHandlerWithConfig(cfg, logger)
@@ -140,7 +139,6 @@ func main() {
 		productionCostHandler,
 		contractHandler,
 		contractAmendmentHandler,
-		expertFeePaymentHandler,
 		financialHandler,
 		bonusHandler,
 		userHandler,

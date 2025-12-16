@@ -39,7 +39,6 @@ func (r *Router) SetupRoutes(
 	productionCostHandler *handlers.ProductionCostHandler,
 	contractHandler *handlers.ContractHandler,
 	contractAmendmentHandler *handlers.ContractAmendmentHandler,
-	expertFeePaymentHandler *handlers.ExpertFeePaymentHandler,
 	financialHandler *handlers.FinancialHandler,
 	bonusHandler *handlers.BonusHandler,
 	userHandler *handlers.UserHandler,
@@ -125,6 +124,8 @@ func (r *Router) SetupRoutes(
 			projects.DELETE("/:id/bidding", biddingHandler.DeleteBiddingInfo)
 			projects.GET("/:id/bidding/expert-fee", biddingHandler.GetExpertFeePayments)
 			projects.POST("/:id/bidding/expert-fee", biddingHandler.CreateExpertFeePayment)
+			projects.PUT("/:id/bidding/expert-fee/:record_id", biddingHandler.UpdateExpertFeePayment)
+			projects.DELETE("/:id/bidding/expert-fee/:record_id", biddingHandler.DeleteExpertFeePayment)
 
 			// File upload route (general purpose)
 			projects.POST("/:id/files", fileHandler.UploadFile)
@@ -161,10 +162,6 @@ func (r *Router) SetupRoutes(
 			projects.GET("/:id/contracts", contractHandler.GetContractsByProject)
 			projects.POST("/:id/contracts", contractHandler.CreateContract)
 
-			// Expert fee payment routes
-			projects.GET("/:id/expert-fee-payments", expertFeePaymentHandler.GetExpertFeePayments)
-			projects.POST("/:id/expert-fee-payments", expertFeePaymentHandler.CreateExpertFeePayment)
-
 			// Financial routes
 			projects.GET("/:id/financial", financialHandler.GetProjectFinancial)
 			projects.POST("/:id/financial", financialHandler.CreateFinancialRecord)
@@ -196,14 +193,6 @@ func (r *Router) SetupRoutes(
 			contractAmendments.GET("/:id", contractAmendmentHandler.GetContractAmendment)
 			contractAmendments.PUT("/:id", contractAmendmentHandler.UpdateContractAmendment)
 			contractAmendments.DELETE("/:id", contractAmendmentHandler.DeleteContractAmendment)
-		}
-
-		// Expert fee payment routes (standalone)
-		expertFeePayments := user.Group("/expert-fee-payments")
-		{
-			expertFeePayments.GET("/:id", expertFeePaymentHandler.GetExpertFeePayment)
-			expertFeePayments.PUT("/:id", expertFeePaymentHandler.UpdateExpertFeePayment)
-			expertFeePayments.DELETE("/:id", expertFeePaymentHandler.DeleteExpertFeePayment)
 		}
 
 		// Financial record routes (standalone)

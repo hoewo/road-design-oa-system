@@ -1,10 +1,10 @@
-import { get, post, put } from './api'
+import { get, post, put, del } from './api'
 import type { BiddingInfo, FinancialRecord } from '@/types'
 
 export interface CreateOrUpdateBiddingInfoRequest {
-  tender_file_id?: string
-  bid_file_id?: string
-  award_notice_file_id?: string
+  tender_file_ids?: string[]  // 招标文件ID数组，支持多个文件
+  bid_file_ids?: string[]     // 投标文件ID数组，支持多个文件
+  award_notice_file_ids?: string[]  // 中标通知书文件ID数组，支持多个文件
 }
 
 export interface CreateExpertFeePaymentRequest {
@@ -12,6 +12,14 @@ export interface CreateExpertFeePaymentRequest {
   amount: number
   occurred_at: string
   payment_method: 'cash' | 'transfer'
+  description?: string
+}
+
+export interface UpdateExpertFeePaymentRequest {
+  expert_name?: string
+  amount?: number
+  occurred_at?: string
+  payment_method?: 'cash' | 'transfer'
   description?: string
 }
 
@@ -58,6 +66,28 @@ export const biddingService = {
     return post<FinancialRecord>(
       `/user/projects/${projectId}/bidding/expert-fee`,
       data
+    )
+  },
+
+  // Update expert fee payment
+  updateExpertFeePayment: async (
+    projectId: string,
+    recordId: string,
+    data: UpdateExpertFeePaymentRequest
+  ): Promise<FinancialRecord> => {
+    return put<FinancialRecord>(
+      `/user/projects/${projectId}/bidding/expert-fee/${recordId}`,
+      data
+    )
+  },
+
+  // Delete expert fee payment
+  deleteExpertFeePayment: async (
+    projectId: string,
+    recordId: string
+  ): Promise<void> => {
+    return del<void>(
+      `/user/projects/${projectId}/bidding/expert-fee/${recordId}`
     )
   },
 }

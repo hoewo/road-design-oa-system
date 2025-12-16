@@ -2,6 +2,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/lib/pq"
 )
 
 // BiddingInfo 招投标信息
@@ -10,13 +12,13 @@ type BiddingInfo struct {
 	ProjectID         string    `json:"project_id" gorm:"type:uuid;not null;uniqueIndex"`
 	Project           Project   `json:"project" gorm:"foreignKey:ProjectID"`
 
-	// 招投标文件（通过File实体关联）
-	TenderFileID      *string `json:"tender_file_id" gorm:"type:uuid"`
-	TenderFile        *File   `json:"tender_file,omitempty" gorm:"foreignKey:TenderFileID"`
-	BidFileID         *string `json:"bid_file_id" gorm:"type:uuid"`
-	BidFile           *File   `json:"bid_file,omitempty" gorm:"foreignKey:BidFileID"`
-	AwardNoticeFileID *string `json:"award_notice_file_id" gorm:"type:uuid"`
-	AwardNoticeFile   *File   `json:"award_notice_file,omitempty" gorm:"foreignKey:AwardNoticeFileID"`
+	// 招投标文件（数组字段，支持多个文件，通过File实体关联）
+	TenderFileIDs      pq.StringArray `json:"tender_file_ids" gorm:"type:text[]"`      // PostgreSQL 数组类型
+	TenderFiles        []File         `json:"tender_files,omitempty" gorm:"-"`         // 关联查询，不存储
+	BidFileIDs         pq.StringArray `json:"bid_file_ids" gorm:"type:text[]"`          // PostgreSQL 数组类型
+	BidFiles           []File         `json:"bid_files,omitempty" gorm:"-"`             // 关联查询，不存储
+	AwardNoticeFileIDs pq.StringArray `json:"award_notice_file_ids" gorm:"type:text[]"` // PostgreSQL 数组类型
+	AwardNoticeFiles   []File         `json:"award_notice_files,omitempty" gorm:"-"`     // 关联查询，不存储
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

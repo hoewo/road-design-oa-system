@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -217,6 +218,150 @@ func (h *BiddingHandler) GetExpertFeePayments(c *gin.Context) {
 		"success": true,
 		"data":    records,
 	})
+}
+
+// UpdateExpertFeePaymentRequest represents the request to update expert fee payment
+type UpdateExpertFeePaymentRequest struct {
+	ExpertName    *string `json:"expert_name"`    // 专家姓名
+	Amount        *float64 `json:"amount"`         // 支付金额
+	OccurredAt    *string `json:"occurred_at"`    // 支付日期（ISO格式字符串）
+	PaymentMethod *string `json:"payment_method"` // 支付方式：cash/transfer
+	Description   *string `json:"description"`    // 备注信息
+}
+
+// UpdateExpertFeePayment handles updating expert fee payment
+// @Summary Update expert fee payment
+// @Description Update an existing expert fee payment record
+// @Tags 招投标管理
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Param record_id path string true "Record ID (UUID)"
+// @Param request body UpdateExpertFeePaymentRequest true "Expert fee payment update information"
+// @Success 200 {object} models.FinancialRecord
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/bidding/expert-fee/{record_id} [put]
+func (h *BiddingHandler) UpdateExpertFeePayment(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	recordID := c.Param("record_id")
+	if recordID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Record ID is required", nil)
+		return
+	}
+
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found", nil)
+		return
+	}
+
+	var req UpdateExpertFeePaymentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	// Parse occurred_at if provided
+	var occurredAt *time.Time
+	if req.OccurredAt != nil {
+		parsed, err := utils.ParseFlexibleDate(*req.OccurredAt)
+		if err != nil {
+			utils.HandleError(c, http.StatusBadRequest, "Invalid occurred_at date", err)
+			return
+		}
+		occurredAt = &parsed
+	}
+
+	// Convert to service request
+	serviceReq := &services.UpdateExpertFeePaymentRequest{
+		ExpertName:    req.ExpertName,
+		Amount:        req.Amount,
+		OccurredAt:    occurredAt,
+		PaymentMethod: req.PaymentMethod,
+		Description:   req.Description,
+	}
+
+	record, err := h.biddingService.UpdateExpertFeePayment(projectID, recordID, userID, serviceReq)
+	if err != nil {
+		h.logger.Error("Failed to update expert fee payment",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+			zap.String("record_id", recordID),
+		)
+		if err.Error() == "expert fee payment not found" {
+			utils.HandleError(c, http.StatusNotFound, "Expert fee payment not found", err)
+		} else if err.Error() == "权限不足：无法管理项目经营信息" {
+			utils.HandleError(c, http.StatusForbidden, "Permission denied", err)
+		} else {
+			utils.HandleError(c, http.StatusBadRequest, "Failed to update expert fee payment", err)
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    record,
+	})
+}
+
+// DeleteExpertFeePayment handles deleting expert fee payment
+// @Summary Delete expert fee payment
+// @Description Delete an existing expert fee payment record
+// @Tags 招投标管理
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Param record_id path string true "Record ID (UUID)"
+// @Success 204 "No Content"
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/bidding/expert-fee/{record_id} [delete]
+func (h *BiddingHandler) DeleteExpertFeePayment(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	recordID := c.Param("record_id")
+	if recordID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Record ID is required", nil)
+		return
+	}
+
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found", nil)
+		return
+	}
+
+	err := h.biddingService.DeleteExpertFeePayment(projectID, recordID, userID)
+	if err != nil {
+		h.logger.Error("Failed to delete expert fee payment",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+			zap.String("record_id", recordID),
+		)
+		if err.Error() == "expert fee payment not found" {
+			utils.HandleError(c, http.StatusNotFound, "Expert fee payment not found", err)
+		} else if err.Error() == "权限不足：无法管理项目经营信息" {
+			utils.HandleError(c, http.StatusForbidden, "Permission denied", err)
+		} else {
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to delete expert fee payment", err)
+		}
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // DeleteBiddingInfo handles deleting bidding info for a project

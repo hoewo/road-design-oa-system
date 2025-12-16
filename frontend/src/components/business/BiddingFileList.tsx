@@ -32,12 +32,6 @@ interface BiddingFileListProps {
 
 type BiddingFileType = 'tender' | 'bid' | 'award'
 
-const FILE_TYPE_LABELS: Record<BiddingFileType, string> = {
-  tender: '招标文件',
-  bid: '投标文件',
-  award: '中标通知书',
-}
-
 
 export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
   const [uploadModalVisible, setUploadModalVisible] = useState(false)
@@ -78,14 +72,21 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
         description
       )
 
-      // Then update bidding info with file ID
+      // Get current bidding info to append new file ID
+      const currentInfo = biddingInfo || {
+        tender_file_ids: [],
+        bid_file_ids: [],
+        award_notice_file_ids: [],
+      }
+
+      // Then update bidding info with file ID array (append new file)
       const updateData: any = {}
       if (fileType === 'tender') {
-        updateData.tender_file_id = uploadedFile.id
+        updateData.tender_file_ids = [...(currentInfo.tender_file_ids || []), uploadedFile.id]
       } else if (fileType === 'bid') {
-        updateData.bid_file_id = uploadedFile.id
+        updateData.bid_file_ids = [...(currentInfo.bid_file_ids || []), uploadedFile.id]
       } else if (fileType === 'award') {
-        updateData.award_notice_file_id = uploadedFile.id
+        updateData.award_notice_file_ids = [...(currentInfo.award_notice_file_ids || []), uploadedFile.id]
       }
       return await biddingService.createOrUpdateBiddingInfo(projectId, updateData)
     },
@@ -121,19 +122,26 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
     }
   }
 
-  const handleDelete = (fileType: BiddingFileType) => {
+  const handleDelete = (fileType: BiddingFileType, fileId: string) => {
     Modal.confirm({
       title: '确认删除',
-      content: `确定要删除${FILE_TYPE_LABELS[fileType]}吗？`,
+      content: `确定要删除该文件吗？`,
       onOk: async () => {
         try {
+          const currentInfo = biddingInfo || {
+            tender_file_ids: [],
+            bid_file_ids: [],
+            award_notice_file_ids: [],
+          }
+
+          // Remove file ID from array
           const updateData: any = {}
           if (fileType === 'tender') {
-            updateData.tender_file_id = null
+            updateData.tender_file_ids = (currentInfo.tender_file_ids || []).filter((id: string) => id !== fileId)
           } else if (fileType === 'bid') {
-            updateData.bid_file_id = null
+            updateData.bid_file_ids = (currentInfo.bid_file_ids || []).filter((id: string) => id !== fileId)
           } else if (fileType === 'award') {
-            updateData.award_notice_file_id = null
+            updateData.award_notice_file_ids = (currentInfo.award_notice_file_ids || []).filter((id: string) => id !== fileId)
           }
           await biddingService.createOrUpdateBiddingInfo(projectId, updateData)
           message.success('文件删除成功')
@@ -151,12 +159,23 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
   }
 
-  const renderFileSection = (
-    type: BiddingFileType,
-    file: File | undefined,
-    fileId: string | undefined
-  ) => {
-    if (!file && !fileId) {
+  const renderFileSection = (type: BiddingFileType) => {
+    // Get file IDs and files for this type
+    let fileIds: string[] = []
+    let files: File[] = []
+    
+    if (type === 'tender') {
+      fileIds = biddingInfo?.tender_file_ids || []
+      files = biddingInfo?.tender_files || []
+    } else if (type === 'bid') {
+      fileIds = biddingInfo?.bid_file_ids || []
+      files = biddingInfo?.bid_files || []
+    } else if (type === 'award') {
+      fileIds = biddingInfo?.award_notice_file_ids || []
+      files = biddingInfo?.award_notice_files || []
+    }
+
+    if (fileIds.length === 0) {
   return (
               <div
                 style={{
@@ -172,30 +191,51 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
       )
     }
 
+    return (
+      <Space direction="vertical" style={{ width: '100%' }} size="small">
+        {fileIds.map((fileId) => {
+          const file = files.find((f) => f.id === fileId)
     if (!file) {
+      // 文件信息未加载，可能是文件已被删除或数据不一致
+      // 显示一个提示，并提供删除选项（如果有权限）
       return (
         <div
+                key={fileId}
           style={{
             padding: '10px',
-            border: '2px solid #e0e0e0',
-            background: '#f9f9f9',
+            border: '2px solid #ffccc7',
+            background: '#fff2f0',
             borderRadius: '4px',
-            color: '#999',
+            color: '#ff4d4f',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          文件ID: {fileId} (文件信息未加载)
+          <span>文件ID: {fileId.substring(0, 8)}... (文件信息未加载，可能已被删除)</span>
+          {canManage === true && (
+            <Button
+              type="link"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(type, fileId)}
+            >
+              清理
+            </Button>
+          )}
           </div>
       )
     }
 
     return (
                 <div
+              key={fileId}
                   style={{
                     padding: '10px',
                     border: '2px solid #e0e0e0',
                     background: '#f9f9f9',
                     borderRadius: '4px',
-                    marginBottom: 8,
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -213,18 +253,21 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
                       {dayjs(file.created_at).format('YYYY-MM-DD')}
                     </span>
                   </div>
-                  {canManage === true && (
+              {canManage === true && (
                   <Button
                     type="link"
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
-          onClick={() => handleDelete(type)}
+                  onClick={() => handleDelete(type, fileId)}
                   >
                     删除
                   </Button>
-                  )}
+              )}
                 </div>
+          )
+        })}
+      </Space>
     )
   }
 
@@ -248,44 +291,32 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
         <Space direction="vertical" style={{ width: '100%' }} size="large">
           <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8 }}>招标文件</div>
-            {renderFileSection(
-              'tender',
-              biddingInfo?.tender_file,
-              biddingInfo?.tender_file_id
-            )}
+            {renderFileSection('tender')}
               </div>
 
           <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8 }}>投标文件</div>
-            {renderFileSection(
-              'bid',
-              biddingInfo?.bid_file,
-              biddingInfo?.bid_file_id
-            )}
+            {renderFileSection('bid')}
           </div>
 
           <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
               中标通知书
             </div>
-            {renderFileSection(
-              'award',
-              biddingInfo?.award_notice_file,
-              biddingInfo?.award_notice_file_id
-            )}
+            {renderFileSection('award')}
           </div>
 
           <Divider />
 
           {/* 专家费支付 */}
-          <div>
+                  <div>
             <div style={{ fontWeight: 'bold', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>专家费支付</span>
               <ExpertFeeForm projectId={projectId} canManage={canManage === true} />
-            </div>
+                </div>
             <div style={{ marginTop: 16 }}>
               <ExpertFeePaymentList projectId={projectId} canManage={canManage === true} />
-            </div>
+              </div>
           </div>
         </Space>
       </Card>
