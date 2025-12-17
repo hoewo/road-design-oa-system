@@ -112,6 +112,7 @@ func (r *Router) SetupRoutes(
 			// Project business information routes
 			projects.GET("/:id/business", projectBusinessHandler.GetProjectBusiness)
 			projects.PUT("/:id/business", projectBusinessHandler.UpdateProjectBusiness)
+			projects.GET("/:id/business/statistics", projectBusinessHandler.GetBusinessStatistics)
 
 			// Project contact routes
 			projects.GET("/:id/contact", projectContactHandler.GetProjectContact)
@@ -193,6 +194,8 @@ func (r *Router) SetupRoutes(
 			contractAmendments.GET("/:id", contractAmendmentHandler.GetContractAmendment)
 			contractAmendments.PUT("/:id", contractAmendmentHandler.UpdateContractAmendment)
 			contractAmendments.DELETE("/:id", contractAmendmentHandler.DeleteContractAmendment)
+			// Contract amendment file upload
+			contractAmendments.POST("/:id/files", contractAmendmentHandler.UploadContractAmendmentFile)
 		}
 
 		// Financial record routes (standalone)
@@ -260,6 +263,9 @@ func (r *Router) SetupRoutes(
 
 		// Production files download route
 		user.GET("/production/files/:fileId/download", productionFileHandler.DownloadProductionFile)
+
+		// General file download route
+		user.GET("/files/:fileId/download", fileHandler.DownloadFile)
 	}
 
 	// Admin路由（需要管理员权限）

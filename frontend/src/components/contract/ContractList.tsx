@@ -14,7 +14,7 @@ import type { Contract } from '@/types'
 import dayjs from 'dayjs'
 
 interface ContractListProps {
-  projectId: number
+  projectId: string
 }
 
 export const ContractList = ({ projectId }: ContractListProps) => {
@@ -30,7 +30,7 @@ export const ContractList = ({ projectId }: ContractListProps) => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (contractId: number) =>
+    mutationFn: (contractId: string) =>
       businessService.deleteContract(contractId),
     onSuccess: () => {
       message.success('合同删除成功')
@@ -80,11 +80,6 @@ export const ContractList = ({ projectId }: ContractListProps) => {
       title: '合同编号',
       dataIndex: 'contract_number',
       key: 'contract_number',
-    },
-    {
-      title: '合同类型',
-      dataIndex: 'contract_type',
-      key: 'contract_type',
     },
     {
       title: '签订日期',

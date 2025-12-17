@@ -12,42 +12,53 @@ import (
 
 // ContractService handles contract-related operations
 type ContractService struct {
-	db *gorm.DB
+	db               *gorm.DB
+	permissionService *PermissionService
 }
 
 // NewContractService creates a new contract service
 func NewContractService() *ContractService {
 	return &ContractService{
-		db: database.DB,
+		db:               database.DB,
+		permissionService: NewPermissionService(),
 	}
 }
 
 // CreateContractRequest represents the request to create a contract
 type CreateContractRequest struct {
 	ContractNumber  string    `json:"contract_number" binding:"required"`
-	ContractType    string    `json:"contract_type" binding:"required"` // 注意：此字段在模型中保留，但根据新设计，合同金额已按设计费、勘察费、咨询费分别录入，此字段可能冗余
 	SignDate        time.Time `json:"sign_date" binding:"required"`
 	ContractRate    *float64  `json:"contract_rate"`
-	ContractAmount  float64   `json:"contract_amount" binding:"required"`
+	ContractAmount  float64   `json:"contract_amount" binding:"gte=0"` // 合同金额由费用明细自动计算，允许为0
 	DesignFee       *float64  `json:"design_fee"`
 	SurveyFee       *float64  `json:"survey_fee"`
 	ConsultationFee *float64  `json:"consultation_fee"`
+	ContractFileID  *string   `json:"contract_file_id"` // 合同文件ID
 }
 
 // UpdateContractRequest represents the request to update a contract
 type UpdateContractRequest struct {
 	ContractNumber  *string    `json:"contract_number"`
-	ContractType    *string    `json:"contract_type"`
 	SignDate        *time.Time `json:"sign_date"`
 	ContractRate    *float64   `json:"contract_rate"`
 	ContractAmount  *float64   `json:"contract_amount"`
 	DesignFee       *float64   `json:"design_fee"`
 	SurveyFee       *float64   `json:"survey_fee"`
 	ConsultationFee *float64   `json:"consultation_fee"`
+	ContractFileID  *string    `json:"contract_file_id"` // 合同文件ID
 }
 
 // CreateContract creates a new contract (UUID string)
-func (s *ContractService) CreateContract(projectID string, req *CreateContractRequest) (*models.Contract, error) {
+func (s *ContractService) CreateContract(projectID string, userID string, req *CreateContractRequest) (*models.Contract, error) {
+	// Check permission
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage business information")
+	}
+
 	// Verify project exists
 	var project models.Project
 	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
@@ -63,10 +74,6 @@ func (s *ContractService) CreateContract(projectID string, req *CreateContractRe
 		return nil, errors.New("contract number already exists")
 	}
 
-	// Validate sign date
-	if req.SignDate.After(time.Now()) {
-		return nil, errors.New("sign date cannot be in the future")
-	}
 
 	// Set default values for fee breakdown
 	designFee := 0.0
@@ -98,7 +105,6 @@ func (s *ContractService) CreateContract(projectID string, req *CreateContractRe
 	// Create contract
 	contract := &models.Contract{
 		ContractNumber:  req.ContractNumber,
-		ContractType:    req.ContractType,
 		SignDate:        req.SignDate,
 		ContractRate:    0.0,
 		ContractAmount:  req.ContractAmount,
@@ -106,6 +112,7 @@ func (s *ContractService) CreateContract(projectID string, req *CreateContractRe
 		SurveyFee:       surveyFee,
 		ConsultationFee: consultationFee,
 		ProjectID:       projectID,
+		ContractFileID:  req.ContractFileID,
 	}
 
 	if req.ContractRate != nil {
@@ -117,7 +124,7 @@ func (s *ContractService) CreateContract(projectID string, req *CreateContractRe
 	}
 
 	// Load associations
-	s.db.Preload("Project").Preload("Amendments").First(contract, "id = ?", contract.ID)
+	s.db.Preload("Project").Preload("Amendments").Preload("ContractFile").First(contract, "id = ?", contract.ID)
 
 	return contract, nil
 }
@@ -125,7 +132,7 @@ func (s *ContractService) CreateContract(projectID string, req *CreateContractRe
 // GetContract retrieves a contract by ID (UUID string)
 func (s *ContractService) GetContract(id string) (*models.Contract, error) {
 	var contract models.Contract
-	if err := s.db.Preload("Project").Preload("Amendments").First(&contract, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("Project").Preload("Amendments").Preload("ContractFile").First(&contract, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract not found")
 		}
@@ -140,6 +147,7 @@ func (s *ContractService) ListContractsByProject(projectID string) ([]models.Con
 	var contracts []models.Contract
 	if err := s.db.Where("project_id = ?", projectID).
 		Preload("Amendments").
+		Preload("ContractFile").
 		Order("sign_date DESC").
 		Find(&contracts).Error; err != nil {
 		return nil, err
@@ -149,13 +157,22 @@ func (s *ContractService) ListContractsByProject(projectID string) ([]models.Con
 }
 
 // UpdateContract updates an existing contract (UUID string)
-func (s *ContractService) UpdateContract(id string, req *UpdateContractRequest) (*models.Contract, error) {
+func (s *ContractService) UpdateContract(id string, userID string, req *UpdateContractRequest) (*models.Contract, error) {
 	var contract models.Contract
 	if err := s.db.First(&contract, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract not found")
 		}
 		return nil, err
+	}
+
+	// Check permission
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, contract.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage business information")
 	}
 
 	// Validate contract number uniqueness if updating
@@ -166,12 +183,7 @@ func (s *ContractService) UpdateContract(id string, req *UpdateContractRequest) 
 		}
 	}
 
-	// Validate sign date if updating
-	if req.SignDate != nil {
-		if req.SignDate.After(time.Now()) {
-			return nil, errors.New("sign date cannot be in the future")
-		}
-	}
+	// Validate sign date if updating (no future date restriction)
 
 	// Calculate fee breakdown
 	designFee := contract.DesignFee
@@ -202,9 +214,6 @@ func (s *ContractService) UpdateContract(id string, req *UpdateContractRequest) 
 	if req.ContractNumber != nil {
 		updates["contract_number"] = *req.ContractNumber
 	}
-	if req.ContractType != nil {
-		updates["contract_type"] = *req.ContractType
-	}
 	if req.SignDate != nil {
 		updates["sign_date"] = *req.SignDate
 	}
@@ -226,25 +235,37 @@ func (s *ContractService) UpdateContract(id string, req *UpdateContractRequest) 
 	if req.ConsultationFee != nil {
 		updates["consultation_fee"] = consultationFee
 	}
+	if req.ContractFileID != nil {
+		updates["contract_file_id"] = req.ContractFileID
+	}
 
 	if err := s.db.Model(&contract).Updates(updates).Error; err != nil {
 		return nil, err
 	}
 
 	// Reload with associations
-	s.db.Preload("Project").Preload("Amendments").First(&contract, "id = ?", id)
+	s.db.Preload("Project").Preload("Amendments").Preload("ContractFile").First(&contract, "id = ?", id)
 
 	return &contract, nil
 }
 
 // DeleteContract deletes a contract (UUID string)
-func (s *ContractService) DeleteContract(id string) error {
+func (s *ContractService) DeleteContract(id string, userID string) error {
 	var contract models.Contract
 	if err := s.db.First(&contract, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("contract not found")
 		}
 		return err
+	}
+
+	// Check permission
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, contract.ProjectID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return errors.New("permission denied: you do not have permission to manage business information")
 	}
 
 	// Check if contract has amendments

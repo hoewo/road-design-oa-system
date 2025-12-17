@@ -12,13 +12,15 @@ import (
 
 // ContractAmendmentService handles contract amendment-related operations
 type ContractAmendmentService struct {
-	db *gorm.DB
+	db               *gorm.DB
+	permissionService *PermissionService
 }
 
 // NewContractAmendmentService creates a new contract amendment service
 func NewContractAmendmentService() *ContractAmendmentService {
 	return &ContractAmendmentService{
-		db: database.DB,
+		db:               database.DB,
+		permissionService: NewPermissionService(),
 	}
 }
 
@@ -33,6 +35,7 @@ type CreateContractAmendmentRequest struct {
 	SurveyFee       *float64 `json:"survey_fee"`       // 勘察费
 	ConsultationFee *float64 `json:"consultation_fee"` // 咨询费
 	ContractRate    *float64 `json:"contract_rate"`    // 合同费率%
+	AmendmentFileID *string  `json:"amendment_file_id"` // 补充协议文件ID
 }
 
 // UpdateContractAmendmentRequest represents the request to update a contract amendment
@@ -46,10 +49,11 @@ type UpdateContractAmendmentRequest struct {
 	SurveyFee       *float64 `json:"survey_fee"`       // 勘察费
 	ConsultationFee *float64 `json:"consultation_fee"` // 咨询费
 	ContractRate    *float64 `json:"contract_rate"`    // 合同费率%
+	AmendmentFileID *string  `json:"amendment_file_id"` // 补充协议文件ID
 }
 
 // CreateContractAmendment creates a new contract amendment (UUID string)
-func (s *ContractAmendmentService) CreateContractAmendment(contractID string, req *CreateContractAmendmentRequest) (*models.ContractAmendment, error) {
+func (s *ContractAmendmentService) CreateContractAmendment(contractID string, userID string, req *CreateContractAmendmentRequest) (*models.ContractAmendment, error) {
 	// Verify contract exists and get sign date
 	var contract models.Contract
 	if err := s.db.First(&contract, "id = ?", contractID).Error; err != nil {
@@ -59,21 +63,21 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID string, re
 		return nil, err
 	}
 
+	// Check permission
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, contract.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage business information")
+	}
+
 	// Validate amendment number uniqueness
 	var existingAmendment models.ContractAmendment
 	if err := s.db.Where("amendment_number = ?", req.AmendmentNumber).First(&existingAmendment).Error; err == nil {
 		return nil, errors.New("amendment number already exists")
 	}
 
-	// Validate sign date
-	if req.SignDate.After(time.Now()) {
-		return nil, errors.New("sign date cannot be in the future")
-	}
-
-	// Validate sign date is not earlier than contract sign date
-	if req.SignDate.Before(contract.SignDate) {
-		return nil, errors.New("amendment sign date cannot be earlier than contract sign date")
-	}
 
 	// Set default values for fee breakdown
 	designFee := 0.0
@@ -89,6 +93,9 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID string, re
 		consultationFee = *req.ConsultationFee
 	}
 
+	// Calculate amendment amount
+	amendmentAmount := designFee + surveyFee + consultationFee
+
 	// Create amendment
 	amendment := &models.ContractAmendment{
 		AmendmentNumber: req.AmendmentNumber,
@@ -97,7 +104,9 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID string, re
 		DesignFee:       designFee,
 		SurveyFee:       surveyFee,
 		ConsultationFee: consultationFee,
+		AmendmentAmount: amendmentAmount,
 		ContractID:      contractID,
+		AmendmentFileID: req.AmendmentFileID,
 	}
 
 	// Set contract rate if provided
@@ -110,7 +119,7 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID string, re
 	}
 
 	// Load associations
-	s.db.Preload("Contract").First(amendment, "id = ?", amendment.ID)
+	s.db.Preload("Contract").Preload("AmendmentFile").First(amendment, "id = ?", amendment.ID)
 
 	return amendment, nil
 }
@@ -118,7 +127,7 @@ func (s *ContractAmendmentService) CreateContractAmendment(contractID string, re
 // GetContractAmendment retrieves a contract amendment by ID (UUID string)
 func (s *ContractAmendmentService) GetContractAmendment(id string) (*models.ContractAmendment, error) {
 	var amendment models.ContractAmendment
-	if err := s.db.Preload("Contract").First(&amendment, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("Contract").Preload("AmendmentFile").First(&amendment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract amendment not found")
 		}
@@ -132,6 +141,7 @@ func (s *ContractAmendmentService) GetContractAmendment(id string) (*models.Cont
 func (s *ContractAmendmentService) ListContractAmendments(contractID string) ([]models.ContractAmendment, error) {
 	var amendments []models.ContractAmendment
 	if err := s.db.Where("contract_id = ?", contractID).
+		Preload("AmendmentFile").
 		Order("sign_date DESC").
 		Find(&amendments).Error; err != nil {
 		return nil, err
@@ -141,13 +151,22 @@ func (s *ContractAmendmentService) ListContractAmendments(contractID string) ([]
 }
 
 // UpdateContractAmendment updates an existing contract amendment (UUID string)
-func (s *ContractAmendmentService) UpdateContractAmendment(id string, req *UpdateContractAmendmentRequest) (*models.ContractAmendment, error) {
+func (s *ContractAmendmentService) UpdateContractAmendment(id string, userID string, req *UpdateContractAmendmentRequest) (*models.ContractAmendment, error) {
 	var amendment models.ContractAmendment
 	if err := s.db.Preload("Contract").First(&amendment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("contract amendment not found")
 		}
 		return nil, err
+	}
+
+	// Check permission
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, amendment.Contract.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage business information")
 	}
 
 	// Validate amendment number uniqueness if updating
@@ -158,15 +177,24 @@ func (s *ContractAmendmentService) UpdateContractAmendment(id string, req *Updat
 		}
 	}
 
-	// Validate sign date if updating
-	if req.SignDate != nil {
-		if req.SignDate.After(time.Now()) {
-			return nil, errors.New("sign date cannot be in the future")
-		}
-		if req.SignDate.Before(amendment.Contract.SignDate) {
-			return nil, errors.New("amendment sign date cannot be earlier than contract sign date")
-		}
+	// Validate sign date if updating (no future date restriction)
+
+	// Calculate fee breakdown
+	designFee := amendment.DesignFee
+	surveyFee := amendment.SurveyFee
+	consultationFee := amendment.ConsultationFee
+	if req.DesignFee != nil {
+		designFee = *req.DesignFee
 	}
+	if req.SurveyFee != nil {
+		surveyFee = *req.SurveyFee
+	}
+	if req.ConsultationFee != nil {
+		consultationFee = *req.ConsultationFee
+	}
+
+	// Calculate amendment amount
+	amendmentAmount := designFee + surveyFee + consultationFee
 
 	// Update fields
 	updates := make(map[string]interface{})
@@ -180,16 +208,22 @@ func (s *ContractAmendmentService) UpdateContractAmendment(id string, req *Updat
 		updates["description"] = *req.Description
 	}
 	if req.DesignFee != nil {
-		updates["design_fee"] = *req.DesignFee
+		updates["design_fee"] = designFee
 	}
 	if req.SurveyFee != nil {
-		updates["survey_fee"] = *req.SurveyFee
+		updates["survey_fee"] = surveyFee
 	}
 	if req.ConsultationFee != nil {
-		updates["consultation_fee"] = *req.ConsultationFee
+		updates["consultation_fee"] = consultationFee
+	}
+	if req.DesignFee != nil || req.SurveyFee != nil || req.ConsultationFee != nil {
+		updates["amendment_amount"] = amendmentAmount
 	}
 	if req.ContractRate != nil {
 		updates["contract_rate"] = *req.ContractRate
+	}
+	if req.AmendmentFileID != nil {
+		updates["amendment_file_id"] = req.AmendmentFileID
 	}
 
 	if err := s.db.Model(&amendment).Updates(updates).Error; err != nil {
@@ -197,19 +231,28 @@ func (s *ContractAmendmentService) UpdateContractAmendment(id string, req *Updat
 	}
 
 	// Reload with associations
-	s.db.Preload("Contract").First(&amendment, "id = ?", id)
+	s.db.Preload("Contract").Preload("AmendmentFile").First(&amendment, "id = ?", id)
 
 	return &amendment, nil
 }
 
 // DeleteContractAmendment deletes a contract amendment (UUID string)
-func (s *ContractAmendmentService) DeleteContractAmendment(id string) error {
+func (s *ContractAmendmentService) DeleteContractAmendment(id string, userID string) error {
 	var amendment models.ContractAmendment
-	if err := s.db.First(&amendment, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("Contract").First(&amendment, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("contract amendment not found")
 		}
 		return err
+	}
+
+	// Check permission
+	canManage, err := s.permissionService.CanManageBusinessInfo(userID, amendment.Contract.ProjectID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return errors.New("permission denied: you do not have permission to manage business information")
 	}
 
 	if err := s.db.Delete(&amendment).Error; err != nil {

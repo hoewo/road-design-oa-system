@@ -176,9 +176,8 @@ export interface LegacyLoginResponse {
 
 // Contract types
 export interface Contract {
-  id: number
+  id: string // UUID string
   contract_number: string
-  contract_type: string
   sign_date: string
   contract_rate?: number
   contract_amount: number
@@ -186,40 +185,61 @@ export interface Contract {
   survey_fee?: number
   consultation_fee?: number
   file_path?: string
-  project_id: number
+  contract_file_id?: string // UUID string
+  contract_file?: File // 合同文件关联
+  project_id: string // UUID string
   amendments?: ContractAmendment[]
   created_at: string
   updated_at: string
 }
 
 export interface ContractAmendment {
-  id: number
+  id: string // UUID string
   amendment_number: string
   sign_date: string
-  file_path: string
   description?: string
-  contract_id: number
+  // 金额明细
+  design_fee: number
+  survey_fee: number
+  consultation_fee: number
+  amendment_amount: number // 补充协议总金额
+  contract_rate?: number
+  // 文件关联
+  amendment_file_id?: string // UUID string
+  amendment_file?: File
+  // 关联关系
+  contract_id: string // UUID string
   created_at: string
   updated_at: string
+  // 向后兼容字段
+  file_path?: string
 }
 
 export interface CreateContractRequest {
   // Note: file_path field removed - contract files managed separately through file management functionality
   contract_number: string
-  contract_type: string
   sign_date: string
   contract_rate?: number
   contract_amount: number
   design_fee?: number
   survey_fee?: number
   consultation_fee?: number
+  contract_file_id?: string // 合同文件ID
 }
 
 export interface CreateContractAmendmentRequest {
   amendment_number: string
   sign_date: string
-  file_path: string
+  // 金额明细
+  design_fee?: number
+  survey_fee?: number
+  consultation_fee?: number
+  contract_rate?: number
+  // 文件关联
+  amendment_file_id?: string // UUID string
   description?: string
+  // 向后兼容字段
+  file_path?: string
 }
 
 // Expert Fee Payment types
@@ -433,15 +453,40 @@ export interface FinancialRecord {
 }
 
 export interface CreateFinancialRecordRequest {
-  record_type: FinancialType
-  fee_type: FeeType
-  receivable_amount: number
+  financial_type: FinancialType
+  direction: FinancialDirection
+  amount: number
+  occurred_at: string // ISO 8601 date string
+  // 奖金类型字段
+  bonus_category?: 'business' | 'production'
+  recipient_id?: string // UUID string
+  // 成本类型字段
+  cost_category?: 'taxi' | 'accommodation' | 'public_transport'
+  mileage?: number
+  // 甲方支付/我方开票类型字段
+  client_id?: string // UUID string
+  related_payment_id?: string // UUID string (我方开票时关联的支付记录)
+  // 专家费类型字段
+  payment_method?: 'cash' | 'transfer'
+  expert_name?: string
+  // 委托支付/对方开票类型字段
+  commission_type?: 'person' | 'company'
+  vendor_name?: string
+  vendor_score?: number
+  related_commission_id?: string // UUID string
+  // 文件关联
+  invoice_file_id?: string // UUID string
+  // 通用字段
+  description?: string
+  // 向后兼容的旧字段（保留用于兼容）
+  record_type?: FinancialType
+  fee_type?: FeeType
+  receivable_amount?: number
   invoice_number?: string
   invoice_date?: string
   invoice_amount?: number
   payment_date?: string
   payment_amount?: number
-  description?: string
 }
 
 export interface FeeTypeFinancial {

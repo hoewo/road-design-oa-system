@@ -87,12 +87,9 @@ func (s *ProjectService) CreateProject(userID string, req *CreateProjectRequest)
 		}
 	}
 
-	// Validate start date (if provided)
+	// Validate start date (if provided) - no future date restriction
 	var startDate *time.Time
 	if req.StartDate != nil {
-		if req.StartDate.After(time.Now()) {
-			return nil, errors.New("start date cannot be in the future")
-		}
 		t := req.StartDate.Time
 		startDate = &t
 	}
@@ -225,9 +222,7 @@ func (s *ProjectService) UpdateProject(userID string, id string, req *UpdateProj
 		updates["project_name"] = *req.ProjectName
 	}
 	if req.StartDate != nil {
-		if req.StartDate.After(time.Now()) {
-			return nil, errors.New("start date cannot be in the future")
-		}
+		// No future date restriction
 		updates["start_date"] = req.StartDate.Time
 	}
 	if req.ProjectOverview != nil {

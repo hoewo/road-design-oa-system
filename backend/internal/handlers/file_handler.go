@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"path/filepath"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -148,5 +149,59 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 		"success": true,
 		"data":    uploadedFile,
 	})
+}
+
+// DownloadFile handles file download
+// @Summary Download a file
+// @Description Download a file by file ID
+// @Tags 文件管理
+// @Security BearerAuth
+// @Produce application/octet-stream
+// @Param fileId path string true "File ID (UUID)"
+// @Success 200 "File content"
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Router /user/files/{fileId}/download [get]
+func (h *FileHandler) DownloadFile(c *gin.Context) {
+	fileID := c.Param("fileId")
+	if fileID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "File ID is required", nil)
+		return
+	}
+
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	// Check permission
+	hasPermission, err := h.fileService.CheckFilePermission(fileID, userID)
+	if err != nil {
+		utils.HandleError(c, http.StatusNotFound, "File not found", err)
+		return
+	}
+	if !hasPermission {
+		utils.HandleError(c, http.StatusForbidden, "Permission denied", nil)
+		return
+	}
+
+	// Get file content
+	ctx := context.Background()
+	fileContent, file, err := h.fileService.GetFileContent(ctx, fileID)
+	if err != nil {
+		utils.HandleError(c, http.StatusNotFound, "File not found", err)
+		return
+	}
+	defer fileContent.Close()
+
+	// Set headers
+	c.Header("Content-Disposition", "attachment; filename="+file.OriginalName)
+	c.Header("Content-Type", file.MimeType)
+	c.Header("Content-Length", strconv.FormatInt(file.FileSize, 10))
+
+	// Stream file
+	c.DataFromReader(http.StatusOK, file.FileSize, file.MimeType, fileContent, nil)
 }
 

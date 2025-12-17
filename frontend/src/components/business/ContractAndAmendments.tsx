@@ -6,16 +6,19 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
+import { fileService } from '@/services/file'
+import { permissionService } from '@/services/permission'
 import { ContractForm } from '@/components/contract/ContractForm'
 import { ContractAmendmentForm } from '@/components/contract/ContractAmendmentForm'
 import type { Contract, ContractAmendment } from '@/types'
 import dayjs from 'dayjs'
 
 interface ContractAndAmendmentsProps {
-  projectId: number
+  projectId: string
 }
 
 export const ContractAndAmendments = ({
@@ -27,8 +30,15 @@ export const ContractAndAmendments = ({
   const [editingContract, setEditingContract] = useState<Contract | null>(null)
   const [editingAmendment, setEditingAmendment] =
     useState<ContractAmendment | null>(null)
-  const [contractId, setContractId] = useState<number | undefined>()
+  const [contractId, setContractId] = useState<string | undefined>()
   const queryClient = useQueryClient()
+
+  // 检查权限：是否可以管理项目经营信息（包括合同信息）
+  const { data: canManage } = useQuery({
+    queryKey: ['canManageBusinessInfo', projectId],
+    queryFn: () => permissionService.canManageBusinessInfo(projectId),
+    enabled: !!projectId,
+  })
 
   // 获取项目所有合同
   const { data: contracts, isLoading: contractsLoading } = useQuery({
@@ -42,7 +52,7 @@ export const ContractAndAmendments = ({
     queryKey: ['projectAmendments', projectId],
     queryFn: async () => {
       if (!contracts || contracts.length === 0) return []
-      const amendments: (ContractAmendment & { contract_id: number })[] = []
+      const amendments: (ContractAmendment & { contract_id: string })[] = []
       for (const contract of contracts) {
         try {
           const contractAmendments =
@@ -67,7 +77,7 @@ export const ContractAndAmendments = ({
 
   // 删除合同
   const deleteContractMutation = useMutation({
-    mutationFn: (contractId: number) =>
+    mutationFn: (contractId: string) =>
       businessService.deleteContract(contractId),
     onSuccess: () => {
       message.success('合同删除成功')
@@ -88,9 +98,9 @@ export const ContractAndAmendments = ({
       contractId,
       amendmentId,
     }: {
-      projectId: number
-      contractId: number
-      amendmentId: number
+      projectId: string
+      contractId: string
+      amendmentId: string
     }) =>
       businessService.deleteContractAmendment(projectId, contractId, amendmentId),
     onSuccess: () => {
@@ -138,14 +148,14 @@ export const ContractAndAmendments = ({
   }
 
   const handleEditAmendment = (
-    amendment: ContractAmendment & { contract_id: number }
+    amendment: ContractAmendment & { contract_id: string }
   ) => {
     setEditingAmendment(amendment)
     setContractId(amendment.contract_id)
     setAmendmentModalVisible(true)
   }
 
-  const handleDeleteAmendment = (amendment: ContractAmendment & { contract_id: number }) => {
+  const handleDeleteAmendment = (amendment: ContractAmendment & { contract_id: string }) => {
     deleteAmendmentMutation.mutate({
       projectId,
       contractId: amendment.contract_id,
@@ -175,13 +185,17 @@ export const ContractAndAmendments = ({
     setContractId(undefined)
   }
 
+  const handleDownloadFile = async (fileId: string, fileName: string) => {
+    try {
+      await fileService.downloadFile(fileId, fileName)
+      message.success(`正在下载 ${fileName}`)
+    } catch (error: any) {
+      message.error(error.message || '下载失败')
+    }
+  }
+
   // 合同表格列
   const contractColumns = [
-    {
-      title: '合同类型',
-      dataIndex: 'contract_type',
-      key: 'contract_type',
-    },
     {
       title: '签订时间',
       dataIndex: 'sign_date',
@@ -209,20 +223,29 @@ export const ContractAndAmendments = ({
       title: '合同费率',
       dataIndex: 'contract_rate',
       key: 'contract_rate',
-      render: (rate: number) => (rate ? `${(rate * 100).toFixed(0)}%` : '-'),
+      render: (rate: number) => (rate ? `${(rate * 100).toFixed(2)}%` : '-'),
     },
     {
       title: '合同文件',
       key: 'contract_file',
       render: (_: any, record: Contract) => {
-        // 这里可以显示合同文件链接
-        return record.file_path ? (
-          <a href={record.file_path} target="_blank" rel="noopener noreferrer">
-            查看文件
-          </a>
-        ) : (
-          '-'
-        )
+        if (record.contract_file) {
+          return (
+            <Button
+              type="link"
+              icon={<DownloadOutlined />}
+              onClick={() =>
+                handleDownloadFile(
+                  record.contract_file!.id,
+                  record.contract_file!.original_name || '合同文件'
+                )
+              }
+            >
+              {record.contract_file.original_name || '下载文件'}
+            </Button>
+          )
+        }
+        return '-'
       },
     },
     {
@@ -230,6 +253,7 @@ export const ContractAndAmendments = ({
       key: 'action',
       render: (_: any, record: Contract) => (
         <Space>
+          {canManage && (
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -237,9 +261,25 @@ export const ContractAndAmendments = ({
           >
             编辑
           </Button>
+          )}
+          {canManage && (
           <Button type="link" onClick={() => handleAddAmendment(record)}>
             添加补充协议
           </Button>
+          )}
+          {canManage && (
+            <Popconfirm
+              title="确认删除"
+              description={`确定要删除合同 ${record.contract_number} 吗？`}
+              onConfirm={() => handleDeleteContract(record)}
+              okText="确定"
+              cancelText="取消"
+            >
+              <Button type="link" danger icon={<DeleteOutlined />}>
+                删除
+              </Button>
+            </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -255,37 +295,50 @@ export const ContractAndAmendments = ({
     },
     {
       title: '补充协议金额',
-      key: 'amount',
+      key: 'amendment_amount',
       render: (_: any, record: ContractAmendment) => {
-        // 补充协议金额需要从合同信息中获取，这里先显示占位符
-        return '-'
+        const amount = record.amendment_amount || 0
+        return `¥${amount.toLocaleString()}`
       },
     },
     {
       title: '合同费率',
       key: 'rate',
-      render: (_: any, record: ContractAmendment & { contract_id: number }) => {
-        const contract = contracts?.find((c) => c.id === record.contract_id)
-        return contract?.contract_rate
-          ? `${(contract.contract_rate * 100).toFixed(0)}%`
-          : '-'
+      render: (_: any, record: ContractAmendment & { contract_id: string }) => {
+        // 优先使用补充协议自己的费率，如果没有则使用合同的费率
+        const rate = record.contract_rate ?? contracts?.find((c) => c.id === record.contract_id)?.contract_rate
+        return rate ? `${(rate * 100).toFixed(2)}%` : '-'
       },
     },
     {
       title: '协议文件',
-      dataIndex: 'file_path',
-      key: 'file_path',
-      render: (path: string) => (
-        <a href={path} target="_blank" rel="noopener noreferrer">
-          {path.split('/').pop() || path}
-        </a>
-      ),
+      key: 'amendment_file',
+      render: (_: any, record: ContractAmendment & { contract_id: string }) => {
+        if (record.amendment_file) {
+          return (
+            <Button
+              type="link"
+              icon={<DownloadOutlined />}
+              onClick={() =>
+                handleDownloadFile(
+                  record.amendment_file!.id,
+                  record.amendment_file!.original_name || '补充协议文件'
+                )
+              }
+            >
+              {record.amendment_file.original_name || '下载文件'}
+            </Button>
+          )
+        }
+        return '-'
+      },
     },
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: ContractAmendment & { contract_id: number }) => (
+      render: (_: any, record: ContractAmendment & { contract_id: string }) => (
         <Space>
+          {canManage && (
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -293,6 +346,8 @@ export const ContractAndAmendments = ({
           >
             编辑
           </Button>
+          )}
+          {canManage && (
           <Popconfirm
             title="确定要删除该补充协议吗？"
             onConfirm={() => handleDeleteAmendment(record)}
@@ -303,6 +358,7 @@ export const ContractAndAmendments = ({
               删除
             </Button>
           </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -313,6 +369,7 @@ export const ContractAndAmendments = ({
       <Card
         title="合同信息"
         extra={
+          canManage && (
           <Button
             type="primary"
             size="small"
@@ -321,6 +378,7 @@ export const ContractAndAmendments = ({
           >
             添加合同
           </Button>
+          )
         }
         style={{ marginBottom: 24 }}
       >

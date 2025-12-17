@@ -60,83 +60,83 @@ export const businessService = {
     return response
   },
 
-  getContract: async (contractId: number): Promise<Contract> => {
+  getContract: async (contractId: string): Promise<Contract> => {
     const response = await get<Contract>(`/user/contracts/${contractId}`)
     return response
   },
 
   updateContract: async (
-    contractId: number,
+    contractId: string,
     data: Partial<CreateContractRequest>
   ): Promise<Contract> => {
     const response = await put<Contract>(`/user/contracts/${contractId}`, data)
     return response
   },
 
-  deleteContract: async (contractId: number): Promise<void> => {
+  deleteContract: async (contractId: string): Promise<void> => {
     await del<void>(`/user/contracts/${contractId}`)
   },
 
   // Contract Amendments
   getContractAmendments: async (
-    projectId: number,
-    contractId: number
+    _projectId: string | number,
+    contractId: string
   ): Promise<ContractAmendment[]> => {
     const response = await get<ContractAmendment[]>(
-      `/user/projects/${projectId}/contracts/${contractId}/amendments`
+      `/user/contracts/${contractId}/amendments`
     )
     return response || []
   },
 
   createContractAmendment: async (
-    projectId: number,
-    contractId: number,
+    _projectId: string | number,
+    contractId: string,
     data: CreateContractAmendmentRequest
   ): Promise<ContractAmendment> => {
     const response = await post<ContractAmendment>(
-      `/user/projects/${projectId}/contracts/${contractId}/amendments`,
+      `/user/contracts/${contractId}/amendments`,
       data
     )
     return response
   },
 
   getContractAmendment: async (
-    projectId: number,
-    contractId: number,
-    amendmentId: number
+    _projectId: string | number,
+    _contractId: string,
+    amendmentId: string
   ): Promise<ContractAmendment> => {
     const response = await get<ContractAmendment>(
-      `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`
+      `/user/contract-amendments/${amendmentId}`
     )
     return response
   },
 
   updateContractAmendment: async (
-    projectId: number,
-    contractId: number,
-    amendmentId: number,
+    _projectId: string | number,
+    _contractId: string,
+    amendmentId: string,
     data: Partial<CreateContractAmendmentRequest>
   ): Promise<ContractAmendment> => {
     const response = await put<ContractAmendment>(
-      `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`,
+      `/user/contract-amendments/${amendmentId}`,
       data
     )
     return response
   },
 
   deleteContractAmendment: async (
-    projectId: number,
-    contractId: number,
-    amendmentId: number
+    _projectId: string | number,
+    _contractId: string,
+    amendmentId: string
   ): Promise<void> => {
     await del<void>(
-      `/user/projects/${projectId}/contracts/${contractId}/amendments/${amendmentId}`
+      `/user/contract-amendments/${amendmentId}`
     )
   },
 
   // Contract Files
   uploadContractFile: async (
-    contractId: number,
+    contractId: string,
     file: globalThis.File,
     description?: string
   ): Promise<File> => {
@@ -158,7 +158,7 @@ export const businessService = {
     return response.data.data || response.data
   },
 
-  downloadContractFile: async (fileId: number): Promise<void> => {
+  downloadContractFile: async (fileId: string): Promise<void> => {
     const token = localStorage.getItem('access_token')
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/project-oa/v1'}/user/contracts/files/${fileId}/download`,
@@ -186,7 +186,7 @@ export const businessService = {
   },
 
   searchContractFiles: async (
-    projectId: number,
+    projectId: string | number,
     params?: SearchFilesParams
   ): Promise<SearchFilesResponse> => {
     const queryParams: any = {
@@ -215,6 +215,19 @@ export const businessService = {
     return response || ({} as ProjectFinancial)
   },
 
+  getBusinessStatistics: async (
+    projectId: string | number,
+    params?: { start_date?: string; end_date?: string }
+  ): Promise<{ total_receivable: number; total_paid: number; total_unpaid: number }> => {
+    const queryParams = params
+      ? `?${new URLSearchParams(params as Record<string, string>).toString()}`
+      : ''
+    const response = await get<{ total_receivable: number; total_paid: number; total_unpaid: number }>(
+      `/user/projects/${projectId}/business/statistics${queryParams}`
+    )
+    return response
+  },
+
   createFinancialRecord: async (
     projectId: string | number,
     data: CreateFinancialRecordRequest
@@ -227,22 +240,22 @@ export const businessService = {
   },
 
   updateFinancialRecord: async (
-    projectId: number,
-    recordId: number,
+    _projectId: string | number,
+    recordId: string,
     data: Partial<CreateFinancialRecordRequest>
   ): Promise<FinancialRecord> => {
     const response = await put<FinancialRecord>(
-      `/user/projects/${projectId}/financial-records/${recordId}`,
+      `/user/financial-records/${recordId}`,
       data
     )
     return response
   },
 
   deleteFinancialRecord: async (
-    projectId: number,
-    recordId: number
+    _projectId: string | number,
+    recordId: string
   ): Promise<void> => {
-    await del(`/user/projects/${projectId}/financial-records/${recordId}`)
+    await del(`/user/financial-records/${recordId}`)
   },
 
   // Bonuses

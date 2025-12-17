@@ -1,11 +1,17 @@
 package handlers
 
 import (
+	"context"
+	"mime"
 	"net/http"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"project-oa-backend/internal/config"
+	"project-oa-backend/internal/middleware"
+	"project-oa-backend/internal/models"
 	"project-oa-backend/internal/services"
 	"project-oa-backend/pkg/utils"
 )
@@ -13,13 +19,15 @@ import (
 // ContractAmendmentHandler handles contract amendment-related HTTP requests
 type ContractAmendmentHandler struct {
 	amendmentService *services.ContractAmendmentService
+	fileService      *services.FileService
 	logger           *zap.Logger
 }
 
 // NewContractAmendmentHandler creates a new contract amendment handler
-func NewContractAmendmentHandler(logger *zap.Logger) *ContractAmendmentHandler {
+func NewContractAmendmentHandler(cfg *config.Config, logger *zap.Logger) *ContractAmendmentHandler {
 	return &ContractAmendmentHandler{
 		amendmentService: services.NewContractAmendmentService(),
+		fileService:      services.NewFileService(cfg),
 		logger:           logger,
 	}
 }
@@ -83,7 +91,14 @@ func (h *ContractAmendmentHandler) CreateContractAmendment(c *gin.Context) {
 		return
 	}
 
-	amendment, err := h.amendmentService.CreateContractAmendment(id, &req)
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	amendment, err := h.amendmentService.CreateContractAmendment(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create contract amendment",
 			zap.Error(err),
@@ -91,6 +106,8 @@ func (h *ContractAmendmentHandler) CreateContractAmendment(c *gin.Context) {
 		)
 		if err.Error() == "contract not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create contract amendment", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to create contract amendment", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to create contract amendment", err)
 		}
@@ -167,7 +184,14 @@ func (h *ContractAmendmentHandler) UpdateContractAmendment(c *gin.Context) {
 		return
 	}
 
-	amendment, err := h.amendmentService.UpdateContractAmendment(id, &req)
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	amendment, err := h.amendmentService.UpdateContractAmendment(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to update contract amendment",
 			zap.Error(err),
@@ -175,6 +199,8 @@ func (h *ContractAmendmentHandler) UpdateContractAmendment(c *gin.Context) {
 		)
 		if err.Error() == "contract amendment not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update contract amendment", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to update contract amendment", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to update contract amendment", err)
 		}
@@ -207,13 +233,22 @@ func (h *ContractAmendmentHandler) DeleteContractAmendment(c *gin.Context) {
 		return
 	}
 
-	if err := h.amendmentService.DeleteContractAmendment(id); err != nil {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	if err := h.amendmentService.DeleteContractAmendment(id, userID); err != nil {
 		h.logger.Error("Failed to delete contract amendment",
 			zap.Error(err),
 			zap.String("amendment_id", id),
 		)
 		if err.Error() == "contract amendment not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to delete contract amendment", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to delete contract amendment", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to delete contract amendment", err)
 		}
@@ -225,4 +260,139 @@ func (h *ContractAmendmentHandler) DeleteContractAmendment(c *gin.Context) {
 	)
 
 	c.Status(http.StatusNoContent)
+}
+
+// UploadContractAmendmentFile handles contract amendment file upload
+// @Summary Upload a contract amendment file
+// @Description Upload a file for a contract amendment
+// @Tags 合同管理
+// @Security BearerAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "Amendment ID (UUID)"
+// @Param file formData file true "File to upload"
+// @Param description formData string false "File description"
+// @Success 201 {object} models.File
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /contract-amendments/{id}/files [post]
+func (h *ContractAmendmentHandler) UploadContractAmendmentFile(c *gin.Context) {
+	amendmentID := c.Param("id")
+	if amendmentID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Amendment ID is required", nil)
+		return
+	}
+
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	// Get amendment to get contract and project ID and check permission
+	amendment, err := h.amendmentService.GetContractAmendment(amendmentID)
+	if err != nil {
+		h.logger.Error("Failed to get amendment", zap.Error(err), zap.String("amendment_id", amendmentID))
+		utils.HandleError(c, http.StatusNotFound, "Contract amendment not found", err)
+		return
+	}
+
+	// Get contract to get project ID
+	contractService := services.NewContractService()
+	contract, err := contractService.GetContract(amendment.ContractID)
+	if err != nil {
+		h.logger.Error("Failed to get contract", zap.Error(err), zap.String("contract_id", amendment.ContractID))
+		utils.HandleError(c, http.StatusNotFound, "Contract not found", err)
+		return
+	}
+
+	// Check permission
+	permissionService := services.NewPermissionService()
+	canManage, err := permissionService.CanManageBusinessInfo(userID, contract.ProjectID)
+	if err != nil {
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
+		return
+	}
+	if !canManage {
+		utils.HandleError(c, http.StatusForbidden, "Permission denied: you do not have permission to manage business information", nil)
+		return
+	}
+
+	// Get uploaded file
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "No file provided", err)
+		return
+	}
+
+	// Open file
+	file, err := fileHeader.Open()
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Failed to open file", err)
+		return
+	}
+	defer file.Close()
+
+	// Get description
+	description := c.PostForm("description")
+
+	// Get file extension for FileType
+	fileExt := filepath.Ext(fileHeader.Filename)
+	if fileExt == "" {
+		// Try to get extension from MIME type
+		mimeType := fileHeader.Header.Get("Content-Type")
+		if exts, err := mime.ExtensionsByType(mimeType); err == nil && len(exts) > 0 {
+			fileExt = exts[0]
+		}
+	}
+
+	// Prepare upload request
+	uploadReq := &services.UploadFileRequest{
+		ProjectID:   contract.ProjectID,
+		Category:    models.FileCategoryContract,
+		Description: description,
+		FileName:    fileHeader.Filename,
+		FileSize:    fileHeader.Size,
+		FileType:    fileExt,
+		MimeType:    fileHeader.Header.Get("Content-Type"),
+		Reader:      file,
+	}
+
+	// Upload file
+	ctx := context.Background()
+	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID)
+	if err != nil {
+		h.logger.Error("Failed to upload contract amendment file",
+			zap.Error(err),
+			zap.String("amendment_id", amendmentID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to upload file", err)
+		return
+	}
+
+	// Update amendment with file ID
+	updateReq := &services.UpdateContractAmendmentRequest{
+		AmendmentFileID: &uploadedFile.ID,
+	}
+	_, err = h.amendmentService.UpdateContractAmendment(amendmentID, userID, updateReq)
+	if err != nil {
+		h.logger.Error("Failed to associate file with amendment",
+			zap.Error(err),
+			zap.String("amendment_id", amendmentID),
+			zap.String("file_id", uploadedFile.ID),
+		)
+		// Don't fail the request, file is already uploaded
+		// Just log the error
+	}
+
+	h.logger.Info("Contract amendment file uploaded successfully",
+		zap.String("file_id", uploadedFile.ID),
+		zap.String("amendment_id", amendmentID),
+	)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"data":    uploadedFile,
+	})
 }

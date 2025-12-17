@@ -7,7 +7,7 @@ import type { UploadFile } from 'antd'
 import type { File as FileType } from '@/types'
 
 interface ContractFileUploadProps {
-  contractId: number
+  contractId: string
   onSuccess?: () => void
 }
 

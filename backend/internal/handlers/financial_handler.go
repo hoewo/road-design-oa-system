@@ -355,7 +355,14 @@ func (h *FinancialHandler) UpdateFinancialRecord(c *gin.Context) {
 		req.Description = rawReq.Description
 	}
 
-	record, err := h.financialService.UpdateFinancialRecord(id, &req)
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	record, err := h.financialService.UpdateFinancialRecord(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to update financial record",
 			zap.Error(err),
@@ -363,6 +370,8 @@ func (h *FinancialHandler) UpdateFinancialRecord(c *gin.Context) {
 		)
 		if err.Error() == "financial record not found" {
 			utils.HandleError(c, http.StatusNotFound, "Financial record not found", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to update financial record", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to update financial record", err)
 		}
@@ -396,13 +405,22 @@ func (h *FinancialHandler) DeleteFinancialRecord(c *gin.Context) {
 		return
 	}
 
-	if err := h.financialService.DeleteFinancialRecord(id); err != nil {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	if err := h.financialService.DeleteFinancialRecord(id, userID); err != nil {
 		h.logger.Error("Failed to delete financial record",
 			zap.Error(err),
 			zap.String("record_id", id),
 		)
 		if err.Error() == "financial record not found" {
 			utils.HandleError(c, http.StatusNotFound, "Financial record not found", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to delete financial record", err)
 		} else {
 			utils.HandleError(c, http.StatusInternalServerError, "Failed to delete financial record", err)
 		}

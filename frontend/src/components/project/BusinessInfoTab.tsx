@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Card, Button, Row, Col, Statistic, message } from 'antd'
 import { ContractAndAmendments } from '@/components/business/ContractAndAmendments'
-import { BonusList } from '@/components/financial/BonusList'
+import { BusinessBonusList } from '@/components/business/BusinessBonusList'
+import { BusinessStatistics } from '@/components/business/BusinessStatistics'
 import { BiddingFileList } from '@/components/business/BiddingFileList'
 import { BusinessPersonnelList } from '@/components/business/BusinessPersonnelList'
 import { PaymentRecordList } from '@/components/business/PaymentRecordList'
@@ -47,40 +48,10 @@ export const BusinessInfoTab = ({
 
   return (
     <>
-      {/* 经营统计 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="总应收金额"
-              value={totalReceivable}
-              prefix="¥"
-              precision={2}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="已收金额"
-              value={totalPaid}
-              prefix="¥"
-              precision={2}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="未收金额"
-              value={totalUnpaid}
-              prefix="¥"
-              precision={2}
-              valueStyle={{ color: totalUnpaid > 0 ? '#ff4d4f' : '#52c41a' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* 经营信息统计 */}
+      <div style={{ marginBottom: 24 }}>
+        <BusinessStatistics projectId={projectId} />
+      </div>
 
       {/* 甲方信息 */}
       <Card
@@ -182,23 +153,7 @@ export const BusinessInfoTab = ({
 
       {/* 经营奖金分配 */}
       <div style={{ marginBottom: 24 }}>
-        <Card
-          title="经营奖金分配"
-          extra={
-            <Button
-              type="link"
-              size="small"
-              onClick={() => {
-                // 可以打开一个模态框来添加奖金
-                message.info('请使用下方的奖金列表来添加经营奖金')
-              }}
-            >
-              分配奖金
-            </Button>
-          }
-        >
-          <BonusList projectId={projectId} bonusType="business" />
-        </Card>
+        <BusinessBonusList projectId={projectId} />
       </div>
 
       {/* 甲方选择模态框（包含联系人管理功能） */}

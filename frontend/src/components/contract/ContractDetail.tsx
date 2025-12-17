@@ -11,7 +11,7 @@ import dayjs from 'dayjs'
 const ContractDetail = () => {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const contractId = Number(id)
+  const contractId = id || ''
 
   const { data: contract, isLoading } = useQuery({
     queryKey: ['contract', contractId],
@@ -48,14 +48,11 @@ const ContractDetail = () => {
           <Descriptions.Item label="合同编号">
             {contract.contract_number}
           </Descriptions.Item>
-          <Descriptions.Item label="合同类型">
-            {contract.contract_type}
-          </Descriptions.Item>
           <Descriptions.Item label="签订日期">
             {dayjs(contract.sign_date).format('YYYY-MM-DD')}
           </Descriptions.Item>
           <Descriptions.Item label="合同费率">
-            {contract.contract_rate ? `${contract.contract_rate}%` : '-'}
+            {contract.contract_rate ? `${(contract.contract_rate * 100).toFixed(2)}%` : '-'}
           </Descriptions.Item>
           <Descriptions.Item label="合同金额">
             ¥{contract.contract_amount.toLocaleString()}

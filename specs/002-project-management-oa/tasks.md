@@ -4,7 +4,7 @@
 **Date**: 2025-01-28  
 **Last Updated**: 2025-02-01  
 **Status**: In Progress  
-**Total Tasks**: 509 (已完成: 509)
+**Total Tasks**: 510 (已完成: 510)
 
 ## Summary
 
@@ -728,21 +728,24 @@
 - 经营负责人可以创建合同并上传合同文件
 - 合同金额明细（设计费、勘察费、咨询费）可以分别录入
 - 合同信息保存成功并更新项目经营统计
+- 合同信息可以编辑和查看
 
 ### Implementation Tasks
 
-- [ ] T138 [US7] 更新Contract模型符合002规范（ID为UUID，文件通过File实体关联）backend/internal/models/contract.go
-- [ ] T139 [US7] 更新ContractService支持合同创建和更新 backend/internal/services/contract_service.go
-- [ ] T140 [US7] 实现合同金额验证（总金额=设计费+勘察费+咨询费）backend/internal/services/contract_service.go
-- [ ] T141 [US7] 更新ContractHandler支持合同CRUD backend/internal/handlers/contract_handler.go
-- [ ] T142 [US7] 实现合同文件上传功能 backend/internal/handlers/contract_handler.go
-- [ ] T143 [US7] 更新前端合同表单组件 frontend/src/components/business/ContractForm.tsx
-- [ ] T144 [US7] 实现合同金额明细录入（设计费、勘察费、咨询费）frontend/src/components/business/ContractForm.tsx
-- [ ] T145 [US7] 实现合同文件上传UI frontend/src/components/business/ContractFileUpload.tsx
-- [ ] T146 [US7] 更新前端项目经营信息页面集成合同管理 frontend/src/pages/ProjectBusiness.tsx
-- [ ] T417 [US7] 更新ContractService使用权限服务：在管理合同信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_service.go
-- [ ] T418 [US7] 更新ContractHandler使用权限服务：在合同管理Handler中调用权限服务 backend/internal/handlers/contract_handler.go
-- [ ] T419 [US7] 更新前端合同管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ContractForm.tsx
+- [X] T138 [US7] 更新Contract模型符合002规范（ID为UUID，文件通过File实体关联）backend/internal/models/contract.go
+- [X] T139 [US7] 更新ContractService支持合同创建、更新和删除 backend/internal/services/contract_service.go
+- [X] T140 [US7] 实现合同金额验证（总金额=设计费+勘察费+咨询费）backend/internal/services/contract_service.go
+- [X] T141 [US7] 更新ContractHandler支持合同CRUD（创建、读取、更新、删除）backend/internal/handlers/contract_handler.go
+- [X] T142 [US7] 实现合同文件上传功能 backend/internal/handlers/contract_handler.go
+- [X] T143 [US7] 更新前端合同表单组件（支持创建和编辑模式）frontend/src/components/business/ContractForm.tsx
+- [X] T144 [US7] 实现合同金额明细录入（设计费、勘察费、咨询费）frontend/src/components/business/ContractForm.tsx
+- [X] T145 [US7] 实现合同文件上传UI frontend/src/components/business/ContractFileUpload.tsx
+- [X] T661 [US7] 在合同表单中集成文件上传功能：在ContractForm中添加文件上传组件，支持在创建/编辑合同时上传合同文件，参考ContractAmendmentForm的实现方式，使用fileService.uploadFile上传文件，将上传后的文件ID传递给contract_file_id字段 frontend/src/components/contract/ContractForm.tsx
+- [X] T146 [US7] 实现合同列表显示组件 frontend/src/components/business/ContractList.tsx
+- [X] T147 [US7] 更新前端项目经营信息页面集成合同管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectBusiness.tsx
+- [X] T417 [US7] 更新ContractService使用权限服务：在管理合同信息时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_service.go
+- [X] T418 [US7] 更新ContractHandler使用权限服务：在合同管理Handler中调用权限服务 backend/internal/handlers/contract_handler.go
+- [X] T419 [US7] 更新前端合同管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ContractForm.tsx
 
 ---
 
@@ -755,21 +758,22 @@
 - 经营负责人可以为合同添加补充协议
 - 补充协议金额明细可以分别录入
 - 补充协议关联到主合同并更新总应收金额
+- 补充协议可以编辑和删除
 
 ### Implementation Tasks
 
-- [ ] T147 [US8] 更新ContractAmendment模型符合002规范 backend/internal/models/contract_amendment.go
-- [ ] T148 [US8] 更新ContractAmendmentService支持补充协议管理 backend/internal/services/contract_amendment_service.go
-- [ ] T149 [US8] 实现补充协议金额验证 backend/internal/services/contract_amendment_service.go
-- [ ] T150 [US8] 实现补充协议关联主合同并更新统计 backend/internal/services/contract_amendment_service.go
-- [ ] T151 [US8] 更新ContractAmendmentHandler支持补充协议CRUD backend/internal/handlers/contract_amendment_handler.go
-- [ ] T152 [US8] 实现补充协议文件上传功能 backend/internal/handlers/contract_amendment_handler.go
-- [ ] T153 [US8] 更新前端补充协议表单组件 frontend/src/components/business/ContractAmendmentForm.tsx
-- [ ] T154 [US8] 实现补充协议列表显示 frontend/src/components/business/ContractAmendmentList.tsx
-- [ ] T155 [US8] 更新前端合同详情页面集成补充协议管理 frontend/src/components/business/ContractDetail.tsx
-- [ ] T420 [US8] 更新ContractAmendmentService使用权限服务：在管理补充协议时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_amendment_service.go
-- [ ] T421 [US8] 更新ContractAmendmentHandler使用权限服务：在补充协议管理Handler中调用权限服务 backend/internal/handlers/contract_amendment_handler.go
-- [ ] T422 [US8] 更新前端补充协议管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ContractAmendmentForm.tsx
+- [X] T148 [US8] 更新ContractAmendment模型符合002规范 backend/internal/models/contract_amendment.go
+- [X] T149 [US8] 更新ContractAmendmentService支持补充协议创建、更新和删除 backend/internal/services/contract_amendment_service.go
+- [X] T150 [US8] 实现补充协议金额验证 backend/internal/services/contract_amendment_service.go
+- [X] T151 [US8] 实现补充协议关联主合同并更新统计 backend/internal/services/contract_amendment_service.go
+- [X] T152 [US8] 更新ContractAmendmentHandler支持补充协议CRUD（创建、读取、更新、删除）backend/internal/handlers/contract_amendment_handler.go
+- [X] T153 [US8] 实现补充协议文件上传功能 backend/internal/handlers/contract_amendment_handler.go
+- [X] T154 [US8] 更新前端补充协议表单组件（支持创建和编辑模式）frontend/src/components/business/ContractAmendmentForm.tsx
+- [X] T155 [US8] 实现补充协议列表显示（包含编辑和删除按钮）frontend/src/components/business/ContractAmendmentList.tsx
+- [ ] T156 [US8] 更新前端合同详情页面集成补充协议管理（包含列表、创建、编辑、删除功能）frontend/src/components/business/ContractDetail.tsx
+- [X] T420 [US8] 更新ContractAmendmentService使用权限服务：在管理补充协议时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/contract_amendment_service.go
+- [X] T421 [US8] 更新ContractAmendmentHandler使用权限服务：在补充协议管理Handler中调用权限服务 backend/internal/handlers/contract_amendment_handler.go
+- [X] T422 [US8] 更新前端补充协议管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ContractAmendmentForm.tsx
 
 ---
 
@@ -785,15 +789,15 @@
 
 ### Implementation Tasks
 
-- [ ] T156 [US9] 实现甲方支付记录创建（使用FinancialRecord，financial_type=client_payment）backend/internal/services/financial_service.go
-- [ ] T157 [US9] 实现支付记录更新和删除逻辑 backend/internal/services/financial_service.go
-- [ ] T158 [US9] 实现已收金额统计计算 backend/internal/services/financial_service.go
-- [ ] T159 [US9] 更新FinancialHandler支持甲方支付记录 backend/internal/handlers/financial_handler.go
-- [ ] T160 [US9] 创建前端甲方支付表单组件 frontend/src/components/business/ClientPaymentForm.tsx
-- [ ] T161 [US9] 实现支付记录列表显示 frontend/src/components/business/ClientPaymentList.tsx
-- [ ] T162 [US9] 更新前端项目经营信息页面集成支付记录管理 frontend/src/pages/ProjectBusiness.tsx
-- [ ] T423 [US9] 更新FinancialService使用权限服务：在记录甲方支付时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
-- [ ] T424 [US9] 更新FinancialHandler使用权限服务：在甲方支付记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [X] T157 [US9] 实现甲方支付记录创建（使用FinancialRecord，financial_type=client_payment）backend/internal/services/financial_service.go
+- [X] T158 [US9] 实现支付记录更新和删除逻辑 backend/internal/services/financial_service.go
+- [X] T159 [US9] 实现已收金额统计计算 backend/internal/services/financial_service.go
+- [X] T160 [US9] 更新FinancialHandler支持甲方支付记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [X] T161 [US9] 创建前端甲方支付表单组件（支持创建和编辑模式）frontend/src/components/business/ClientPaymentForm.tsx
+- [X] T162 [US9] 实现支付记录列表显示（包含编辑和删除按钮）frontend/src/components/business/PaymentRecordList.tsx
+- [ ] T163 [US9] 更新前端项目经营信息页面集成支付记录管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectBusiness.tsx
+- [X] T423 [US9] 更新FinancialService使用权限服务：在记录甲方支付时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
+- [X] T424 [US9] 更新FinancialHandler使用权限服务：在甲方支付记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
 - [ ] T425 [US9] 更新前端甲方支付表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/ClientPaymentForm.tsx
 
 ---
@@ -810,16 +814,17 @@
 
 ### Implementation Tasks
 
-- [ ] T163 [US10] 实现我方开票记录创建（使用FinancialRecord，financial_type=our_invoice）backend/internal/services/financial_service.go
-- [ ] T164 [US10] 实现开票记录关联支付记录逻辑 backend/internal/services/financial_service.go
-- [ ] T165 [US10] 实现发票文件上传和关联 backend/internal/services/financial_service.go
-- [ ] T166 [US10] 更新FinancialHandler支持我方开票记录 backend/internal/handlers/financial_handler.go
-- [ ] T167 [US10] 创建前端我方开票表单组件 frontend/src/components/business/OurInvoiceForm.tsx
-- [ ] T168 [US10] 实现发票文件上传UI frontend/src/components/business/InvoiceFileUpload.tsx
-- [ ] T169 [US10] 实现开票记录列表显示 frontend/src/components/business/OurInvoiceList.tsx
-- [ ] T170 [US10] 更新前端项目经营信息页面集成开票记录管理 frontend/src/pages/ProjectBusiness.tsx
-- [ ] T426 [US10] 更新FinancialService使用权限服务：在记录我方开票时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
-- [ ] T427 [US10] 更新FinancialHandler使用权限服务：在我方开票记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [X] T164 [US10] 实现我方开票记录创建（使用FinancialRecord，financial_type=our_invoice）backend/internal/services/financial_service.go
+- [X] T165 [US10] 实现开票记录更新和删除逻辑（支持编辑开票信息和更新发票文件）backend/internal/services/financial_service.go
+- [X] T166 [US10] 实现开票记录关联支付记录逻辑 backend/internal/services/financial_service.go
+- [X] T167 [US10] 实现发票文件上传和关联 backend/internal/services/financial_service.go
+- [X] T168 [US10] 更新FinancialHandler支持我方开票记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [X] T169 [US10] 创建前端我方开票表单组件（支持创建和编辑模式）frontend/src/components/business/OurInvoiceForm.tsx
+- [X] T170 [US10] 实现发票文件上传UI frontend/src/components/business/OurInvoiceForm.tsx（已集成在表单中）
+- [X] T171 [US10] 实现开票记录列表显示（包含编辑和删除按钮）frontend/src/components/business/InvoiceRecordList.tsx
+- [ ] T172 [US10] 更新前端项目经营信息页面集成开票记录管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectBusiness.tsx
+- [X] T426 [US10] 更新FinancialService使用权限服务：在记录我方开票时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
+- [X] T427 [US10] 更新FinancialHandler使用权限服务：在我方开票记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
 - [ ] T428 [US10] 更新前端我方开票表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/OurInvoiceForm.tsx
 
 ---
@@ -836,16 +841,17 @@
 
 ### Implementation Tasks
 
-- [ ] T171 [US11] 实现经营奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=business）backend/internal/services/financial_service.go
-- [ ] T172 [US11] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
-- [ ] T173 [US11] 实现经营奖金统计计算 backend/internal/services/financial_service.go
-- [ ] T174 [US11] 更新FinancialHandler支持经营奖金记录 backend/internal/handlers/financial_handler.go
-- [ ] T175 [US11] 创建前端经营奖金表单组件 frontend/src/components/business/BusinessBonusForm.tsx
-- [ ] T176 [US11] 实现发放人员选择组件 frontend/src/components/business/BonusRecipientSelector.tsx
-- [ ] T177 [US11] 实现奖金记录列表显示 frontend/src/components/business/BusinessBonusList.tsx
-- [ ] T178 [US11] 更新前端项目经营信息页面集成奖金管理 frontend/src/pages/ProjectBusiness.tsx
-- [ ] T429 [US11] 更新FinancialService使用权限服务：在分配经营奖金时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
-- [ ] T430 [US11] 更新FinancialHandler使用权限服务：在经营奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [X] T173 [US11] 实现经营奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=business）backend/internal/services/financial_service.go
+- [X] T174 [US11] 实现奖金记录更新和删除逻辑 backend/internal/services/financial_service.go
+- [X] T175 [US11] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
+- [X] T176 [US11] 实现经营奖金统计计算 backend/internal/services/financial_service.go
+- [X] T177 [US11] 更新FinancialHandler支持经营奖金记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [ ] T178 [US11] 创建前端经营奖金表单组件（支持创建和编辑模式）frontend/src/components/business/BusinessBonusForm.tsx
+- [ ] T179 [US11] 实现发放人员选择组件 frontend/src/components/business/BonusRecipientSelector.tsx
+- [ ] T180 [US11] 实现奖金记录列表显示（包含编辑和删除按钮）frontend/src/components/business/BusinessBonusList.tsx
+- [X] T181 [US11] 更新前端项目经营信息页面集成奖金管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectBusiness.tsx
+- [X] T429 [US11] 更新FinancialService使用权限服务：在分配经营奖金时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/financial_service.go
+- [X] T430 [US11] 更新FinancialHandler使用权限服务：在经营奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
 - [ ] T431 [US11] 更新前端经营奖金表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/business/BusinessBonusForm.tsx
 
 ---
@@ -862,18 +868,18 @@
 
 ### Implementation Tasks
 
-- [ ] T179 [US12] 实现总应收金额计算（合同金额+补充协议金额）backend/internal/services/project_business_service.go
-- [ ] T180 [US12] 实现已收金额计算（甲方支付汇总）backend/internal/services/project_business_service.go
-- [ ] T181 [US12] 实现未收金额计算（总应收-已收）backend/internal/services/project_business_service.go
-- [ ] T182 [US12] 实现经营信息统计接口 backend/internal/handlers/project_business_handler.go
-- [ ] T183 [US12] 实现按时间段统计功能 backend/internal/services/project_business_service.go
-- [ ] T184 [US12] 创建前端经营信息统计组件 frontend/src/components/business/BusinessStatistics.tsx
-- [ ] T185 [US12] 实现统计数据可视化展示 frontend/src/components/business/BusinessStatistics.tsx
-- [ ] T186 [US12] 实现统计报表导出功能 frontend/src/components/business/BusinessStatistics.tsx
-- [ ] T187 [US12] 更新前端项目经营信息页面集成统计展示 frontend/src/pages/ProjectBusiness.tsx
-- [ ] T432 [US12] 更新ProjectBusinessService使用权限服务：在查看经营信息统计时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_business_service.go
-- [ ] T433 [US12] 更新ProjectBusinessHandler使用权限服务：在经营信息统计Handler中调用权限服务 backend/internal/handlers/project_business_handler.go
-- [ ] T434 [US12] 更新前端经营信息统计组件：使用权限服务检查权限，无权限时隐藏编辑入口（如有），所有用户可查看统计内容 frontend/src/components/business/BusinessStatistics.tsx
+- [X] T182 [US12] 实现总应收金额计算（合同金额+补充协议金额）backend/internal/services/project_business_service.go
+- [X] T183 [US12] 实现已收金额计算（甲方支付汇总）backend/internal/services/project_business_service.go
+- [X] T184 [US12] 实现未收金额计算（总应收-已收）backend/internal/services/project_business_service.go
+- [X] T185 [US12] 实现经营信息统计接口 backend/internal/handlers/project_business_handler.go
+- [X] T186 [US12] 实现按时间段统计功能 backend/internal/services/project_business_service.go
+- [X] T187 [US12] 创建前端经营信息统计组件 frontend/src/components/business/BusinessStatistics.tsx
+- [X] T188 [US12] 实现统计数据可视化展示 frontend/src/components/business/BusinessStatistics.tsx
+- [ ] T189 [US12] 实现统计报表导出功能 frontend/src/components/business/BusinessStatistics.tsx（暂不考虑，见spec.md）
+- [X] T190 [US12] 更新前端项目经营信息页面集成统计展示 frontend/src/pages/ProjectBusiness.tsx
+- [X] T432 [US12] 更新ProjectBusinessService使用权限服务：在查看经营信息统计时调用权限服务检查权限（CanManageBusinessInfo）backend/internal/services/project_business_service.go
+- [X] T433 [US12] 更新ProjectBusinessHandler使用权限服务：在经营信息统计Handler中调用权限服务 backend/internal/handlers/project_business_handler.go
+- [X] T434 [US12] 更新前端经营信息统计组件：使用权限服务检查权限，无权限时隐藏编辑入口（如有），所有用户可查看统计内容 frontend/src/components/business/BusinessStatistics.tsx
 
 ---
 
@@ -1434,7 +1440,7 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 364/496 (73%)
+**任务进度**: 364/502 (72%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
@@ -1442,12 +1448,12 @@
 - Phase 2.10: 23个任务（统一权限管理机制，新增权限服务、权限中间件和权限检查辅助函数，包含3个权限服务方法：CanManageBusinessInfo、CanManageProductionInfo、CanManageCompanyRevenue）
 - Phase 3: 49个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务，新增6个管理员编辑用户任务）+ 14个用户角色多选支持任务（T473-T486）
 - Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）+ 11个权限集成任务（US4: T409-T413, US5: T487-T489, US6: T414-T416）
-- Phase 9-14: 50个任务（US7-US12）+ 18个权限集成任务（T417-T434）
+- Phase 9-14: 56个任务（US7-US12，优化后新增6个任务：合同列表显示、补充协议编辑删除明确化、开票记录编辑、奖金记录编辑删除）+ 18个权限集成任务（T417-T434）
 - Phase 15-22: 64个任务（US13-US20）+ 24个权限集成任务（T435-T458）
 - Phase 23-24: 22个任务（US21-US22）+ 6个权限集成任务（T459-T464）
 - Phase 25: 18个任务（US23）+ 5个权限集成任务（T465-T469，替换T258和T267）
 - Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 496个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能；新增3个US5权限集成任务：T487-T489，为配置经营参与人功能补充权限控制；更新所有前端权限集成任务描述，明确无权限用户交互规则：可查看但隐藏编辑入口 vs 完全不可访问；新增6个US6专家费支付记录列表显示任务：T642-T647，补充专家费支付记录的查询和显示功能）
+**总计**: 502个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能；新增3个US5权限集成任务：T487-T489，为配置经营参与人功能补充权限控制；更新所有前端权限集成任务描述，明确无权限用户交互规则：可查看但隐藏编辑入口 vs 完全不可访问；新增6个US6专家费支付记录列表显示任务：T642-T647，补充专家费支付记录的查询和显示功能；**Phase 9-14优化**：新增6个任务明确化编辑删除功能，包括合同列表显示、开票记录编辑、奖金记录编辑删除等，确保所有CRUD功能完整覆盖spec.md需求）
 

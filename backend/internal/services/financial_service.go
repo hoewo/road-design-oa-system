@@ -12,13 +12,15 @@ import (
 
 // FinancialService handles financial record-related operations
 type FinancialService struct {
-	db *gorm.DB
+	db               *gorm.DB
+	permissionService *PermissionService
 }
 
 // NewFinancialService creates a new financial service
 func NewFinancialService() *FinancialService {
 	return &FinancialService{
-		db: database.DB,
+		db:               database.DB,
+		permissionService: NewPermissionService(),
 	}
 }
 
@@ -94,16 +96,25 @@ func (s *FinancialService) CreateFinancialRecord(projectID string, createdByID s
 		return nil, err
 	}
 
+	// Check permission for business-related financial records
+	if req.FinancialType == models.FinancialTypeClientPayment ||
+		req.FinancialType == models.FinancialTypeOurInvoice ||
+		(req.FinancialType == models.FinancialTypeBonus && req.BonusCategory != nil && *req.BonusCategory == models.BonusCategoryBusiness) {
+		canManage, err := s.permissionService.CanManageBusinessInfo(createdByID, projectID)
+		if err != nil {
+			return nil, err
+		}
+		if !canManage {
+			return nil, errors.New("permission denied: you do not have permission to manage business information")
+		}
+	}
+
 	// Validate amount
 	if req.Amount <= 0 {
 		return nil, errors.New("amount must be greater than 0")
 	}
 
-	// Validate occurred_at
-	now := time.Now()
-	if req.OccurredAt.After(now) {
-		return nil, errors.New("occurred_at cannot be in the future")
-	}
+	// Validate occurred_at (no future date restriction)
 
 	// Validate type-specific fields based on FinancialType
 	switch req.FinancialType {
@@ -331,13 +342,26 @@ type UpdateFinancialRecordRequest struct {
 
 // UpdateFinancialRecord updates an existing financial record (UUID string)
 // 根据新的统一财务记录模型实现
-func (s *FinancialService) UpdateFinancialRecord(recordID string, req *UpdateFinancialRecordRequest) (*models.FinancialRecord, error) {
+func (s *FinancialService) UpdateFinancialRecord(recordID string, userID string, req *UpdateFinancialRecordRequest) (*models.FinancialRecord, error) {
 	var record models.FinancialRecord
-	if err := s.db.First(&record, "id = ?", recordID).Error; err != nil {
+	if err := s.db.Preload("Project").First(&record, "id = ?", recordID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("financial record not found")
 		}
 		return nil, err
+	}
+
+	// Check permission for business-related financial records
+	if record.FinancialType == models.FinancialTypeClientPayment ||
+		record.FinancialType == models.FinancialTypeOurInvoice ||
+		(record.FinancialType == models.FinancialTypeBonus && record.BonusCategory != nil && *record.BonusCategory == models.BonusCategoryBusiness) {
+		canManage, err := s.permissionService.CanManageBusinessInfo(userID, record.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+		if !canManage {
+			return nil, errors.New("permission denied: you do not have permission to manage business information")
+		}
 	}
 
 	// Update basic fields if provided
@@ -357,9 +381,7 @@ func (s *FinancialService) UpdateFinancialRecord(recordID string, req *UpdateFin
 	}
 
 	if req.OccurredAt != nil {
-		if req.OccurredAt.After(time.Now()) {
-			return nil, errors.New("occurred_at cannot be in the future")
-		}
+		// No future date restriction
 		record.OccurredAt = *req.OccurredAt
 	}
 
@@ -434,13 +456,26 @@ func (s *FinancialService) UpdateFinancialRecord(recordID string, req *UpdateFin
 }
 
 // DeleteFinancialRecord deletes a financial record (UUID string)
-func (s *FinancialService) DeleteFinancialRecord(recordID string) error {
+func (s *FinancialService) DeleteFinancialRecord(recordID string, userID string) error {
 	var record models.FinancialRecord
-	if err := s.db.First(&record, "id = ?", recordID).Error; err != nil {
+	if err := s.db.Preload("Project").First(&record, "id = ?", recordID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("financial record not found")
 		}
 		return err
+	}
+
+	// Check permission for business-related financial records
+	if record.FinancialType == models.FinancialTypeClientPayment ||
+		record.FinancialType == models.FinancialTypeOurInvoice ||
+		(record.FinancialType == models.FinancialTypeBonus && record.BonusCategory != nil && *record.BonusCategory == models.BonusCategoryBusiness) {
+		canManage, err := s.permissionService.CanManageBusinessInfo(userID, record.ProjectID)
+		if err != nil {
+			return err
+		}
+		if !canManage {
+			return errors.New("permission denied: you do not have permission to manage business information")
+		}
 	}
 
 	// Delete the record
@@ -452,6 +487,30 @@ func (s *FinancialService) DeleteFinancialRecord(recordID string) error {
 	// No need to manually update here as the calculation is done on-the-fly
 
 	return nil
+}
+
+// GetTotalPaidAmount calculates total paid amount (甲方支付汇总) for a project
+func (s *FinancialService) GetTotalPaidAmount(projectID string) (float64, error) {
+	var totalPaid float64
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND direction = ?", projectID, models.FinancialTypeClientPayment, models.FinancialDirectionIncome).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalPaid).Error; err != nil {
+		return 0, err
+	}
+	return totalPaid, nil
+}
+
+// GetTotalBusinessBonus calculates total business bonus for a project
+func (s *FinancialService) GetTotalBusinessBonus(projectID string) (float64, error) {
+	var totalBonus float64
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ?", projectID, models.FinancialTypeBonus, models.BonusCategoryBusiness).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalBonus).Error; err != nil {
+		return 0, err
+	}
+	return totalBonus, nil
 }
 
 // GetEffectiveManagementFeeRatio retrieves the effective management fee ratio for a project (UUID string)

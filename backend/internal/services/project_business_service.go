@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -11,13 +12,17 @@ import (
 
 // ProjectBusinessService handles project business information operations
 type ProjectBusinessService struct {
-	db *gorm.DB
+	db               *gorm.DB
+	permissionService *PermissionService
+	financialService  *FinancialService
 }
 
 // NewProjectBusinessService creates a new project business service
 func NewProjectBusinessService() *ProjectBusinessService {
 	return &ProjectBusinessService{
-		db: database.DB,
+		db:               database.DB,
+		permissionService: NewPermissionService(),
+		financialService:  NewFinancialService(),
 	}
 }
 
@@ -211,4 +216,134 @@ func (s *ProjectBusinessService) CreateClientInBusinessInfo(req *CreateClientReq
 	clientService := NewClientService()
 	projectIDPtr := &projectID
 	return clientService.CreateClient(req, userID, projectIDPtr)
+}
+
+// BusinessStatistics represents business statistics for a project
+type BusinessStatistics struct {
+	TotalReceivable float64 `json:"total_receivable"` // 总应收金额（合同金额+补充协议金额）
+	TotalPaid       float64 `json:"total_paid"`       // 已收金额（甲方支付汇总）
+	TotalUnpaid     float64 `json:"total_unpaid"`     // 未收金额（总应收-已收）
+}
+
+// GetBusinessStatistics retrieves business statistics for a project (UUID string)
+func (s *ProjectBusinessService) GetBusinessStatistics(projectID string) (*BusinessStatistics, error) {
+	// Verify project exists
+	var project models.Project
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("project not found")
+		}
+		return nil, err
+	}
+
+	// Calculate total receivable (合同金额 + 补充协议金额)
+	var totalContractAmount float64
+	s.db.Model(&models.Contract{}).
+		Where("project_id = ?", projectID).
+		Select("COALESCE(SUM(contract_amount), 0)").
+		Scan(&totalContractAmount)
+
+	// Get all contracts to calculate amendment amounts
+	var contracts []models.Contract
+	s.db.Where("project_id = ?", projectID).Find(&contracts)
+
+	var totalAmendmentAmount float64
+	for _, contract := range contracts {
+		var amendmentAmount float64
+		s.db.Model(&models.ContractAmendment{}).
+			Where("contract_id = ?", contract.ID).
+			Select("COALESCE(SUM(amendment_amount), 0)").
+			Scan(&amendmentAmount)
+		totalAmendmentAmount += amendmentAmount
+	}
+
+	totalReceivable := totalContractAmount + totalAmendmentAmount
+
+	// Calculate total paid (甲方支付汇总)
+	totalPaid, err := s.financialService.GetTotalPaidAmount(projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate total unpaid
+	totalUnpaid := totalReceivable - totalPaid
+
+	return &BusinessStatistics{
+		TotalReceivable: totalReceivable,
+		TotalPaid:       totalPaid,
+		TotalUnpaid:     totalUnpaid,
+	}, nil
+}
+
+// GetBusinessStatisticsByTimeRange retrieves business statistics for a project within a time range
+func (s *ProjectBusinessService) GetBusinessStatisticsByTimeRange(projectID string, startDate, endDate *time.Time) (*BusinessStatistics, error) {
+	// Verify project exists
+	var project models.Project
+	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("project not found")
+		}
+		return nil, err
+	}
+
+	// Calculate total receivable (合同金额 + 补充协议金额) within time range
+	var totalContractAmount float64
+	contractQuery := s.db.Model(&models.Contract{}).Where("project_id = ?", projectID)
+	if startDate != nil {
+		contractQuery = contractQuery.Where("sign_date >= ?", *startDate)
+	}
+	if endDate != nil {
+		contractQuery = contractQuery.Where("sign_date <= ?", *endDate)
+	}
+	contractQuery.Select("COALESCE(SUM(contract_amount), 0)").Scan(&totalContractAmount)
+
+	// Get contracts within time range
+	var contracts []models.Contract
+	contractQuery2 := s.db.Where("project_id = ?", projectID)
+	if startDate != nil {
+		contractQuery2 = contractQuery2.Where("sign_date >= ?", *startDate)
+	}
+	if endDate != nil {
+		contractQuery2 = contractQuery2.Where("sign_date <= ?", *endDate)
+	}
+	contractQuery2.Find(&contracts)
+
+	var totalAmendmentAmount float64
+	for _, contract := range contracts {
+		var amendmentAmount float64
+		amendmentQuery := s.db.Model(&models.ContractAmendment{}).Where("contract_id = ?", contract.ID)
+		if startDate != nil {
+			amendmentQuery = amendmentQuery.Where("sign_date >= ?", *startDate)
+		}
+		if endDate != nil {
+			amendmentQuery = amendmentQuery.Where("sign_date <= ?", *endDate)
+		}
+		amendmentQuery.Select("COALESCE(SUM(amendment_amount), 0)").Scan(&amendmentAmount)
+		totalAmendmentAmount += amendmentAmount
+	}
+
+	totalReceivable := totalContractAmount + totalAmendmentAmount
+
+	// Calculate total paid (甲方支付汇总) within time range
+	var totalPaid float64
+	paymentQuery := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND direction = ?", projectID, models.FinancialTypeClientPayment, models.FinancialDirectionIncome)
+	if startDate != nil {
+		paymentQuery = paymentQuery.Where("occurred_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		paymentQuery = paymentQuery.Where("occurred_at <= ?", *endDate)
+	}
+	if err := paymentQuery.Select("COALESCE(SUM(amount), 0)").Scan(&totalPaid).Error; err != nil {
+		return nil, err
+	}
+
+	// Calculate total unpaid
+	totalUnpaid := totalReceivable - totalPaid
+
+	return &BusinessStatistics{
+		TotalReceivable: totalReceivable,
+		TotalPaid:       totalPaid,
+		TotalUnpaid:     totalUnpaid,
+	}, nil
 }

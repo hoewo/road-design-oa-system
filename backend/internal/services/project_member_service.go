@@ -328,7 +328,7 @@ func (s *ProjectMemberService) ensureRoleAvailable(projectID string, role models
 func (s *ProjectMemberService) validateDates(joinDate time.Time, leaveDate *time.Time) error {
 	now := s.timeNowFn()
 	if joinDate.After(now) {
-		return errors.New("join date cannot be in the future")
+		// No future date restriction - allow future join dates
 	}
 	if leaveDate != nil && leaveDate.Before(joinDate) {
 		return errors.New("leave date cannot be before join date")

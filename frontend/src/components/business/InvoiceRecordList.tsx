@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { Card, Table, Button, Space, message, Modal, Popconfirm } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
-import { FinancialForm } from '@/components/financial/FinancialForm'
+import { permissionService } from '@/services/permission'
+import { fileService } from '@/services/file'
+import { OurInvoiceForm } from './OurInvoiceForm'
 import type { FinancialRecord } from '@/types'
 import dayjs from 'dayjs'
 
 interface InvoiceRecordListProps {
-  projectId: number
+  projectId: string
 }
 
 export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
@@ -19,20 +21,28 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
   )
   const queryClient = useQueryClient()
 
+  // Check permission
+  const { data: canManage } = useQuery({
+    queryKey: ['canManageBusinessInfo', projectId],
+    queryFn: () => permissionService.canManageBusinessInfo(projectId),
+    enabled: !!projectId,
+  })
+
   const { data: financial, isLoading } = useQuery({
     queryKey: ['projectFinancial', projectId],
     queryFn: () => businessService.getProjectFinancial(projectId),
     enabled: !!projectId,
   })
 
-  // 过滤出开票记录（record_type 为 'invoice'）
+  // 过滤出开票记录（financial_type 为 'our_invoice'）
   const invoiceRecords =
-    financial?.financial_records?.filter((r) => r.record_type === 'invoice') ||
-    []
+    financial?.financial_records?.filter(
+      (r) => r.financial_type === 'our_invoice'
+    ) || []
 
   const deleteMutation = useMutation({
-    mutationFn: (recordId: number) =>
-      businessService.deleteFinancialRecord(recordId),
+    mutationFn: (recordId: string) =>
+      businessService.deleteFinancialRecord(projectId, recordId),
     onSuccess: () => {
       message.success('开票记录删除成功')
       queryClient.invalidateQueries({
@@ -79,37 +89,55 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
     queryClient.invalidateQueries({ queryKey: ['projectFinancial', projectId] })
   }
 
+  const handleDownloadFile = async (fileId: string, fileName: string) => {
+    try {
+      await fileService.downloadFile(fileId, fileName)
+      message.success(`正在下载 ${fileName}`)
+    } catch (error: any) {
+      message.error(error.message || '下载失败')
+    }
+  }
+
   const columns = [
     {
       title: '开票时间',
-      dataIndex: 'invoice_date',
-      key: 'invoice_date',
+      dataIndex: 'occurred_at',
+      key: 'occurred_at',
       render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD') : '-'),
     },
     {
       title: '开票金额',
-      dataIndex: 'invoice_amount',
-      key: 'invoice_amount',
+      dataIndex: 'amount',
+      key: 'amount',
       render: (amount: number) => `¥${amount.toLocaleString()}`,
+    },
+    {
+      title: '甲方',
+      key: 'client',
+      render: (_: any, record: FinancialRecord) =>
+        record.client ? record.client.client_name : '-',
     },
     {
       title: '发票文件',
       key: 'invoice_file',
       render: (_: any, record: FinancialRecord) => {
-        // 这里可以添加发票文件链接，如果有的话
-        // @ts-ignore - invoice_file_path 可能不在类型定义中
-        return record.invoice_file_path ? (
-          <a
-            // @ts-ignore
-            href={record.invoice_file_path}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            查看发票
-          </a>
-        ) : (
-          '-'
-        )
+        if (record.invoice_file) {
+          return (
+            <Button
+              type="link"
+              icon={<DownloadOutlined />}
+              onClick={() =>
+                handleDownloadFile(
+                  record.invoice_file!.id,
+                  record.invoice_file!.original_name || '发票文件'
+                )
+              }
+            >
+              {record.invoice_file.original_name || '下载文件'}
+            </Button>
+          )
+        }
+        return '-'
       },
     },
     {
@@ -117,6 +145,8 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
       key: 'action',
       render: (_: any, record: FinancialRecord) => (
         <Space>
+          {canManage && (
+            <>
           <Button
             type="link"
             icon={<EditOutlined />}
@@ -134,6 +164,8 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
               删除
             </Button>
           </Popconfirm>
+            </>
+          )}
         </Space>
       ),
     },
@@ -144,6 +176,7 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
       <Card
         title="我方开票记录"
         extra={
+          canManage && (
           <Button
             type="primary"
             size="small"
@@ -152,6 +185,7 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
           >
             添加开票记录
           </Button>
+          )
         }
       >
         <Table
@@ -175,9 +209,8 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
         width={800}
         destroyOnHidden
       >
-        <FinancialForm
+        <OurInvoiceForm
           projectId={projectId}
-          defaultRecordType="invoice"
           onSuccess={handleSuccess}
           onCancel={handleModalClose}
         />
@@ -192,10 +225,9 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
         destroyOnHidden
       >
         {editingRecord && (
-          <FinancialForm
+          <OurInvoiceForm
             projectId={projectId}
             recordId={editingRecord.id}
-            defaultRecordType="invoice"
             onSuccess={handleEditSuccess}
             onCancel={handleEditModalClose}
           />

@@ -93,7 +93,14 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 		return
 	}
 
-	contract, err := h.contractService.CreateContract(id, &req)
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	contract, err := h.contractService.CreateContract(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create contract",
 			zap.Error(err),
@@ -101,6 +108,8 @@ func (h *ContractHandler) CreateContract(c *gin.Context) {
 		)
 		if err.Error() == "project not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to create contract", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to create contract", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to create contract", err)
 		}
@@ -177,7 +186,14 @@ func (h *ContractHandler) UpdateContract(c *gin.Context) {
 		return
 	}
 
-	contract, err := h.contractService.UpdateContract(id, &req)
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	contract, err := h.contractService.UpdateContract(id, userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to update contract",
 			zap.Error(err),
@@ -185,6 +201,8 @@ func (h *ContractHandler) UpdateContract(c *gin.Context) {
 		)
 		if err.Error() == "contract not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to update contract", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to update contract", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to update contract", err)
 		}
@@ -218,13 +236,22 @@ func (h *ContractHandler) DeleteContract(c *gin.Context) {
 		return
 	}
 
-	if err := h.contractService.DeleteContract(id); err != nil {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	if err := h.contractService.DeleteContract(id, userID); err != nil {
 		h.logger.Error("Failed to delete contract",
 			zap.Error(err),
 			zap.String("contract_id", id),
 		)
 		if err.Error() == "contract not found" {
 			utils.HandleError(c, http.StatusNotFound, "Failed to delete contract", err)
+		} else if err.Error() == "permission denied: you do not have permission to manage business information" {
+			utils.HandleError(c, http.StatusForbidden, "Failed to delete contract", err)
 		} else {
 			utils.HandleError(c, http.StatusBadRequest, "Failed to delete contract", err)
 		}
@@ -259,11 +286,30 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 		return
 	}
 
-	// Get contract to get project ID
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	// Get contract to get project ID and check permission
 	contract, err := h.contractService.GetContract(contractID)
 	if err != nil {
 		h.logger.Error("Failed to get contract", zap.Error(err), zap.String("contract_id", contractID))
 		utils.HandleError(c, http.StatusNotFound, "Contract not found", err)
+		return
+	}
+
+	// Check permission
+	permissionService := services.NewPermissionService()
+	canManage, err := permissionService.CanManageBusinessInfo(userID, contract.ProjectID)
+	if err != nil {
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
+		return
+	}
+	if !canManage {
+		utils.HandleError(c, http.StatusForbidden, "Permission denied: you do not have permission to manage business information", nil)
 		return
 	}
 
@@ -281,13 +327,6 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 		return
 	}
 	defer file.Close()
-
-	// Get user ID from context
-	userID, exists := middleware.GetUserID(c)
-	if !exists {
-		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
-		return
-	}
 
 	// Get description
 	description := c.PostForm("description")
@@ -324,6 +363,21 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 		)
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to upload file", err)
 		return
+	}
+
+	// Update contract with file ID
+	updateReq := &services.UpdateContractRequest{
+		ContractFileID: &uploadedFile.ID,
+	}
+	_, err = h.contractService.UpdateContract(contractID, userID, updateReq)
+	if err != nil {
+		h.logger.Error("Failed to associate file with contract",
+			zap.Error(err),
+			zap.String("contract_id", contractID),
+			zap.String("file_id", uploadedFile.ID),
+		)
+		// Don't fail the request, file is already uploaded
+		// Just log the error
 	}
 
 	h.logger.Info("Contract file uploaded successfully",

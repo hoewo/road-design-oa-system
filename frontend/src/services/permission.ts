@@ -85,8 +85,9 @@ export const permissionService = {
    */
   getAvailableUsersForMember: async (): Promise<User[]> => {
     try {
-      const response = await get<AvailableUsersResponse>('/user/permissions/available-users-for-member')
-      return response.data ?? []
+      // get 函数已经提取了 response.data.data，所以直接返回 User[] 数组
+      const users = await get<User[]>('/user/permissions/available-users-for-member')
+      return users ?? []
     } catch (error) {
       console.error('Failed to get available users for member:', error)
       return []

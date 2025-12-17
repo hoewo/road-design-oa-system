@@ -4,15 +4,15 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { businessService } from '@/services/business'
 import { permissionService } from '@/services/permission'
-import { ClientPaymentForm } from './ClientPaymentForm'
+import { BusinessBonusForm } from './BusinessBonusForm'
 import type { FinancialRecord } from '@/types'
 import dayjs from 'dayjs'
 
-interface PaymentRecordListProps {
+interface BusinessBonusListProps {
   projectId: string
 }
 
-export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
+export const BusinessBonusList = ({ projectId }: BusinessBonusListProps) => {
   const [modalVisible, setModalVisible] = useState(false)
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingRecord, setEditingRecord] = useState<FinancialRecord | null>(
@@ -33,17 +33,19 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
     enabled: !!projectId,
   })
 
-  // 过滤出支付记录（financial_type 为 'client_payment'）
-  const paymentRecords =
+  // Filter business bonus records
+  const bonusRecords =
     financial?.financial_records?.filter(
-      (r) => r.financial_type === 'client_payment'
+      (r) =>
+        r.financial_type === 'bonus' &&
+        r.bonus_category === 'business'
     ) || []
 
   const deleteMutation = useMutation({
     mutationFn: (recordId: string) =>
       businessService.deleteFinancialRecord(projectId, recordId),
     onSuccess: () => {
-      message.success('支付记录删除成功')
+      message.success('奖金记录删除成功')
       queryClient.invalidateQueries({
         queryKey: ['projectFinancial', projectId],
       })
@@ -63,7 +65,7 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
     setEditModalVisible(true)
   }
 
-  const handleDelete = (recordId: number) => {
+  const handleDelete = (recordId: string) => {
     deleteMutation.mutate(recordId)
   }
 
@@ -90,22 +92,22 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
 
   const columns = [
     {
-      title: '支付时间',
+      title: '发放时间',
       dataIndex: 'occurred_at',
       key: 'occurred_at',
       render: (date: string) => (date ? dayjs(date).format('YYYY-MM-DD') : '-'),
     },
     {
-      title: '支付金额',
+      title: '发放人员',
+      key: 'recipient',
+      render: (_: any, record: FinancialRecord) =>
+        record.recipient ? record.recipient.real_name || record.recipient.username : '-',
+    },
+    {
+      title: '奖金金额',
       dataIndex: 'amount',
       key: 'amount',
       render: (amount: number) => `¥${amount.toLocaleString()}`,
-    },
-    {
-      title: '甲方',
-      key: 'client',
-      render: (_: any, record: FinancialRecord) =>
-        record.client ? record.client.client_name : '-',
     },
     {
       title: '操作',
@@ -114,23 +116,23 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
         <Space>
           {canManage && (
             <>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          >
-            编辑
-          </Button>
-          <Popconfirm
-            title="确定要删除这条支付记录吗？"
-            onConfirm={() => handleDelete(record.id)}
-            okText="确定"
-            cancelText="取消"
-          >
-            <Button type="link" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
+              <Button
+                type="link"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(record)}
+              >
+                编辑
+              </Button>
+              <Popconfirm
+                title="确定要删除这条奖金记录吗？"
+                onConfirm={() => handleDelete(record.id)}
+                okText="确定"
+                cancelText="取消"
+              >
+                <Button type="link" danger icon={<DeleteOutlined />}>
+                  删除
+                </Button>
+              </Popconfirm>
             </>
           )}
         </Space>
@@ -141,23 +143,23 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
   return (
     <>
       <Card
-        title="甲方支付记录"
+        title="经营奖金分配"
         extra={
           canManage && (
-          <Button
-            type="primary"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={handleCreate}
-          >
-            添加支付记录
-          </Button>
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={handleCreate}
+            >
+              分配奖金
+            </Button>
           )
         }
       >
         <Table
           columns={columns}
-          dataSource={paymentRecords}
+          dataSource={bonusRecords}
           loading={isLoading}
           rowKey="id"
           pagination={{
@@ -169,14 +171,14 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
       </Card>
 
       <Modal
-        title="添加支付记录"
+        title="分配经营奖金"
         open={modalVisible}
         onCancel={handleModalClose}
         footer={null}
         width={800}
         destroyOnHidden
       >
-        <ClientPaymentForm
+        <BusinessBonusForm
           projectId={projectId}
           onSuccess={handleSuccess}
           onCancel={handleModalClose}
@@ -184,7 +186,7 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
       </Modal>
 
       <Modal
-        title="编辑支付记录"
+        title="编辑经营奖金"
         open={editModalVisible}
         onCancel={handleEditModalClose}
         footer={null}
@@ -192,7 +194,7 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
         destroyOnHidden
       >
         {editingRecord && (
-          <ClientPaymentForm
+          <BusinessBonusForm
             projectId={projectId}
             recordId={editingRecord.id}
             onSuccess={handleEditSuccess}
@@ -203,3 +205,4 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
     </>
   )
 }
+

@@ -68,7 +68,7 @@ func main() {
 	externalCommissionHandler := handlers.NewExternalCommissionHandler(logger)
 	productionCostHandler := handlers.NewProductionCostHandler(logger)
 	contractHandler := handlers.NewContractHandler(cfg, logger)
-	contractAmendmentHandler := handlers.NewContractAmendmentHandler(logger)
+	contractAmendmentHandler := handlers.NewContractAmendmentHandler(cfg, logger)
 	financialHandler := handlers.NewFinancialHandler(logger)
 	bonusHandler := handlers.NewBonusHandler(logger)
 	userHandler := handlers.NewUserHandlerWithConfig(cfg, logger)

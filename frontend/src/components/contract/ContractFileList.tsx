@@ -18,8 +18,8 @@ import dayjs from 'dayjs'
 const { RangePicker } = DatePicker
 
 interface ContractFileListProps {
-  projectId: number
-  contractId?: number
+  projectId: string
+  contractId?: string
 }
 
 export const ContractFileList = ({

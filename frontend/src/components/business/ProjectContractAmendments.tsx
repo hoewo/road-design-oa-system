@@ -116,7 +116,7 @@ export const ProjectContractAmendments = ({
   const getContractInfo = (contractId: number) => {
     const contract = contracts?.find((c) => c.id === contractId)
     return contract
-      ? `${contract.contract_number} (${contract.contract_type})`
+      ? contract.contract_number
       : `合同ID: ${contractId}`
   }
 

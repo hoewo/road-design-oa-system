@@ -79,6 +79,11 @@ func Migrate() error {
 		return fmt.Errorf("failed to migrate bidding info to array: %w", err)
 	}
 
+	// 1.4 移除合同表中的contract_type列（002规范中已移除该字段）
+	if err := dropContractTypeColumn(); err != nil {
+		return fmt.Errorf("failed to drop contract_type column: %w", err)
+	}
+
 	// ============================================
 	// 阶段2: 表结构创建/更新（使用GORM AutoMigrate）
 	// AutoMigrate 会根据模型定义创建/更新表结构
@@ -570,6 +575,62 @@ func migrateBiddingInfoToArray() error {
 	DB.Exec(`COMMENT ON COLUMN bidding_info.award_notice_file_ids IS '中标通知书文件ID数组，支持多个文件'`)
 
 	log.Println("Bidding info array migration completed")
+	return nil
+}
+
+// dropContractTypeColumn 移除合同表中的contract_type列（002规范中已移除该字段）
+func dropContractTypeColumn() error {
+	// 检查contract_type列是否存在
+	var exists bool
+	err := DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'contracts' 
+			AND column_name = 'contract_type'
+		)
+	`).Scan(&exists).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to check contract_type column: %w", err)
+	}
+
+	// 如果contract_type列不存在，跳过删除操作
+	if !exists {
+		log.Println("contract_type column does not exist, skipping drop")
+		return nil
+	}
+
+	// Step 1: 移除NOT NULL约束（如果存在）
+	// 先检查是否有NOT NULL约束
+	var hasNotNull bool
+	err = DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = 'contracts' 
+			AND column_name = 'contract_type'
+			AND is_nullable = 'NO'
+		)
+	`).Scan(&hasNotNull).Error
+
+	if err != nil {
+		log.Printf("Warning: Failed to check NOT NULL constraint: %v", err)
+	} else if hasNotNull {
+		// 移除NOT NULL约束
+		if err := DB.Exec(`ALTER TABLE contracts ALTER COLUMN contract_type DROP NOT NULL`).Error; err != nil {
+			log.Printf("Warning: Failed to drop NOT NULL constraint (may not exist): %v", err)
+		}
+	}
+
+	// Step 2: 删除contract_type列
+	if err := DB.Exec(`ALTER TABLE contracts DROP COLUMN IF EXISTS contract_type`).Error; err != nil {
+		return fmt.Errorf("failed to drop contract_type column: %w", err)
+	}
+
+	log.Println("contract_type column dropped successfully")
 	return nil
 }
 

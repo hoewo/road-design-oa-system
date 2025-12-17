@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -117,5 +118,70 @@ func (h *ProjectBusinessHandler) UpdateProjectBusiness(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    business,
+	})
+}
+
+// GetBusinessStatistics handles retrieving business statistics for a project
+// @Summary Get business statistics
+// @Description Get business statistics (total receivable, total paid, total unpaid) for a project
+// @Tags 项目经营信息
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Param start_date query string false "Start date (YYYY-MM-DD)" format(date)
+// @Param end_date query string false "End date (YYYY-MM-DD)" format(date)
+// @Success 200 {object} services.BusinessStatistics
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/business/statistics [get]
+func (h *ProjectBusinessHandler) GetBusinessStatistics(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	// Parse optional date range parameters
+	var startDate, endDate *time.Time
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		parsed, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			utils.HandleError(c, http.StatusBadRequest, "Invalid start_date format, expected YYYY-MM-DD", err)
+			return
+		}
+		startDate = &parsed
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		parsed, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			utils.HandleError(c, http.StatusBadRequest, "Invalid end_date format, expected YYYY-MM-DD", err)
+			return
+		}
+		endDate = &parsed
+	}
+
+	var stats *services.BusinessStatistics
+	var err error
+	if startDate != nil || endDate != nil {
+		stats, err = h.businessService.GetBusinessStatisticsByTimeRange(id, startDate, endDate)
+	} else {
+		stats, err = h.businessService.GetBusinessStatistics(id)
+	}
+
+	if err != nil {
+		h.logger.Error("Failed to get business statistics",
+			zap.Error(err),
+			zap.String("project_id", id),
+		)
+		if err.Error() == "project not found" {
+			utils.HandleError(c, http.StatusNotFound, "Project not found", err)
+		} else {
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to get business statistics", err)
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
 	})
 }

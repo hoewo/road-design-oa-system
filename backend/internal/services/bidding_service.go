@@ -211,7 +211,7 @@ func (s *BiddingService) UpdateExpertFeePayment(projectID string, recordID strin
 		Description:   req.Description,
 	}
 
-	updatedRecord, err := financialService.UpdateFinancialRecord(recordID, updateReq)
+	updatedRecord, err := financialService.UpdateFinancialRecord(recordID, userID, updateReq)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (s *BiddingService) DeleteExpertFeePayment(projectID string, recordID strin
 
 	// 使用FinancialService删除记录
 	financialService := NewFinancialService()
-	return financialService.DeleteFinancialRecord(recordID)
+	return financialService.DeleteFinancialRecord(recordID, userID)
 }
 
 // DeleteBiddingInfo deletes bidding info for a project
