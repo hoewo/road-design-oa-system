@@ -16,7 +16,7 @@ import type { CreateProductionApprovalRequest, User } from '@/types'
 import dayjs from 'dayjs'
 
 interface ProductionAuditFormProps {
-  projectId: number
+  projectId: string | number
   onSuccess?: () => void
 }
 

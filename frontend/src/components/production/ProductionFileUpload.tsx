@@ -18,7 +18,7 @@ import type { ProductionFileType } from '@/types'
 const { TextArea } = Input
 
 interface ProductionFileUploadProps {
-  projectId: number
+  projectId: string | number
   onSuccess?: () => void
   onGetContractAmount?: () => Promise<{
     design_fee?: number

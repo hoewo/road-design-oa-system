@@ -1,35 +1,17 @@
-# Build stage
-FROM golang:1.23-alpine AS builder
-
-WORKDIR /app
-
-# Install git and ca-certificates
-RUN apk add --no-cache git ca-certificates
-
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
-COPY . .
-
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
-
-# Final stage
+# 使用轻量级的 alpine 镜像作为运行环境
 FROM alpine:latest
 
+# 安装 ca-certificates，用于 HTTPS 请求
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
-# Copy the binary from builder stage
-COPY --from=builder /app/main .
+# 复制预编译的二进制文件（从构建目录）
+COPY bin/main .
 
-# Expose port
-EXPOSE 8080
+# 暴露端口（通过环境变量设置）
+ARG SERVER_PORT
+EXPOSE ${SERVER_PORT}
 
-# Run the application
+# 运行应用
 CMD ["./main"]

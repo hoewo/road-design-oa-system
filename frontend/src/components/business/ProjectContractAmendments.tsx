@@ -17,7 +17,7 @@ export const ProjectContractAmendments = ({
   const [editModalVisible, setEditModalVisible] = useState(false)
   const [editingAmendment, setEditingAmendment] =
     useState<ContractAmendment | null>(null)
-  const [contractId, setContractId] = useState<number | undefined>()
+    const [contractId, setContractId] = useState<string | number | undefined>()
   const queryClient = useQueryClient()
 
   // 获取项目所有合同
@@ -32,7 +32,7 @@ export const ProjectContractAmendments = ({
     queryKey: ['projectAmendments', projectId],
     queryFn: async () => {
       if (!contracts || contracts.length === 0) return []
-      const amendments: (ContractAmendment & { contract_id: number })[] = []
+      const amendments: (ContractAmendment & { contract_id: string | number })[] = []
       for (const contract of contracts) {
         try {
           const contractAmendments =
@@ -40,7 +40,7 @@ export const ProjectContractAmendments = ({
           amendments.push(
             ...contractAmendments.map((a) => ({
               ...a,
-              contract_id: contract.id,
+              contract_id: String(contract.id),
             }))
           )
         } catch (error) {
@@ -62,11 +62,11 @@ export const ProjectContractAmendments = ({
       contractId,
       amendmentId,
     }: {
-      projectId: number
-      contractId: number
-      amendmentId: number
+      projectId: string | number
+      contractId: string | number
+      amendmentId: string | number
     }) =>
-      businessService.deleteContractAmendment(projectId, contractId, amendmentId),
+      businessService.deleteContractAmendment(String(projectId), String(contractId), String(amendmentId)),
     onSuccess: () => {
       message.success('补充协议删除成功')
       queryClient.invalidateQueries({
@@ -82,14 +82,14 @@ export const ProjectContractAmendments = ({
   })
 
   const handleEdit = (
-    amendment: ContractAmendment & { contract_id: number }
+    amendment: ContractAmendment & { contract_id: string | number }
   ) => {
     setEditingAmendment(amendment)
     setContractId(amendment.contract_id)
     setEditModalVisible(true)
   }
 
-  const handleDelete = (amendment: ContractAmendment & { contract_id: number }) => {
+  const handleDelete = (amendment: ContractAmendment & { contract_id: string | number }) => {
     deleteMutation.mutate({
       projectId,
       contractId: amendment.contract_id,
@@ -113,8 +113,8 @@ export const ProjectContractAmendments = ({
   }
 
   // 获取合同信息用于显示
-  const getContractInfo = (contractId: number) => {
-    const contract = contracts?.find((c) => c.id === contractId)
+  const getContractInfo = (contractId: string | number) => {
+    const contract = contracts?.find((c) => String(c.id) === String(contractId))
     return contract
       ? contract.contract_number
       : `合同ID: ${contractId}`
@@ -138,8 +138,8 @@ export const ProjectContractAmendments = ({
     {
       title: '合同费率',
       key: 'rate',
-      render: (_: any, record: ContractAmendment & { contract_id: number }) => {
-        const contract = contracts?.find((c) => c.id === record.contract_id)
+      render: (_: any, record: ContractAmendment & { contract_id: string | number }) => {
+        const contract = contracts?.find((c) => String(c.id) === String(record.contract_id))
         return contract?.contract_rate
           ? `${(contract.contract_rate * 100).toFixed(0)}%`
           : '-'
@@ -158,7 +158,7 @@ export const ProjectContractAmendments = ({
     {
       title: '操作',
       key: 'action',
-      render: (_: any, record: ContractAmendment & { contract_id: number }) => (
+      render: (_: any, record: ContractAmendment & { contract_id: string | number }) => (
         <Space>
           <Button
             type="link"
@@ -208,8 +208,8 @@ export const ProjectContractAmendments = ({
       >
         {contractId && (
           <ContractAmendmentForm
-            projectId={projectId}
-            contractId={contractId}
+            projectId={String(projectId)}
+            contractId={String(contractId)}
             amendmentId={editingAmendment?.id}
             onSuccess={handleSuccess}
             onCancel={handleModalClose}

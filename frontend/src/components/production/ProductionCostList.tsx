@@ -8,7 +8,7 @@ import type { ProductionCostType } from '@/types'
 import dayjs from 'dayjs'
 
 interface ProductionCostListProps {
-  projectId: number
+  projectId: string | number
 }
 
 const COST_TYPE_LABELS: Record<ProductionCostType, string> = {

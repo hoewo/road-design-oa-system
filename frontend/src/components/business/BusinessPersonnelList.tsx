@@ -10,7 +10,7 @@ import {
   Popconfirm,
   Form,
 } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { projectMemberService } from '@/services/projectMember'
 import { userService } from '@/services/user'
@@ -31,7 +31,7 @@ export const BusinessPersonnelList = ({
   const queryClient = useQueryClient()
 
   // 检查权限：是否可以管理项目经营信息（包括配置经营参与人）
-  const { data: canManage, isLoading: checkingPermission } = useQuery({
+  const { data: canManage } = useQuery({
     queryKey: ['canManageBusinessInfo', projectId],
     queryFn: () => permissionService.canManageBusinessInfo(projectId),
     enabled: !!projectId,
@@ -237,11 +237,15 @@ export const BusinessPersonnelList = ({
             <Select
               placeholder="请选择要添加的人员"
               showSearch
-              filterOption={(input, option) =>
-                (option?.children as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              filterOption={(input, option) => {
+                const children = option?.children;
+                if (Array.isArray(children)) {
+                  return children.some((child: any) => 
+                    String(child).toLowerCase().includes(input.toLowerCase())
+                  );
+                }
+                return String(children || '').toLowerCase().includes(input.toLowerCase());
+              }}
             >
               {availableUsers.map((user) => (
                 <Option key={user.id} value={user.id}>

@@ -161,11 +161,15 @@ export const BusinessBonusForm = ({
               placeholder={isLoadingUsers ? '加载中...' : availableUsers.length === 0 ? '暂无可用用户' : '请选择发放人员'}
               showSearch
               loading={isLoadingUsers}
-              filterOption={(input, option) =>
-                (option?.children as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              filterOption={(input, option) => {
+                const children = option?.children;
+                if (Array.isArray(children)) {
+                  return children.some((child: any) => 
+                    String(child).toLowerCase().includes(input.toLowerCase())
+                  );
+                }
+                return String(children || '').toLowerCase().includes(input.toLowerCase());
+              }}
               disabled={canManage === false || isLoadingUsers}
               notFoundContent={isLoadingUsers ? '加载中...' : availableUsers.length === 0 ? '暂无可用用户' : undefined}
             >

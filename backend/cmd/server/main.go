@@ -151,7 +151,7 @@ func main() {
 	)
 
 	// Start server
-	addr := fmt.Sprintf("%s:%d", cfg.ServerHost, cfg.ServerPort)
+	addr := fmt.Sprintf("%s:%d", cfg.ListenHost, cfg.ListenPort)
 	logger.Info("Server starting", zap.String("address", addr))
 
 	if err := routerEngine.Run(addr); err != nil {

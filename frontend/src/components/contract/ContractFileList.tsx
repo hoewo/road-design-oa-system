@@ -57,9 +57,9 @@ export const ContractFileList = ({
     enabled: !!projectId,
   })
 
-  const handleDownload = async (fileId: number, fileName: string) => {
+  const handleDownload = async (fileId: string | number, fileName: string) => {
     try {
-      await businessService.downloadContractFile(fileId)
+      await businessService.downloadContractFile(String(fileId))
       message.success(`正在下载 ${fileName}`)
     } catch (error: any) {
       message.error(error.message || '下载失败')

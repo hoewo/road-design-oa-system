@@ -163,11 +163,15 @@ export const ClientPaymentForm = ({
             <Select
               placeholder="请选择甲方"
               showSearch
-              filterOption={(input, option) =>
-                (option?.children as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              filterOption={(input, option) => {
+                const children = option?.children;
+                if (Array.isArray(children)) {
+                  return children.some((child: any) => 
+                    String(child).toLowerCase().includes(input.toLowerCase())
+                  );
+                }
+                return String(children || '').toLowerCase().includes(input.toLowerCase());
+              }}
               disabled={canManage === false}
             >
               {clients.map((client) => (

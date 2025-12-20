@@ -7,7 +7,7 @@ import { userService } from '@/services/user'
 import type { ReplaceDisciplineAssignmentsRequest, User } from '@/types'
 
 interface DisciplineAssignmentFormProps {
-  projectId: number
+  projectId: string | number
 }
 
 // 常见专业列表
@@ -26,9 +26,9 @@ const COMMON_DISCIPLINES = [
 interface DisciplineRow {
   key: string
   discipline: string
-  designer_id?: number
-  participant_id?: number
-  reviewer_id?: number
+  designer_id?: string | number
+  participant_id?: string | number
+  reviewer_id?: string | number
 }
 
 export const DisciplineAssignmentForm = ({
@@ -113,9 +113,9 @@ export const DisciplineAssignmentForm = ({
 
       assignments.push({
         discipline: row.discipline,
-        designer_id: row.designer_id,
-        participant_id: row.participant_id,
-        reviewer_id: row.reviewer_id,
+        designer_id: typeof row.designer_id === 'string' ? Number(row.designer_id) : row.designer_id,
+        participant_id: typeof row.participant_id === 'string' ? Number(row.participant_id) : row.participant_id,
+        reviewer_id: typeof row.reviewer_id === 'string' ? Number(row.reviewer_id) : row.reviewer_id,
       })
     }
 

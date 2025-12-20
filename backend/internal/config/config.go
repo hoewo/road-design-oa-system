@@ -1,11 +1,8 @@
 package config
 
 import (
-	"log"
 	"os"
 	"strconv"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -42,13 +39,13 @@ type Config struct {
 	AuthMode      string // "self_validate" or "gateway"
 	NebulaAuthURL string // NebulaAuth服务地址（self_validate模式使用）
 	ServiceName   string // 服务名称（project-oa）
-	ServicePort   int    // 服务端口
-	ServiceHost   string // 云端服务器IP（生产环境用于服务注册）
+	RegisterHost  string // 服务注册地址（告诉网关如何访问此服务，Docker同网络可用容器名）
+	RegisterPort  int    // 服务注册端口（告诉网关如何访问此服务）
 	APIBaseURL    string // 客户端访问地址（开发：localhost:8080，生产：网关地址）
 
 	// Server
-	ServerPort         int
-	ServerHost         string
+	ListenHost         string // 服务器监听地址（容器内绑定地址，通常为 0.0.0.0）
+	ListenPort         int    // 服务器监听端口（容器内监听端口）
 	CORSAllowedOrigins string
 
 	// Log
@@ -56,12 +53,12 @@ type Config struct {
 	LogFormat string
 }
 
+// Load 从环境变量加载配置
+// 配置来源：
+//   - Docker 环境：通过 docker-compose.yml 的 environment 设置
+//   - 本地开发：通过 shell 脚本（start.sh）设置环境变量
+//   注意：代码不直接加载 .env 文件，由 shell 脚本负责加载
 func Load() *Config {
-	// 加载 .env 配置文件
-	if err := godotenv.Load(".env"); err != nil {
-		log.Printf("Warning: .env not found, using environment variables only")
-	}
-
 	config := &Config{
 		// Database
 		DBHost:     getEnv("DB_HOST", "localhost"),
@@ -96,13 +93,13 @@ func Load() *Config {
 		AuthMode:      getEnv("AUTH_MODE", "self_validate"), // "self_validate" or "gateway"
 		NebulaAuthURL: getEnv("NEBULA_AUTH_URL", "http://localhost:8080"),
 		ServiceName:   getEnv("SERVICE_NAME", "project-oa"),
-		ServicePort:   getEnvAsInt("SERVICE_PORT", 8080),
-		ServiceHost:   getEnv("SERVICE_HOST", ""), // 生产环境需要设置
+		RegisterHost:  getEnv("SERVICE_HOST", ""), // Docker同网络可用容器名（如 backend），外部访问需设置服务器IP
+		RegisterPort:  getEnvAsInt("SERVICE_PORT", 8082), // 通常与 SERVER_PORT 相同
 		APIBaseURL:    getEnv("API_BASE_URL", "http://localhost:8080"), // 客户端访问地址
 
 		// Server
-		ServerPort:         getEnvAsInt("SERVER_PORT", 8080),
-		ServerHost:         getEnv("SERVER_HOST", "0.0.0.0"),
+		ListenHost:         getEnv("SERVER_HOST", "0.0.0.0"), // 容器内绑定地址
+		ListenPort:         getEnvAsInt("SERVER_PORT", 8082), // 容器内监听端口
 		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "http://localhost:3000"),
 
 		// Log

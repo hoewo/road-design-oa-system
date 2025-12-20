@@ -262,7 +262,7 @@ const Login = () => {
                   value={verificationCode}
                   onChange={(value) => setVerificationCode(value)}
                   onComplete={handleVerificationCodeComplete}
-                  disabled={loginState === 'logging_in' || loginState === 'success'}
+                  disabled={['logging_in', 'success'].includes(loginState)}
                   error={errorType === 'verification_invalid'}
                   autoFocus={true}
                 />
@@ -275,7 +275,7 @@ const Login = () => {
                 <ResendCodeButton
                   onResend={handleResendCode}
                   countdownSeconds={60}
-                  disabled={loginState === 'logging_in' || loginState === 'success'}
+                  disabled={['logging_in', 'success'].includes(loginState)}
                 />
               </Form.Item>
 
@@ -284,10 +284,10 @@ const Login = () => {
                   type="primary"
                   block
                   onClick={handleLogin}
-                  loading={loginState === 'logging_in'}
-                  disabled={verificationCode.length !== 6 || loginState === 'success'}
+                  loading={(loginState as LoginState) === 'logging_in'}
+                  disabled={verificationCode.length !== 6 || ['success'].includes(loginState)}
                 >
-                  {loginState === 'logging_in' ? '登录中...' : '登录'}
+                  {(loginState as LoginState) === 'logging_in' ? '登录中...' : '登录'}
                 </Button>
               </Form.Item>
             </>

@@ -150,8 +150,8 @@ export const OurInvoiceForm = ({
     }
   }
 
-  const beforeUpload = (file: File) => {
-    const isLt100M = file.size / 1024 / 1024 < 100
+  const beforeUpload = (file: any) => {
+    const isLt100M = (file as any).size / 1024 / 1024 < 100
     if (!isLt100M) {
       message.error('文件大小不能超过100MB')
       return false
@@ -262,11 +262,15 @@ export const OurInvoiceForm = ({
             <Select
               placeholder="请选择甲方"
               showSearch
-              filterOption={(input, option) =>
-                (option?.children as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              filterOption={(input, option) => {
+                const children = option?.children;
+                if (Array.isArray(children)) {
+                  return children.some((child: any) => 
+                    String(child).toLowerCase().includes(input.toLowerCase())
+                  );
+                }
+                return String(children || '').toLowerCase().includes(input.toLowerCase());
+              }}
               disabled={canManage === false}
             >
               {clients.map((client) => (

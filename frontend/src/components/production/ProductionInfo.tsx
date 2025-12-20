@@ -39,7 +39,7 @@ import type {
 import dayjs from 'dayjs'
 
 interface ProductionInfoProps {
-  projectId: number
+  projectId: string | number
   onGetContractAmount?: () => Promise<{
     design_fee?: number
     survey_fee?: number
@@ -128,7 +128,7 @@ export const ProductionInfo = ({
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
   }
 
-  const handleDownload = async (fileId: number, fileName: string) => {
+  const handleDownload = async (fileId: string | number, fileName: string) => {
     try {
       const blob = await productionService.downloadProductionFile(
         projectId,

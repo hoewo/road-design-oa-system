@@ -34,7 +34,7 @@ import dayjs from 'dayjs'
 const { Text } = Typography
 
 interface FinancialListProps {
-  projectId: number
+  projectId: string | number
 }
 
 export const FinancialList = ({ projectId }: FinancialListProps) => {
@@ -69,8 +69,8 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (recordId: number) =>
-      businessService.deleteFinancialRecord(recordId),
+    mutationFn: ({ projectId, recordId }: { projectId: string; recordId: string }) =>
+      businessService.deleteFinancialRecord(projectId, recordId),
     onSuccess: () => {
       message.success('财务记录删除成功')
       queryClient.invalidateQueries({
@@ -92,8 +92,8 @@ export const FinancialList = ({ projectId }: FinancialListProps) => {
     setEditModalVisible(true)
   }
 
-  const handleDelete = (recordId: number) => {
-    deleteMutation.mutate(recordId)
+  const handleDelete = (recordId: string | number) => {
+    deleteMutation.mutate({ projectId: String(projectId), recordId: String(recordId) })
   }
 
   const handleModalClose = () => {

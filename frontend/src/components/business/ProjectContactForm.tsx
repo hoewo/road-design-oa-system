@@ -113,11 +113,15 @@ export const ProjectContactForm = ({
             placeholder="请选择甲方"
             loading={loadingClients}
             showSearch
-            filterOption={(input, option) =>
-              (option?.children as string)
-                ?.toLowerCase()
-                .includes(input.toLowerCase())
-            }
+            filterOption={(input, option) => {
+              const children = option?.children;
+              if (Array.isArray(children)) {
+                return children.some((child: any) => 
+                  String(child).toLowerCase().includes(input.toLowerCase())
+                );
+              }
+              return String(children || '').toLowerCase().includes(input.toLowerCase());
+            }}
           >
             {clients.map((client) => (
               <Option key={client.id} value={client.id}>

@@ -7,7 +7,7 @@ import { ExternalCommissionForm } from './ExternalCommissionForm'
 import dayjs from 'dayjs'
 
 interface ExternalCommissionListProps {
-  projectId: number
+  projectId: string | number
 }
 
 export const ExternalCommissionList = ({

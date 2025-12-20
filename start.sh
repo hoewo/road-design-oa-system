@@ -272,27 +272,37 @@ start_minio() {
     fi
 }
 
+# 加载环境变量
+load_env() {
+    # 优先从项目根目录的 .env 加载
+    if [ -f "${PROJECT_ROOT}/.env" ]; then
+        set -a
+        source "${PROJECT_ROOT}/.env"
+        set +a
+        echo -e "${BLUE}  已加载项目根目录 .env 配置${NC}"
+    # 兼容：从 backend/.env 加载（向后兼容）
+    elif [ -f "${BACKEND_DIR}/.env" ]; then
+        set -a
+        source "${BACKEND_DIR}/.env"
+        set +a
+        echo -e "${BLUE}  已加载 backend/.env 配置${NC}"
+    fi
+}
+
 # 初始化数据库
 init_database() {
     echo ""
     echo -e "${BLUE}初始化数据库...${NC}"
 
-    # 检查后端 .env 文件以获取数据库配置
-    local db_name="project_oa"
-    local db_user="project_oa_user"
-    local db_password="project_oa_password"
-    local db_host="localhost"
-    local db_port="5433"
+    # 加载环境变量
+    load_env
 
-    if [ -f "${BACKEND_DIR}/.env" ]; then
-        # 从 .env 文件读取配置
-        source "${BACKEND_DIR}/.env" 2>/dev/null || true
-        db_name="${DB_NAME:-${db_name}}"
-        db_user="${DB_USER:-${db_user}}"
-        db_password="${DB_PASSWORD:-${db_password}}"
-        db_host="${DB_HOST:-${db_host}}"
-        db_port="${DB_PORT:-${db_port}}"
-    fi
+    # 从环境变量获取数据库配置（如果未设置则使用默认值）
+    local db_name="${DB_NAME:-project_oa}"
+    local db_user="${DB_USER:-project_oa_user}"
+    local db_password="${DB_PASSWORD:-project_oa_password}"
+    local db_host="${DB_HOST:-localhost}"
+    local db_port="${DB_PORT:-5433}"
 
     # 检查数据库初始化脚本是否存在
     if [ -f "${SCRIPTS_DIR}/init-db.sh" ]; then
@@ -345,16 +355,8 @@ start_backend() {
 
     cd "${BACKEND_DIR}"
 
-    # 检查 .env 文件
-    if [ ! -f ".env" ]; then
-        if [ -f "env.example" ]; then
-            echo -e "${YELLOW}  提示: 未找到 .env 文件，从 env.example 复制...${NC}"
-            cp env.example .env
-        else
-            echo -e "${RED}  错误: 未找到环境配置文件${NC}"
-            return 1
-        fi
-    fi
+    # 加载环境变量（从项目根目录或 backend/.env）
+    load_env
 
     # 初始化数据库（在启动后端之前）
     if ! init_database; then
@@ -542,14 +544,15 @@ start_frontend() {
 
     cd "${FRONTEND_DIR}"
 
-    # 检查 .env.local 文件
-    if [ ! -f ".env.local" ]; then
-        if [ -f "env.example" ]; then
-            echo -e "${YELLOW}  提示: 未找到 .env.local 文件，从 env.example 复制...${NC}"
-            cp env.example .env.local
+    # 加载环境变量（从项目根目录的 .env，Vite 会自动读取 VITE_ 开头的变量）
+    # Vite 会自动从项目根目录的 .env 文件读取环境变量
+    # 如果需要前端特定的配置，可以创建 frontend/.env.local
+    if [ -f "${PROJECT_ROOT}/.env" ]; then
+        echo -e "${BLUE}  使用项目根目录 .env 配置（Vite 会自动读取 VITE_ 变量）${NC}"
+    elif [ -f ".env.local" ]; then
+        echo -e "${BLUE}  使用 frontend/.env.local 配置${NC}"
         else
-            echo -e "${YELLOW}  警告: 未找到环境配置文件${NC}"
-        fi
+        echo -e "${YELLOW}  提示: 未找到环境配置文件，使用默认配置${NC}"
     fi
 
     # 检查 npm 是否安装

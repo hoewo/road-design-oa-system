@@ -64,7 +64,7 @@ export const InvoiceRecordList = ({ projectId }: InvoiceRecordListProps) => {
     setEditModalVisible(true)
   }
 
-  const handleDelete = (recordId: number) => {
+  const handleDelete = (recordId: string) => {
     deleteMutation.mutate(recordId)
   }
 

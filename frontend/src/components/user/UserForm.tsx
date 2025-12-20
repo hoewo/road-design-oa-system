@@ -30,7 +30,7 @@ const UserForm = ({ userId, onSuccess, onCancel }: UserFormProps) => {
   // Load user data if editing
   const { data: user, isLoading: loadingUser } = useQuery({
     queryKey: ['user', userId],
-    queryFn: () => userService.getUser(userId!),
+    queryFn: () => userService.getUser(String(userId!)),
     enabled: !!userId,
   })
 

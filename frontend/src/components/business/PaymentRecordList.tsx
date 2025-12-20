@@ -63,7 +63,7 @@ export const PaymentRecordList = ({ projectId }: PaymentRecordListProps) => {
     setEditModalVisible(true)
   }
 
-  const handleDelete = (recordId: number) => {
+  const handleDelete = (recordId: string) => {
     deleteMutation.mutate(recordId)
   }
 

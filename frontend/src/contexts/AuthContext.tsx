@@ -62,19 +62,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userInfo)
       setIsAuthenticated(true)
       setLoading(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AuthContext] Failed to fetch user info:', error)
       
-      // 获取用户信息失败，检查token是否仍然存在
+      // 检查错误状态码
+      const errorStatus = error?.response?.status
       const tokenStillExists = authService.isAuthenticated()
-      if (!tokenStillExists) {
+      
+      // 认证相关错误（401/403/404）应该清除token并设置未认证状态
+      // 401: 未授权（token无效或过期）
+      // 403: 禁止访问（权限不足）
+      // 404: 接口不存在（可能是路由配置问题，但应该视为认证失败）
+      if (errorStatus === 401 || errorStatus === 403 || errorStatus === 404) {
+        // 认证失败，清除所有token
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('token') // 清除旧的token（如果存在）
+        setIsAuthenticated(false)
+        setUser(null)
+        
+        // 触发认证状态变化事件，通知其他组件
+        window.dispatchEvent(new Event('auth-state-change'))
+        
+        console.warn(`[AuthContext] Authentication failed (${errorStatus}), cleared tokens and set unauthenticated`)
+      } else if (!tokenStillExists) {
         // Token已失效，清理状态
         setIsAuthenticated(false)
         setUser(null)
       } else {
-        // Token存在但获取用户信息失败，保持认证状态但清空用户信息
-        // 这种情况可能是网络问题或后端问题，不应该清除认证状态
-        console.warn('[AuthContext] Token exists but failed to fetch user info')
+        // 其他错误（如500、网络错误等），可能是临时问题
+        // 保持认证状态但清空用户信息，避免因临时网络问题导致用户被登出
+        console.warn(`[AuthContext] Token exists but failed to fetch user info (non-auth error: ${errorStatus || 'network'})`)
       }
       setLoading(false)
     } finally {

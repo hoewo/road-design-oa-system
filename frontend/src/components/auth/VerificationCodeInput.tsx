@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useRef, useEffect } from 'react'
 import { Input } from 'antd'
 
 interface VerificationCodeInputProps {

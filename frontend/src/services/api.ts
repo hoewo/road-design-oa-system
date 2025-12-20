@@ -39,9 +39,10 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config
+    const errorStatus = error.response?.status
 
     // Token过期（401错误）时自动刷新
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (errorStatus === 401 && !originalRequest._retry) {
       originalRequest._retry = true
 
       try {
@@ -68,6 +69,23 @@ api.interceptors.response.use(
         window.location.href = '/login'
         
         return Promise.reject(refreshError)
+      }
+    }
+
+    // 403/404 错误通常表示认证或授权失败，也应该清除token
+    // 注意：这里不自动跳转，让调用方（如 AuthContext）处理跳转逻辑
+    // 避免在非用户信息获取的场景下强制跳转
+    if (errorStatus === 403 || errorStatus === 404) {
+      // 如果是获取用户信息的请求失败，清除token
+      // 其他请求的 403/404 可能是业务逻辑错误，不应该清除token
+      if (originalRequest.url?.includes('/user/auth/me')) {
+        console.warn(`[API Interceptor] Auth endpoint failed (${errorStatus}), clearing tokens`)
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('token')
+        
+        // 触发自定义事件，通知认证状态已改变
+        window.dispatchEvent(new Event('auth-state-change'))
       }
     }
 

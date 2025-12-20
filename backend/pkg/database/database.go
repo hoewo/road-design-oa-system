@@ -15,6 +15,45 @@ import (
 
 var DB *gorm.DB
 
+// tableExists 检查表是否存在
+func tableExists(tableName string) (bool, error) {
+	var exists bool
+	err := DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.tables 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = $1
+		)
+	`, tableName).Scan(&exists).Error
+	if err != nil {
+		return false, fmt.Errorf("failed to check if table %s exists: %w", tableName, err)
+	}
+	return exists, nil
+}
+
+// columnExists 检查列是否存在
+func columnExists(tableName, columnName string) (bool, error) {
+	var exists bool
+	err := DB.Raw(`
+		SELECT EXISTS (
+			SELECT 1 
+			FROM information_schema.columns 
+			WHERE table_schema = CURRENT_SCHEMA() 
+			AND table_name = $1 
+			AND column_name = $2
+		)
+	`, tableName, columnName).Scan(&exists).Error
+	if err != nil {
+		// 如果表不存在，返回 false 而不是错误（首次部署时表可能不存在）
+		if strings.Contains(err.Error(), "does not exist") {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check if column %s.%s exists: %w", tableName, columnName, err)
+	}
+	return exists, nil
+}
+
 func Connect(cfg *config.Config) error {
 	// 根据数据库类型选择连接方式
 	switch cfg.DBType {
@@ -154,40 +193,30 @@ func Migrate() error {
 
 // migrateUserRoles 迁移用户角色从单个role字段到roles数组
 func migrateUserRoles() error {
-	// 检查roles列是否已存在
-	var exists bool
-	err := DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 
-			FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'users' 
-			AND column_name = 'roles'
-		)
-	`).Scan(&exists).Error
+	// 首次部署时，如果users表不存在，跳过迁移（AutoMigrate会创建表）
+	exists, err := tableExists("users")
+	if err != nil {
+		return fmt.Errorf("failed to check if users table exists: %w", err)
+	}
+	if !exists {
+		log.Println("Users table does not exist yet, skipping user roles migration (will be handled by AutoMigrate)")
+		return nil
+	}
 
+	// 检查roles列是否已存在
+	rolesExists, err := columnExists("users", "roles")
 	if err != nil {
 		return fmt.Errorf("failed to check roles column: %w", err)
 	}
 
 	// 如果roles列已存在，跳过迁移
-	if exists {
+	if rolesExists {
 		log.Println("Roles column already exists, skipping migration")
 		return nil
 	}
 
 	// 检查role列是否存在
-	var roleExists bool
-	err = DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 
-			FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'users' 
-			AND column_name = 'role'
-		)
-	`).Scan(&roleExists).Error
-
+	roleExists, err := columnExists("users", "role")
 	if err != nil {
 		return fmt.Errorf("failed to check role column: %w", err)
 	}
@@ -235,18 +264,18 @@ func migrateUserRoles() error {
 
 // dropOldRoleColumn 删除旧的role列（如果存在）
 func dropOldRoleColumn() error {
-	// 检查role列是否存在
-	var roleExists bool
-	err := DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 
-			FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'users' 
-			AND column_name = 'role'
-		)
-	`).Scan(&roleExists).Error
+	// 首次部署时，如果users表不存在，跳过迁移
+	exists, err := tableExists("users")
+	if err != nil {
+		return fmt.Errorf("failed to check if users table exists: %w", err)
+	}
+	if !exists {
+		log.Println("Users table does not exist yet, skipping old role column drop")
+		return nil
+	}
 
+	// 检查role列是否存在
+	roleExists, err := columnExists("users", "role")
 	if err != nil {
 		return fmt.Errorf("failed to check role column: %w", err)
 	}
@@ -299,24 +328,44 @@ func containsIgnorableError(errMsg string) bool {
 
 // migrateContactData 迁移联系人数据从clients表到project_contacts表
 func migrateContactData() error {
+	// 首次部署时，如果相关表不存在，跳过迁移
+	clientsExists, err := tableExists("clients")
+	if err != nil {
+		return fmt.Errorf("failed to check if clients table exists: %w", err)
+	}
+	if !clientsExists {
+		log.Println("Clients table does not exist yet, skipping contact data migration")
+		return nil
+	}
+
+	projectsExists, err := tableExists("projects")
+	if err != nil {
+		return fmt.Errorf("failed to check if projects table exists: %w", err)
+	}
+	if !projectsExists {
+		log.Println("Projects table does not exist yet, skipping contact data migration")
+		return nil
+	}
+
+	projectContactsExists, err := tableExists("project_contacts")
+	if err != nil {
+		return fmt.Errorf("failed to check if project_contacts table exists: %w", err)
+	}
+	if !projectContactsExists {
+		log.Println("Project_contacts table does not exist yet, skipping contact data migration")
+		return nil
+	}
+
 	// 检查clients表是否有contact_name或contact_phone列
-	var hasContactName, hasContactPhone bool
-	DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'clients' 
-			AND column_name = 'contact_name'
-		)
-	`).Scan(&hasContactName)
-	DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'clients' 
-			AND column_name = 'contact_phone'
-		)
-	`).Scan(&hasContactPhone)
+	hasContactName, err := columnExists("clients", "contact_name")
+	if err != nil {
+		return fmt.Errorf("failed to check contact_name column: %w", err)
+	}
+
+	hasContactPhone, err := columnExists("clients", "contact_phone")
+	if err != nil {
+		return fmt.Errorf("failed to check contact_phone column: %w", err)
+	}
 
 	// 如果clients表没有这些列，说明已经迁移过了，跳过
 	if !hasContactName && !hasContactPhone {
@@ -351,9 +400,21 @@ func migrateContactData() error {
 
 // migrateFinancialRecords 迁移财务记录数据（从Bonus、ExpertFeePayment、ProductionCost到FinancialRecord）
 func migrateFinancialRecords() error {
+	// 检查financial_records表是否存在（应该在AutoMigrate之后，但为了安全起见还是检查）
+	exists, err := tableExists("financial_records")
+	if err != nil {
+		return fmt.Errorf("failed to check if financial_records table exists: %w", err)
+	}
+	if !exists {
+		log.Println("Financial_records table does not exist yet, skipping financial records migration")
+		return nil
+	}
+
 	log.Println("Migrating financial records...")
 
 	// 迁移Bonus数据
+	bonusesExists, _ := tableExists("bonuses")
+	if bonusesExists {
 	if err := DB.Exec(`
 		INSERT INTO financial_records (
 			id, project_id, financial_type, direction, amount, occurred_at,
@@ -373,13 +434,13 @@ func migrateFinancialRecords() error {
 			SELECT 1 FROM financial_records WHERE financial_records.id = bonuses.id
 		)
 	`).Error; err != nil {
-		// 如果bonuses表不存在，忽略错误
-		if !strings.Contains(err.Error(), "does not exist") {
 			log.Printf("Warning: Failed to migrate bonus data: %v", err)
 		}
 	}
 
 	// 迁移ExpertFeePayment数据
+	expertFeePaymentsExists, _ := tableExists("expert_fee_payments")
+	if expertFeePaymentsExists {
 	if err := DB.Exec(`
 		INSERT INTO financial_records (
 			id, project_id, financial_type, direction, amount, occurred_at,
@@ -394,13 +455,13 @@ func migrateFinancialRecords() error {
 			SELECT 1 FROM financial_records WHERE financial_records.id = expert_fee_payments.id
 		)
 	`).Error; err != nil {
-		// 如果expert_fee_payments表不存在，忽略错误
-		if !strings.Contains(err.Error(), "does not exist") {
 			log.Printf("Warning: Failed to migrate expert fee payment data: %v", err)
 		}
 	}
 
 	// 迁移ProductionCost数据
+	productionCostsExists, _ := tableExists("production_costs")
+	if productionCostsExists {
 	if err := DB.Exec(`
 		INSERT INTO financial_records (
 			id, project_id, financial_type, direction, amount, occurred_at,
@@ -424,8 +485,6 @@ func migrateFinancialRecords() error {
 			SELECT 1 FROM financial_records WHERE financial_records.id = production_costs.id
 		)
 	`).Error; err != nil {
-		// 如果production_costs表不存在，忽略错误
-		if !strings.Contains(err.Error(), "does not exist") {
 			log.Printf("Warning: Failed to migrate production cost data: %v", err)
 		}
 	}
@@ -436,6 +495,16 @@ func migrateFinancialRecords() error {
 
 // initializeDisciplines 初始化专业字典默认数据
 func initializeDisciplines() error {
+	// 检查disciplines表是否存在（应该在AutoMigrate之后，但为了安全起见还是检查）
+	exists, err := tableExists("disciplines")
+	if err != nil {
+		return fmt.Errorf("failed to check if disciplines table exists: %w", err)
+	}
+	if !exists {
+		log.Println("Disciplines table does not exist yet, skipping initialization")
+		return nil
+	}
+
 	log.Println("Initializing default disciplines...")
 
 	defaultDisciplines := []struct {
@@ -471,22 +540,19 @@ func initializeDisciplines() error {
 
 // migrateBiddingInfoToArray 迁移bidding_info表从单文件字段到数组字段
 func migrateBiddingInfoToArray() error {
-	// 检查数组字段是否已存在
-	var hasArrayFields bool
-	err := DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'bidding_info' 
-			AND column_name = 'tender_file_ids'
-		)
-	`).Scan(&hasArrayFields).Error
-
+	// 首次部署时，如果bidding_info表不存在，跳过迁移（AutoMigrate会创建表）
+	exists, err := tableExists("bidding_info")
 	if err != nil {
-		// 如果bidding_info表不存在，忽略错误（会在AutoMigrate中创建）
-		if strings.Contains(err.Error(), "does not exist") {
-			return nil
-		}
+		return fmt.Errorf("failed to check if bidding_info table exists: %w", err)
+	}
+	if !exists {
+		log.Println("Bidding_info table does not exist yet, skipping migration (will be handled by AutoMigrate)")
+		return nil
+	}
+
+	// 检查数组字段是否已存在
+	hasArrayFields, err := columnExists("bidding_info", "tender_file_ids")
+	if err != nil {
 		return fmt.Errorf("failed to check bidding_info array fields: %w", err)
 	}
 
@@ -497,16 +563,7 @@ func migrateBiddingInfoToArray() error {
 	}
 
 	// 检查单文件字段是否存在
-	var hasSingleFields bool
-	err = DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'bidding_info' 
-			AND column_name = 'tender_file_id'
-		)
-	`).Scan(&hasSingleFields).Error
-
+	hasSingleFields, err := columnExists("bidding_info", "tender_file_id")
 	if err != nil {
 		return fmt.Errorf("failed to check bidding_info single fields: %w", err)
 	}
@@ -580,24 +637,24 @@ func migrateBiddingInfoToArray() error {
 
 // dropContractTypeColumn 移除合同表中的contract_type列（002规范中已移除该字段）
 func dropContractTypeColumn() error {
-	// 检查contract_type列是否存在
-	var exists bool
-	err := DB.Raw(`
-		SELECT EXISTS (
-			SELECT 1 
-			FROM information_schema.columns 
-			WHERE table_schema = CURRENT_SCHEMA() 
-			AND table_name = 'contracts' 
-			AND column_name = 'contract_type'
-		)
-	`).Scan(&exists).Error
+	// 首次部署时，如果contracts表不存在，跳过迁移
+	exists, err := tableExists("contracts")
+	if err != nil {
+		return fmt.Errorf("failed to check if contracts table exists: %w", err)
+	}
+	if !exists {
+		log.Println("Contracts table does not exist yet, skipping contract_type column drop")
+		return nil
+	}
 
+	// 检查contract_type列是否存在
+	columnExists, err := columnExists("contracts", "contract_type")
 	if err != nil {
 		return fmt.Errorf("failed to check contract_type column: %w", err)
 	}
 
 	// 如果contract_type列不存在，跳过删除操作
-	if !exists {
+	if !columnExists {
 		log.Println("contract_type column does not exist, skipping drop")
 		return nil
 	}

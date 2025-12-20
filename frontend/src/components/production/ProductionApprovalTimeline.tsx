@@ -8,7 +8,7 @@ import type { ProductionApprovalRecord } from '@/types'
 import dayjs from 'dayjs'
 
 interface ProductionApprovalTimelineProps {
-  projectId: number
+  projectId: string | number
 }
 
 export const ProductionApprovalTimeline = ({

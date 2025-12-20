@@ -24,7 +24,7 @@ import dayjs from 'dayjs'
 const { RangePicker } = DatePicker
 
 interface ProductionFileListProps {
-  projectId: number
+  projectId: string | number
   onGetContractAmount?: () => Promise<{
     design_fee?: number
     survey_fee?: number

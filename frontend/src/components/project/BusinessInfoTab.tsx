@@ -100,7 +100,6 @@ export const BusinessInfoTab = ({
               >
                 {projectContact?.contact_name ||
                   businessData?.project_contact?.contact_name ||
-                  businessData?.contact_name ||
                   '-'}
               </div>
             </div>
@@ -120,7 +119,6 @@ export const BusinessInfoTab = ({
               >
                 {projectContact?.contact_phone ||
                   businessData?.project_contact?.contact_phone ||
-                  businessData?.contact_phone ||
                   '-'}
               </div>
             </div>

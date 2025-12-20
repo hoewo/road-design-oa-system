@@ -15,7 +15,7 @@ import { businessService } from '@/services/business'
 import { projectService } from '@/services/project'
 import { permissionService } from '@/services/permission'
 import ClientForm from '@/components/client/ClientForm'
-import type { Client, ProjectBusiness } from '@/types'
+import type { Client } from '@/types'
 
 const { Option } = Select
 
@@ -86,8 +86,8 @@ export const ClientSelectModal = ({
     if (businessData && open) {
       form.setFieldsValue({
         client_id: businessData.client_id || undefined,
-        contact_name: businessData.contact_name,
-        contact_phone: businessData.contact_phone,
+        contact_name: businessData.project_contact?.contact_name,
+        contact_phone: businessData.project_contact?.contact_phone,
       })
     }
   }, [businessData, form, open])
@@ -164,9 +164,7 @@ export const ClientSelectModal = ({
                 borderRadius: '4px',
               }}
             >
-              {businessData?.project_contact?.contact_name ||
-                businessData?.contact_name ||
-                '-'}
+              {businessData?.project_contact?.contact_name || '-'}
             </div>
           </div>
           <div style={{ marginBottom: 16 }}>
@@ -179,9 +177,7 @@ export const ClientSelectModal = ({
                 borderRadius: '4px',
               }}
             >
-              {businessData?.project_contact?.contact_phone ||
-                businessData?.contact_phone ||
-                '-'}
+              {businessData?.project_contact?.contact_phone || '-'}
             </div>
           </div>
         </div>
@@ -212,11 +208,15 @@ export const ClientSelectModal = ({
               allowClear
               loading={loadingClients}
               onSearch={setClientSearchValue}
-              filterOption={(input, option) =>
-                (option?.children as string)
-                  ?.toLowerCase()
-                  .includes(input.toLowerCase())
-              }
+              filterOption={(input, option) => {
+                const children = option?.children;
+                if (Array.isArray(children)) {
+                  return children.some((child: any) => 
+                    String(child).toLowerCase().includes(input.toLowerCase())
+                  );
+                }
+                return String(children || '').toLowerCase().includes(input.toLowerCase());
+              }}
               notFoundContent={
                 loadingClients ? (
                   <div style={{ padding: '8px', textAlign: 'center' }}>

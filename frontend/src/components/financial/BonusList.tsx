@@ -17,7 +17,7 @@ import type { BonusType, Bonus } from '@/types'
 import dayjs from 'dayjs'
 
 interface BonusListProps {
-  projectId: number
+  projectId: string | number
   bonusType?: BonusType
 }
 

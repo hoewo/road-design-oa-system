@@ -68,7 +68,7 @@ const ProjectList = () => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => projectService.deleteProject(id),
+    mutationFn: (id: string) => projectService.deleteProject(id),
     onSuccess: () => {
       message.success('项目删除成功')
       queryClient.invalidateQueries({ queryKey: ['projects'] })

@@ -15,14 +15,14 @@ import type {
 export const productionService = {
   // Production File operations
   uploadProductionFile: async (
-    projectId: number,
+    projectId: string | number,
     data: FormData
   ): Promise<ProductionFile> => {
     return post<ProductionFile>(`/user/projects/${projectId}/production/files`, data)
   },
 
   listProductionFiles: async (
-    projectId: number,
+    projectId: string | number,
     params?: {
       page?: number
       size?: number
@@ -39,8 +39,8 @@ export const productionService = {
   },
 
   downloadProductionFile: async (
-    projectId: number,
-    fileId: number
+    projectId: string | number,
+    fileId: string | number
   ): Promise<Blob> => {
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/project-oa/v1'}/user/projects/${projectId}/production/files/${fileId}/download`,
@@ -58,7 +58,7 @@ export const productionService = {
 
   // Discipline Assignment operations
   getDisciplineAssignments: async (
-    projectId: number
+    projectId: string | number
   ): Promise<DisciplineAssignmentResponse[]> => {
     return get<DisciplineAssignmentResponse[]>(
       `/user/projects/${projectId}/production/discipline-assignments`
@@ -66,7 +66,7 @@ export const productionService = {
   },
 
   replaceDisciplineAssignments: async (
-    projectId: number,
+    projectId: string | number,
     data: ReplaceDisciplineAssignmentsRequest
   ): Promise<DisciplineAssignmentResponse[]> => {
     return put<DisciplineAssignmentResponse[]>(
@@ -77,7 +77,7 @@ export const productionService = {
 
   // Production Approval operations
   listApprovals: async (
-    projectId: number,
+    projectId: string | number,
     params?: {
       page?: number
       size?: number
@@ -92,7 +92,7 @@ export const productionService = {
   },
 
   createApproval: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateProductionApprovalRequest
   ): Promise<ProductionApprovalRecord> => {
     return post<ProductionApprovalRecord>(
@@ -103,7 +103,7 @@ export const productionService = {
 
   // External Commission operations
   listCommissions: async (
-    projectId: number,
+    projectId: string | number,
     params?: {
       page?: number
       size?: number
@@ -117,7 +117,7 @@ export const productionService = {
   },
 
   createCommission: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateExternalCommissionRequest
   ): Promise<ExternalCommission> => {
     return post<ExternalCommission>(
@@ -127,12 +127,12 @@ export const productionService = {
   },
 
   // Production Cost operations
-  listCosts: async (projectId: number): Promise<ProductionCost[]> => {
+  listCosts: async (projectId: string | number): Promise<ProductionCost[]> => {
     return get<ProductionCost[]>(`/user/projects/${projectId}/production/costs`)
   },
 
   createCost: async (
-    projectId: number,
+    projectId: string | number,
     data: CreateProductionCostRequest
   ): Promise<ProductionCost> => {
     return post<ProductionCost>(`/user/projects/${projectId}/production/costs`, data)

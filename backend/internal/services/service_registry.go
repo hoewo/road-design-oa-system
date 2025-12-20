@@ -41,9 +41,9 @@ func (s *ServiceRegistry) RegisterService(adminToken string) error {
 		return fmt.Errorf("NEBULA_AUTH_URL is not configured")
 	}
 
-	serviceURL := fmt.Sprintf("http://%s:%d", s.config.ServiceHost, s.config.ServicePort)
-	if s.config.ServiceHost == "" {
-		serviceURL = fmt.Sprintf("http://localhost:%d", s.config.ServicePort)
+	serviceURL := fmt.Sprintf("http://%s:%d", s.config.RegisterHost, s.config.RegisterPort)
+	if s.config.RegisterHost == "" {
+		serviceURL = fmt.Sprintf("http://localhost:%d", s.config.RegisterPort)
 	}
 
 	reqBody := RegisterServiceRequest{
@@ -95,9 +95,9 @@ func (s *ServiceRegistry) UpdateService(adminToken string) error {
 		return fmt.Errorf("NEBULA_AUTH_URL is not configured")
 	}
 
-	serviceURL := fmt.Sprintf("http://%s:%d", s.config.ServiceHost, s.config.ServicePort)
-	if s.config.ServiceHost == "" {
-		serviceURL = fmt.Sprintf("http://localhost:%d", s.config.ServicePort)
+	serviceURL := fmt.Sprintf("http://%s:%d", s.config.RegisterHost, s.config.RegisterPort)
+	if s.config.RegisterHost == "" {
+		serviceURL = fmt.Sprintf("http://localhost:%d", s.config.RegisterPort)
 	}
 
 	reqBody := RegisterServiceRequest{

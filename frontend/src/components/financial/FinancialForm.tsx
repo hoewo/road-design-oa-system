@@ -20,8 +20,8 @@ const { Option } = Select
 const { TextArea } = Input
 
 interface FinancialFormProps {
-  projectId: number
-  recordId?: number
+  projectId: string | number
+  recordId?: string | number
   defaultRecordType?: 'receivable' | 'invoice' | 'payment' | 'expense'
   onSuccess?: () => void
   onCancel?: () => void
@@ -72,7 +72,7 @@ export const FinancialForm = ({
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<CreateFinancialRecordRequest>) =>
-      businessService.updateFinancialRecord(recordId!, data),
+      businessService.updateFinancialRecord(projectId, String(recordId!), data),
     onSuccess: () => {
       message.success('财务记录更新成功')
       queryClient.invalidateQueries({

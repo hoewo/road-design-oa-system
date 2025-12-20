@@ -13,7 +13,7 @@ import type { CreateProductionCostRequest, ProductionCostType } from '@/types'
 import dayjs from 'dayjs'
 
 interface ProductionCostFormProps {
-  projectId: number
+  projectId: string | number
   onSuccess?: () => void
 }
 

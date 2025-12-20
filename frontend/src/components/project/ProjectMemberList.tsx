@@ -19,13 +19,12 @@ import dayjs from 'dayjs'
 import { projectMemberService } from '@/services/projectMember'
 import type { MemberRole, ProjectMember } from '@/types'
 
-const ROLE_LABELS: Record<MemberRole, string> = {
-  manager: '项目负责人',
+const ROLE_LABELS: Partial<Record<MemberRole, string>> = {
   designer: '专业设计人',
   participant: '专业参与人',
   reviewer: '专业复核人',
   auditor: '审核/审定',
-  business_manager: '经营负责人',
+  approver: '审核/审定',
   business_personnel: '经营人员',
 }
 
@@ -66,7 +65,7 @@ export const ProjectMemberList = ({ projectId }: ProjectMemberListProps) => {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (memberId: number) => projectMemberService.remove(memberId),
+    mutationFn: (memberId: string | number) => projectMemberService.remove(memberId),
     onSuccess: () => {
       message.success('成员已删除')
       queryClient.invalidateQueries({ queryKey: ['projectMembers', projectId] })

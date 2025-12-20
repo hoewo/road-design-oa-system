@@ -13,7 +13,7 @@ import type { CreateExternalCommissionRequest } from '@/types'
 import dayjs from 'dayjs'
 
 interface ExternalCommissionFormProps {
-  projectId: number
+  projectId: string | number
   onSuccess?: () => void
 }
 

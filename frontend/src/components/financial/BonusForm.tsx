@@ -8,7 +8,7 @@ const { Option } = Select
 const { TextArea } = Input
 
 interface BonusFormProps {
-  projectId: number
+  projectId: string | number
   bonusId?: number
   defaultBonusType?: BonusType
   onSuccess?: () => void

@@ -159,7 +159,7 @@ export const ExpertFeePaymentList = ({
       key: 'created_at',
       render: (date: string) => dayjs(date).format('YYYY-MM-DD HH:mm'),
     },
-  ]
+  ] as any[]
 
   // 如果有管理权限，添加操作列
   if (canManage) {
