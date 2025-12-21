@@ -148,10 +148,13 @@ else
     fi
 
     # 构建 SSH 和 SCP 命令
+    # 注意：使用函数方式避免密码中的特殊字符导致引号解析问题
     if [ -n "$SSH_KEY" ]; then
+        # 密钥认证：使用命令字符串
         SSH_CMD="ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no"
         SCP_CMD="scp -i ${SSH_KEY} -o StrictHostKeyChecking=no"
         AUTH_METHOD="密钥认证"
+        USE_SSHPASS=false
     elif [ -n "$SSH_PASSWORD" ]; then
         # 检查 sshpass 是否安装
         if ! command -v sshpass &> /dev/null; then
@@ -174,9 +177,12 @@ else
                 }
             fi
         fi
-        SSH_CMD="sshpass -p '${SSH_PASSWORD}' ssh -o StrictHostKeyChecking=no"
-        SCP_CMD="sshpass -p '${SSH_PASSWORD}' scp -o StrictHostKeyChecking=no"
+        # 密码认证：使用环境变量方式，避免引号解析问题
+        export SSHPASS="${SSH_PASSWORD}"
+        SSH_CMD="sshpass -e ssh -o StrictHostKeyChecking=no"
+        SCP_CMD="sshpass -e scp -o StrictHostKeyChecking=no"
         AUTH_METHOD="密码认证"
+        USE_SSHPASS=true
     fi
 
     SSH_TARGET="${PROD_SERVER_USER}@${PROD_SERVER_HOST}"
@@ -219,6 +225,55 @@ check_port_conflicts() {
     local conflicts_found=false
     local conflict_details=()
     
+    # 如果是远程检查，先测试 SSH 连接和 Docker 环境
+    if [ "$check_remote" = true ]; then
+        echo -e "${BLUE}  测试 SSH 连接...${NC}"
+        # 临时禁用 set -e，避免 SSH 测试失败导致脚本退出
+        set +e
+        if ! ${SSH_CMD} "${SSH_TARGET}" "echo 'SSH connection test'" >/dev/null 2>&1; then
+            set -e
+            echo -e "${RED}✗ SSH 连接失败${NC}"
+            echo -e "${YELLOW}请检查:${NC}"
+            echo -e "  1. SSH 认证配置是否正确（PROD_SSH_KEY 或 PROD_SSH_PASSWORD）"
+            echo -e "  2. 服务器地址是否正确（PROD_SERVER_HOST=${PROD_SERVER_HOST:-未设置}）"
+            echo -e "  3. 服务器是否可访问"
+            echo -e "  4. 网络连接是否正常"
+            echo ""
+            echo -e "${BLUE}调试信息:${NC}"
+            echo -e "  SSH_CMD: ${SSH_CMD}"
+            echo -e "  SSH_TARGET: ${SSH_TARGET}"
+            if [ "${USE_SSHPASS:-false}" = "true" ]; then
+                echo -e "  认证方式: 密码认证（通过 SSHPASS 环境变量）"
+            else
+                echo -e "  认证方式: 密钥认证"
+            fi
+            echo ""
+            echo -e "${BLUE}手动测试命令:${NC}"
+            if [ "${USE_SSHPASS:-false}" = "true" ]; then
+                echo -e "  ${BLUE}SSHPASS='${SSH_PASSWORD}' ${SSH_CMD} ${SSH_TARGET} 'echo test'${NC}"
+            else
+                echo -e "  ${BLUE}${SSH_CMD} ${SSH_TARGET} 'echo test'${NC}"
+            fi
+            exit 1
+        fi
+        set -e
+        echo -e "${GREEN}  ✓ SSH 连接成功${NC}"
+        
+        # 检查远程服务器上是否有 docker 命令
+        echo -e "${BLUE}  检查远程 Docker 环境...${NC}"
+        set +e
+        if ! ${SSH_CMD} "${SSH_TARGET}" "command -v docker >/dev/null 2>&1"; then
+            set -e
+            echo -e "${RED}✗ 远程服务器上未找到 docker 命令${NC}"
+            echo -e "${YELLOW}请确保远程服务器上已安装 Docker${NC}"
+            echo -e "${BLUE}安装 Docker 的方法:${NC}"
+            echo -e "  curl -fsSL https://get.docker.com | sh"
+            exit 1
+        fi
+        set -e
+        echo -e "${GREEN}  ✓ Docker 环境检查通过${NC}"
+    fi
+    
     # 检查每个端口
     for port_check in "${port_checks[@]}"; do
         local port=$(echo "$port_check" | cut -d':' -f1)
@@ -249,8 +304,37 @@ docker ps --format '{{.Names}}|{{.Ports}}' 2>/dev/null | while IFS='|' read -r n
 done
 EOF
             chmod +x "$temp_script"
-            ${SCP_CMD} "$temp_script" "${SSH_TARGET}:/tmp/check_port_${port}.sh" >/dev/null 2>&1
-            local containers_using_port=$(${SSH_CMD} "${SSH_TARGET}" "bash /tmp/check_port_${port}.sh 2>/dev/null; rm -f /tmp/check_port_${port}.sh" 2>/dev/null || echo "")
+            
+            # 上传脚本，检查是否成功
+            set +e
+            if ! ${SCP_CMD} "$temp_script" "${SSH_TARGET}:/tmp/check_port_${port}.sh" >/dev/null 2>&1; then
+                set -e
+                echo -e "${YELLOW}    ⚠ 无法上传检查脚本到远程服务器，跳过端口 ${port} 检查${NC}"
+                echo -e "${YELLOW}    提示: 请检查 SCP 权限和远程服务器 /tmp 目录权限${NC}"
+                rm -f "$temp_script"
+                continue
+            fi
+            set -e
+            
+            # 执行远程检查，添加错误处理
+            local containers_using_port=""
+            set +e
+            containers_using_port=$(${SSH_CMD} "${SSH_TARGET}" "bash /tmp/check_port_${port}.sh 2>/dev/null; rm -f /tmp/check_port_${port}.sh" 2>&1)
+            local ssh_exit_code=$?
+            set -e
+            
+            if [ $ssh_exit_code -ne 0 ]; then
+                # SSH 执行失败，记录错误但继续
+                echo -e "${YELLOW}    ⚠ 远程端口检查失败（退出码: ${ssh_exit_code}），跳过端口 ${port}${NC}"
+                if [ -n "$containers_using_port" ]; then
+                    echo -e "${YELLOW}    错误信息: ${containers_using_port}${NC}"
+                fi
+                rm -f "$temp_script"
+                continue
+            fi
+            
+            # 过滤掉空行（SSH 成功时只返回容器名称，无需过滤错误信息）
+            containers_using_port=$(echo "$containers_using_port" | grep -v "^$" || echo "")
             rm -f "$temp_script"
         else
             # 本地检查：直接执行docker命令
@@ -406,15 +490,33 @@ echo ""
 echo -e "${CYAN}[0.2] 构建 React 前端应用...${NC}"
 cd frontend
 
-# 加载环境变量（Vite 需要 VITE_ 前缀的环境变量在构建时注入）
+# 加载环境变量到 shell（用于后续步骤）
 if [ -f "../.env" ]; then
-    echo -e "${BLUE}  加载环境变量...${NC}"
+    echo -e "${BLUE}  加载环境变量到 shell...${NC}"
     set -a
     source ../.env
     set +a
     # 显示已加载的 VITE_ 环境变量（隐藏敏感信息）
     echo -e "${BLUE}  已加载 VITE_ 环境变量:${NC}"
     env | grep "^VITE_" | sed 's/=.*/=***/' | sed 's/^/    /' || echo -e "${BLUE}    (无 VITE_ 环境变量)${NC}"
+fi
+
+# 从根目录的 .env 文件提取 VITE_* 变量到 frontend/.env.production
+# 这样 Vite 在构建时就能读取到环境变量（Vite 只在项目根目录查找 .env 文件）
+if [ -f "../.env" ]; then
+    echo -e "${BLUE}  从根目录 .env 提取 VITE_* 变量到 frontend/.env.production...${NC}"
+    # 提取 VITE_ 开头的环境变量到 .env.production
+    grep "^VITE_" ../.env > .env.production 2>/dev/null || true
+    if [ -f ".env.production" ] && [ -s ".env.production" ]; then
+        echo -e "${GREEN}  ✓ frontend/.env.production 文件已创建${NC}"
+        # 显示创建的内容（隐藏值，只显示变量名）
+        echo -e "${BLUE}  包含的环境变量:${NC}"
+        grep "^VITE_" .env.production | sed 's/=.*/=***/' | sed 's/^/    /'
+    else
+        echo -e "${YELLOW}  ⚠ 未找到 VITE_ 环境变量，将使用默认值${NC}"
+    fi
+else
+    echo -e "${YELLOW}  ⚠ 未找到根目录的 .env 文件${NC}"
 fi
 
 # 检查 node_modules
@@ -426,9 +528,10 @@ if [ ! -d "node_modules" ]; then
     }
 fi
 
-# 构建前端（Vite 会自动读取 VITE_ 开头的环境变量）
-echo -e "${BLUE}  执行构建...${NC}"
-npm run build || {
+# 构建前端（使用 production 模式，Vite 会自动读取 .env.production 文件）
+echo -e "${BLUE}  执行构建（production 模式）...${NC}"
+# 设置 NODE_ENV=production 确保构建模式正确
+NODE_ENV=production npm run build -- --mode production || {
     echo -e "${RED}✗ 前端构建失败${NC}"
     exit 1
 }
@@ -447,6 +550,12 @@ fi
 
 DIST_SIZE=$(du -sh dist | cut -f1)
 echo -e "${BLUE}  构建产物大小: ${DIST_SIZE}${NC}"
+
+# 可选：清理临时 .env.production 文件（保留以便调试，如需清理可取消注释）
+# if [ -f ".env.production" ]; then
+#     echo -e "${BLUE}  清理临时文件 frontend/.env.production...${NC}"
+#     rm -f .env.production
+# fi
 
 cd "${PROJECT_ROOT}"
 echo -e "${GREEN}✓ React 前端构建成功${NC}"
@@ -902,6 +1011,12 @@ EOF
     docker compose up -d frontend
     sleep 5
     
+    # 阶段5: 启动监控和报警服务（已注释，如需要可取消注释）
+    # echo ""
+    # echo -e "${BLUE}  阶段5: 启动监控和报警服务 (prometheus, alertmanager)...${NC}"
+    # docker compose up -d prometheus alertmanager
+    # sleep 5
+    
     echo -e "${GREEN}✓ 所有服务启动完成${NC}"
     
     # 容器状态检查
@@ -1204,6 +1319,12 @@ echo ""
 echo -e "${BLUE}  阶段4: 启动前端服务 (frontend)...${NC}"
 docker compose up -d frontend
 sleep 5
+
+# 阶段5: 启动监控和报警服务（已注释，如需要可取消注释）
+# echo ""
+# echo -e "${BLUE}  阶段5: 启动监控和报警服务 (prometheus, alertmanager)...${NC}"
+# docker compose up -d prometheus alertmanager
+# sleep 5
 
 echo -e "${GREEN}✓ 所有服务启动完成${NC}"
 

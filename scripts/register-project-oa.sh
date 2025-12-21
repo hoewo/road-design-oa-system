@@ -1,8 +1,19 @@
 #!/bin/bash
 
 # 项目OA服务注册脚本
-# 功能：快速注册 project-oa 服务到 NebulaAuth 服务注册中心
+# 功能：快速注册 project-oa 服务到星云Auth服务注册中心
 # 用法：./scripts/register-project-oa.sh <admin-email> [options]
+# 
+# 说明：
+#   - 这是 register-service.sh 的封装脚本，专门用于注册 project-oa 服务
+#   - 所有配置从 .env 文件读取，支持通过环境变量和命令行参数覆盖
+#   - 本地注册和远程注册使用相同的逻辑，只是配置值不同
+# 
+# 重要概念：
+#   - 业务服务部署参数（SERVER_HOST/SERVER_PORT）：业务服务在容器内监听什么地址和端口
+#   - 服务注册参数（SERVICE_HOST/SERVICE_PORT）：告诉星云Auth网关如何访问业务服务
+#   - 这两者不是一回事，但在某些情况下可能相同（如 Docker 同网络部署）
+#   - 服务注册是手动操作，不是业务服务器启动时自动执行的
 
 set -e
 
@@ -16,17 +27,7 @@ NC='\033[0m' # No Color
 
 # 项目根目录
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BACKEND_DIR="${PROJECT_ROOT}/backend"
 REGISTER_SCRIPT="${PROJECT_ROOT}/specs/002-project-management-oa/guides/scripts/register-service.sh"
-
-# 默认配置
-ADMIN_EMAIL=""
-GATEWAY_URL="http://localhost:8080"
-CODE=""
-CODE_TYPE="email"
-SERVICE_HOST=""
-SERVICE_PORT=""
-SERVICE_NAME=""
 
 # 用于透传给 register-service.sh 的参数数组
 PASSTHROUGH_ARGS=()
@@ -58,16 +59,17 @@ show_usage() {
 用法: $0 <admin-email> [选项]
 
 快速注册 project-oa 服务到 NebulaAuth 服务注册中心
+这是 register-service.sh 的封装脚本，所有配置从 .env 文件读取
 
 参数:
   admin-email              管理员邮箱（必填，用于登录，除非使用 --admin-phone）
 
 选项:
   服务配置:
-  -n, --service-name NAME      业务服务名称（默认: project-oa）
-  -h, --service-host HOST      业务服务主机地址（默认: 从配置文件读取，Docker环境自动检测）
-  -p, --service-port PORT      业务服务端口（默认: 从配置文件读取）
-  -u, --service-url URL        业务服务完整URL（可选，会自动构建）
+  -n, --service-name NAME      业务服务名称（默认: 从 .env 读取 SERVICE_NAME）
+  -h, --service-host HOST      业务服务主机地址（默认: 从 .env 读取 SERVICE_HOST）
+  -p, --service-port PORT      业务服务端口（默认: 从 .env 读取 SERVICE_PORT）
+  -u, --service-url URL        业务服务完整URL（默认: 从 .env 读取 SERVICE_URL）
 
   认证配置:
   -e, --admin-email EMAIL      管理员邮箱（用于登录，与手机号二选一）
@@ -79,7 +81,7 @@ show_usage() {
   --skip-login                 跳过登录步骤（需要提供 --token 和 --user-id）
 
   网关配置:
-  -g, --gateway-url URL        API网关地址（默认: http://localhost:8080，Docker环境自动检测）
+  -g, --gateway-url URL        API网关地址（默认: 从 .env 读取 API_GATEWAY_URL 或 NEBULA_AUTH_URL）
   -a, --auth-url URL           认证服务地址（默认: \${gateway-url}/auth-server）
   -r, --registry-url URL       服务注册中心地址（默认: \${gateway-url}/service-registry）
 
@@ -87,21 +89,38 @@ show_usage() {
   --help                       显示此帮助信息
 
 环境变量:
-  可以通过环境变量设置配置，优先级高于配置文件
+  所有配置都可以通过环境变量设置，优先级高于配置文件
   例如: SERVICE_HOST=192.168.1.100 SERVICE_PORT=8080 $0 admin@example.com
 
 配置文件:
-  脚本会自动从以下文件读取配置:
-  1. 项目根目录的 .env 文件
-
-Docker 环境:
-  脚本会自动检测 Docker 环境并调整配置：
-  - 自动检测 SERVICE_HOST（backend 容器 IP 或容器名）
-  - 自动检测 GATEWAY_URL（网关容器地址）
-  - 优先使用环境变量（Docker Compose 设置的环境变量）
+  脚本会自动从项目根目录的 .env 文件读取以下配置：
+  
+  服务注册配置（必需）：
+  - SERVICE_NAME: 服务名称（默认: project-oa）
+  - SERVICE_HOST: 服务注册地址（网关访问业务服务的地址）
+    * Docker 同网络：容器名（如 backend）或 Docker 网络 IP
+    * 不同服务器：业务服务器的公网 IP 或域名（必须设置）
+    * 注意：不要使用 127.0.0.1 或 localhost，网关无法访问
+  - SERVICE_PORT: 服务注册端口（网关访问业务服务的端口）
+    * Docker 同网络：通常与 SERVER_PORT 相同（容器内端口）
+    * 不同服务器：外部映射的端口（可能与 SERVER_PORT 不同）
+  - SERVICE_URL: 服务完整URL（可选，会自动构建）
+  
+  网关配置（必需）：
+  - API_GATEWAY_URL: 网关地址（或使用 NEBULA_AUTH_URL）
+  - AUTH_SERVER_URL: 认证服务地址（可选，默认: ${API_GATEWAY_URL}/auth-server）
+  - SERVICE_REGISTRY_URL: 服务注册中心地址（可选，默认: ${API_GATEWAY_URL}/service-registry）
+  
+  管理员认证配置（可选）：
+  - ADMIN_EMAIL: 管理员邮箱（可选）
+  - ADMIN_PHONE: 管理员手机号（可选）
+  - ADMIN_CODE: 验证码（可选）
+  - CODE_TYPE: 验证码类型（可选，默认: email）
+  - ADMIN_TOKEN: 管理员Token（可选，用于跳过登录）
+  - ADMIN_USER_ID: 管理员用户ID（可选，用于跳过登录）
 
 示例:
-  # 使用邮箱登录注册服务（从配置文件读取服务信息）
+  # 使用邮箱登录注册服务（从配置文件读取所有信息）
   $0 admin@example.com
 
   # 指定验证码
@@ -124,11 +143,10 @@ Docker 环境:
 EOF
 }
 
-# 从配置文件加载服务配置
-# 参数：$1=配置文件路径, $2=是否覆盖已有值（true=覆盖，false=仅在空时设置）
+# 从配置文件加载配置
+# 参数：$1=配置文件路径
 load_config_from_file() {
   local config_file="$1"
-  local overwrite="${2:-false}"
   
   if [ ! -f "$config_file" ]; then
     return 1
@@ -149,31 +167,34 @@ load_config_from_file() {
     key=$(echo "$key" | xargs)
     value=$(echo "$value" | xargs | sed "s/^['\"]//; s/['\"]$//")
     
+    # 只处理服务注册相关的配置
+    # 注意：这里只读取服务注册配置，不读取业务服务部署配置（SERVER_HOST/SERVER_PORT）
     case "$key" in
-      SERVICE_NAME)
-        if [ "$overwrite" = "true" ] || [ -z "$SERVICE_NAME" ]; then
-          SERVICE_NAME="$value"
+      # 服务注册配置
+      SERVICE_NAME|SERVICE_HOST|SERVICE_PORT|SERVICE_URL)
+        # 如果环境变量未设置，则从配置文件读取
+        if [ -z "${!key}" ]; then
+          export "$key=$value"
         fi
         ;;
-      SERVICE_HOST)
-        if [ "$overwrite" = "true" ] || [ -z "$SERVICE_HOST" ]; then
-          SERVICE_HOST="$value"
+      # 网关配置
+      API_GATEWAY_URL|AUTH_SERVER_URL|SERVICE_REGISTRY_URL)
+        # 如果环境变量未设置，则从配置文件读取
+        if [ -z "${!key}" ]; then
+          export "$key=$value"
         fi
         ;;
-      SERVICE_PORT)
-        if [ "$overwrite" = "true" ] || [ -z "$SERVICE_PORT" ]; then
-          SERVICE_PORT="$value"
-        fi
-        ;;
+      # NEBULA_AUTH_URL 可以映射到 API_GATEWAY_URL
       NEBULA_AUTH_URL)
-        if [ "$overwrite" = "true" ] || [ -z "$GATEWAY_URL" ] || [ "$GATEWAY_URL" = "http://localhost:8080" ]; then
-          # 从 NEBULA_AUTH_URL 提取网关地址（去掉 /auth-server 等后缀）
-          GATEWAY_URL=$(echo "$value" | sed 's|/auth-server.*$||' | sed 's|/service-registry.*$||')
+        if [ -z "${API_GATEWAY_URL}" ]; then
+          export API_GATEWAY_URL="$value"
         fi
         ;;
-      API_BASE_URL)
-        if [ "$overwrite" = "true" ] || [ -z "$GATEWAY_URL" ] || [ "$GATEWAY_URL" = "http://localhost:8080" ]; then
-          GATEWAY_URL="$value"
+      # 管理员认证配置
+      ADMIN_EMAIL|ADMIN_PHONE|ADMIN_CODE|CODE_TYPE|ADMIN_TOKEN|ADMIN_USER_ID)
+        # 如果环境变量未设置，则从配置文件读取
+        if [ -z "${!key}" ]; then
+          export "$key=$value"
         fi
         ;;
     esac
@@ -184,153 +205,24 @@ load_config_from_file() {
   return 0
 }
 
-# 检测是否在 Docker 环境中运行
-detect_docker_env() {
-  # 检查是否在 Docker 容器内
-  if [ -f "/.dockerenv" ] || [ -n "${DOCKER_CONTAINER:-}" ]; then
-    return 0  # 在 Docker 容器内
-  fi
-  
-  # 检查是否有 docker-compose.yml 且服务正在运行
-  if [ -f "${PROJECT_ROOT}/docker-compose.yml" ]; then
-    if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q "project-oa-backend"; then
-      return 0  # Docker 服务正在运行
-    fi
-  fi
-  
-  return 1  # 不在 Docker 环境
-}
-
-# 检测 Docker 网络中的网关地址
-detect_gateway_in_docker() {
-  # 尝试从 docker-compose.yml 中查找网关服务
-  if [ -f "${PROJECT_ROOT}/docker-compose.yml" ]; then
-    # 检查是否有网关服务定义（常见名称）
-    local gateway_names=("nebula-auth" "gateway" "api-gateway" "nebula-gateway")
-    for name in "${gateway_names[@]}"; do
-      if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "$name"; then
-        # 获取网关容器的网络信息
-        local gateway_ip
-        gateway_ip=$(docker inspect "$(docker ps --format '{{.Names}}' 2>/dev/null | grep "$name" | head -1)" \
-          --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
-        if [ -n "$gateway_ip" ] && [ "$gateway_ip" != "<no value>" ]; then
-          echo "http://${gateway_ip}:8080"
-          return 0
-        fi
-      fi
-    done
-  fi
-  
-  # 如果网关在同一个 Docker 网络中，尝试使用服务名
-  if docker network ls --format '{{.Name}}' 2>/dev/null | grep -q "project-oa-network"; then
-    # 假设网关在同一个网络中，使用服务名
-    echo "http://nebula-auth:8080"
-    return 0
-  fi
-  
-  return 1
-}
-
 # 加载配置
-# 配置优先级（从高到低，最终应用顺序）：
-# 1. 命令行参数（在 main 函数中，load_config 之后应用，优先级最高）
-# 2. 环境变量（SERVICE_NAME, SERVICE_HOST, SERVICE_PORT, API_GATEWAY_URL/GATEWAY_URL）
-# 3. .env 文件
-# 4. Docker 环境自动检测
-# 5. 默认值（优先级最低）
 load_config() {
   print_step "正在加载配置..."
   
-  # 检测 Docker 环境
-  local is_docker_env=false
-  if detect_docker_env; then
-    is_docker_env=true
-    print_info "检测到 Docker 环境"
-  fi
-  
-  # 保存环境变量的原始值（如果已设置）
-  # 注意：环境变量会在最后应用，确保优先级最高
-  local env_service_name="${SERVICE_NAME:-}"
-  local env_service_host="${SERVICE_HOST:-}"
-  local env_service_port="${SERVICE_PORT:-}"
-  local env_gateway_url="${API_GATEWAY_URL:-${GATEWAY_URL:-}}"
-  
-  # 步骤1: 从项目根目录的 .env 文件加载配置（仅在非 Docker 环境或环境变量未设置时）
-  if [ "$is_docker_env" = "false" ] || [ -z "$env_service_name" ] || [ -z "$env_service_host" ]; then
+  # 从 .env 文件加载配置
     if [ -f "${PROJECT_ROOT}/.env" ]; then
       print_info "从项目根目录的 .env 文件加载配置"
-      load_config_from_file "${PROJECT_ROOT}/.env" false
+    load_config_from_file "${PROJECT_ROOT}/.env"
   else
       print_warning "配置文件不存在: ${PROJECT_ROOT}/.env"
     fi
-  else
-    print_info "Docker 环境：跳过 .env 文件，优先使用环境变量"
-  fi
   
-  # 步骤2: 应用环境变量（优先级最高，覆盖配置文件的值）
-  if [ -n "$env_service_name" ]; then
-    SERVICE_NAME="$env_service_name"
-    print_info "使用环境变量 SERVICE_NAME=$SERVICE_NAME（覆盖配置文件）"
-  fi
-  if [ -n "$env_service_host" ]; then
-    SERVICE_HOST="$env_service_host"
-    print_info "使用环境变量 SERVICE_HOST=$SERVICE_HOST（覆盖配置文件）"
-  fi
-  if [ -n "$env_service_port" ]; then
-    SERVICE_PORT="$env_service_port"
-    print_info "使用环境变量 SERVICE_PORT=$SERVICE_PORT（覆盖配置文件）"
-  fi
-  if [ -n "$env_gateway_url" ]; then
-    GATEWAY_URL="$env_gateway_url"
-    print_info "使用环境变量 GATEWAY_URL=$GATEWAY_URL（覆盖配置文件）"
-  fi
-  
-  # 步骤3: Docker 环境自动检测和配置
-  if [ "$is_docker_env" = "true" ]; then
-    # 自动检测 SERVICE_HOST（如果未设置）
-    if [ -z "$SERVICE_HOST" ]; then
-      # 检查 backend 容器是否在运行
-      if docker ps --format '{{.Names}}' 2>/dev/null | grep -q "project-oa-backend"; then
-        # 获取 backend 容器的网络信息
-        local backend_ip
-        backend_ip=$(docker inspect project-oa-backend \
-          --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' 2>/dev/null)
-        
-        if [ -n "$backend_ip" ] && [ "$backend_ip" != "<no value>" ]; then
-          SERVICE_HOST="$backend_ip"
-          print_info "Docker 环境：自动检测到 SERVICE_HOST=$SERVICE_HOST（backend 容器 IP）"
-        else
-          # 如果无法获取 IP，使用容器名（假设网关在同一网络）
-          SERVICE_HOST="backend"
-          print_info "Docker 环境：使用容器名 SERVICE_HOST=$SERVICE_HOST（假设网关在同一网络）"
-        fi
-      else
-        # 容器未运行，使用容器名
-        SERVICE_HOST="backend"
-        print_info "Docker 环境：使用容器名 SERVICE_HOST=$SERVICE_HOST"
-      fi
-    fi
-    
-    # 自动检测 GATEWAY_URL（如果未设置）
-    if [ -z "$GATEWAY_URL" ] || [ "$GATEWAY_URL" = "http://localhost:8080" ]; then
-      local detected_gateway
-      if detected_gateway=$(detect_gateway_in_docker); then
-        GATEWAY_URL="$detected_gateway"
-        print_info "Docker 环境：自动检测到 GATEWAY_URL=$GATEWAY_URL"
-      else
-        # 如果无法自动检测，尝试使用常见的网关服务名
-        GATEWAY_URL="http://nebula-auth:8080"
-        print_warning "Docker 环境：无法自动检测网关地址，使用默认值 $GATEWAY_URL"
-        print_warning "如果网关地址不同，请通过环境变量或命令行参数设置"
-      fi
-    fi
-  fi
-  
-  # 步骤4: 设置默认值（优先级最低）
-  SERVICE_NAME="${SERVICE_NAME:-project-oa}"
-  SERVICE_HOST="${SERVICE_HOST:-backend}"
-  SERVICE_PORT="${SERVICE_PORT:-8082}"
-  GATEWAY_URL="${GATEWAY_URL:-http://localhost:8080}"
+  # 设置默认值
+  export SERVICE_NAME="${SERVICE_NAME:-project-oa}"
+  export SERVICE_HOST="${SERVICE_HOST:-localhost}"
+  export SERVICE_PORT="${SERVICE_PORT:-8082}"
+  export API_GATEWAY_URL="${API_GATEWAY_URL:-http://localhost:8080}"
+  export CODE_TYPE="${CODE_TYPE:-email}"
   
   print_success "配置加载完成"
 }
@@ -340,7 +232,7 @@ parse_args() {
   local has_admin_email=false
   local has_admin_phone=false
   
-  # 先检查 --help（注意：-h 用于 --service-host，不是 --help）
+  # 先检查 --help
   for arg in "$@"; do
     if [ "$arg" = "--help" ]; then
       show_usage
@@ -350,71 +242,78 @@ parse_args() {
   
   while [ $# -gt 0 ]; do
     case "$1" in
-      # 服务配置参数（需要特殊处理，用于配置加载）
+      # 服务配置参数
       -n|--service-name)
-        SERVICE_NAME="$2"
+        export SERVICE_NAME="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -h|--service-host)
-        SERVICE_HOST="$2"
+        export SERVICE_HOST="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -p|--service-port)
-        SERVICE_PORT="$2"
+        export SERVICE_PORT="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -u|--service-url)
+        export SERVICE_URL="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       # 认证配置参数
       -e|--admin-email)
-        ADMIN_EMAIL="$2"
+        export ADMIN_EMAIL="$2"
         has_admin_email=true
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -P|--admin-phone)
+        export ADMIN_PHONE="$2"
         has_admin_phone=true
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -c|--code)
-        CODE="$2"
+        export ADMIN_CODE="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -t|--code-type)
-        CODE_TYPE="$2"
+        export CODE_TYPE="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       --token)
+        export ADMIN_TOKEN="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       --user-id)
+        export ADMIN_USER_ID="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       --skip-login)
+        export SKIP_LOGIN="true"
         PASSTHROUGH_ARGS+=("$1")
         shift
         ;;
-      # 网关配置参数（需要特殊处理）
+      # 网关配置参数
       -g|--gateway-url)
-        GATEWAY_URL="$2"
+        export API_GATEWAY_URL="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -a|--auth-url)
+        export AUTH_SERVER_URL="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
       -r|--registry-url)
+        export SERVICE_REGISTRY_URL="$2"
         PASSTHROUGH_ARGS+=("$1" "$2")
         shift 2
         ;;
@@ -425,7 +324,7 @@ parse_args() {
       *)
         # 如果第一个参数不是选项，且还没有设置管理员邮箱，则作为邮箱处理
         if [ "$has_admin_email" = "false" ] && [ "$has_admin_phone" = "false" ] && ! echo "$1" | grep -qE '^-'; then
-          ADMIN_EMAIL="$1"
+          export ADMIN_EMAIL="$1"
           has_admin_email=true
           # 添加到透传参数（作为 -e 参数）
           PASSTHROUGH_ARGS+=("-e" "$1")
@@ -450,9 +349,13 @@ parse_args() {
     done
     
     if [ "$has_token" = "false" ] || [ "$has_user_id" = "false" ]; then
+      # 检查环境变量或配置文件
+      if [ -z "${ADMIN_EMAIL}" ] && [ -z "${ADMIN_PHONE}" ]; then
       print_error "必须提供管理员邮箱（-e/--admin-email）或手机号（-P/--admin-phone），或使用 --token 和 --user-id"
+        print_info "也可以在 .env 文件中配置 ADMIN_EMAIL 或 ADMIN_PHONE"
       show_usage
       exit 1
+      fi
     fi
   fi
 }
@@ -462,20 +365,20 @@ validate_config() {
   local has_error=false
   
   # 验证管理员邮箱（如果提供）
-  if [ -n "$ADMIN_EMAIL" ] && ! echo "$ADMIN_EMAIL" | grep -Eq '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
-    print_error "邮箱格式不正确: $ADMIN_EMAIL"
+  if [ -n "${ADMIN_EMAIL}" ] && ! echo "${ADMIN_EMAIL}" | grep -Eq '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+    print_error "邮箱格式不正确: ${ADMIN_EMAIL}"
     has_error=true
   fi
   
   # 验证服务名称
-  if [ -z "$SERVICE_NAME" ]; then
+  if [ -z "${SERVICE_NAME}" ]; then
     print_error "服务名称不能为空"
     has_error=true
   fi
   
   # 验证端口
-  if ! echo "$SERVICE_PORT" | grep -Eq '^[0-9]+$'; then
-    print_error "服务端口必须是数字: $SERVICE_PORT"
+  if [ -n "${SERVICE_PORT}" ] && ! echo "${SERVICE_PORT}" | grep -Eq '^[0-9]+$'; then
+    print_error "服务端口必须是数字: ${SERVICE_PORT}"
     has_error=true
   fi
   
@@ -509,40 +412,8 @@ main() {
   # 解析命令行参数
   parse_args "$@"
   
-  # 保存命令行参数中的服务配置（如果提供）
-  local cmd_service_name="${SERVICE_NAME:-}"
-  local cmd_register_host="${SERVICE_HOST:-}"
-  local cmd_register_port="${SERVICE_PORT:-}"
-  local cmd_gateway_url="${GATEWAY_URL:-}"
-  local cmd_admin_email="${ADMIN_EMAIL:-}"
-  
-  # 清空这些变量，让 load_config 可以从配置文件加载
-  unset SERVICE_NAME SERVICE_HOST SERVICE_PORT GATEWAY_URL ADMIN_EMAIL
-  
   # 加载配置（从配置文件和环境变量）
   load_config
-  
-  # 应用命令行参数（优先级最高，覆盖所有配置）
-  if [ -n "$cmd_service_name" ]; then
-    SERVICE_NAME="$cmd_service_name"
-    print_info "使用命令行参数 SERVICE_NAME=$SERVICE_NAME（覆盖配置）"
-  fi
-  if [ -n "$cmd_register_host" ]; then
-    SERVICE_HOST="$cmd_register_host"
-    print_info "使用命令行参数 SERVICE_HOST=$SERVICE_HOST（覆盖配置）"
-  fi
-  if [ -n "$cmd_register_port" ]; then
-    SERVICE_PORT="$cmd_register_port"
-    print_info "使用命令行参数 SERVICE_PORT=$SERVICE_PORT（覆盖配置）"
-  fi
-  if [ -n "$cmd_gateway_url" ]; then
-    GATEWAY_URL="$cmd_gateway_url"
-    print_info "使用命令行参数 GATEWAY_URL=$GATEWAY_URL（覆盖配置）"
-  fi
-  if [ -n "$cmd_admin_email" ]; then
-    ADMIN_EMAIL="$cmd_admin_email"
-    print_info "使用命令行参数 ADMIN_EMAIL=$ADMIN_EMAIL（覆盖配置）"
-  fi
   
   # 验证配置
   validate_config
@@ -550,20 +421,23 @@ main() {
   # 显示配置信息
   echo
   print_info "配置信息："
-  echo "  API网关地址: $GATEWAY_URL"
-  echo "  业务服务名称: $SERVICE_NAME"
-  echo "  服务注册地址: $SERVICE_HOST"
-  echo "  服务注册端口: $SERVICE_PORT"
-  if [ -n "$ADMIN_EMAIL" ]; then
-    echo "  管理员邮箱: $ADMIN_EMAIL"
+  echo "  API网关地址: ${API_GATEWAY_URL}"
+  echo "  业务服务名称: ${SERVICE_NAME}"
+  echo "  服务注册地址（SERVICE_HOST）: ${SERVICE_HOST}"
+  echo "  服务注册端口（SERVICE_PORT）: ${SERVICE_PORT}"
+  echo "  说明：SERVICE_HOST/SERVICE_PORT 用于告诉网关如何访问业务服务"
+  if [ -n "${ADMIN_EMAIL}" ]; then
+    echo "  管理员邮箱: ${ADMIN_EMAIL}"
+  elif [ -n "${ADMIN_PHONE}" ]; then
+    echo "  管理员手机号: ${ADMIN_PHONE}"
   fi
   echo
   
   # 构建 register-service.sh 调用参数
   # 检查透传参数中是否已经包含基本参数
   local has_service_name=false
-  local has_register_host=false
-  local has_register_port=false
+  local has_service_host=false
+  local has_service_port=false
   local has_gateway_url=false
   local has_admin_email=false
   local has_admin_phone=false
@@ -572,8 +446,8 @@ main() {
   while [ $i -lt ${#PASSTHROUGH_ARGS[@]} ]; do
     case "${PASSTHROUGH_ARGS[$i]}" in
       -n|--service-name) has_service_name=true ;;
-      -h|--service-host) has_register_host=true ;;
-      -p|--service-port) has_register_port=true ;;
+      -h|--service-host) has_service_host=true ;;
+      -p|--service-port) has_service_port=true ;;
       -g|--gateway-url) has_gateway_url=true ;;
       -e|--admin-email) has_admin_email=true ;;
       -P|--admin-phone) has_admin_phone=true ;;
@@ -583,21 +457,21 @@ main() {
   
   local register_args=()
   
-  # 添加基本参数（如果透传参数中没有，则使用配置值）
+  # 添加基本参数（如果透传参数中没有，则使用环境变量）
   if [ "$has_service_name" = "false" ]; then
-    register_args+=("-n" "$SERVICE_NAME")
+    register_args+=("-n" "${SERVICE_NAME}")
   fi
-  if [ "$has_register_host" = "false" ]; then
-    register_args+=("-h" "$SERVICE_HOST")
+  if [ "$has_service_host" = "false" ]; then
+    register_args+=("-h" "${SERVICE_HOST}")
   fi
-  if [ "$has_register_port" = "false" ]; then
-    register_args+=("-p" "$SERVICE_PORT")
+  if [ "$has_service_port" = "false" ]; then
+    register_args+=("-p" "${SERVICE_PORT}")
   fi
   if [ "$has_gateway_url" = "false" ]; then
-    register_args+=("-g" "$GATEWAY_URL")
+    register_args+=("-g" "${API_GATEWAY_URL}")
   fi
-  if [ "$has_admin_email" = "false" ] && [ "$has_admin_phone" = "false" ] && [ -n "$ADMIN_EMAIL" ]; then
-    register_args+=("-e" "$ADMIN_EMAIL")
+  if [ "$has_admin_email" = "false" ] && [ "$has_admin_phone" = "false" ] && [ -n "${ADMIN_EMAIL}" ]; then
+    register_args+=("-e" "${ADMIN_EMAIL}")
   fi
   
   # 添加所有透传参数
@@ -607,6 +481,12 @@ main() {
   print_step "调用注册脚本..."
   echo
   
+  # 导出环境变量供 register-service.sh 使用
+  export SERVICE_NAME SERVICE_HOST SERVICE_PORT SERVICE_URL
+  export API_GATEWAY_URL AUTH_SERVER_URL SERVICE_REGISTRY_URL
+  export ADMIN_EMAIL ADMIN_PHONE ADMIN_CODE CODE_TYPE
+  export ADMIN_TOKEN ADMIN_USER_ID SKIP_LOGIN
+  
   if "$REGISTER_SCRIPT" "${register_args[@]}"; then
     echo
     echo "=============================="
@@ -614,9 +494,9 @@ main() {
     echo "=============================="
     echo
     print_info "服务信息："
-    echo "  服务名称: $SERVICE_NAME"
+    echo "  服务名称: ${SERVICE_NAME}"
     echo "  服务地址: http://${SERVICE_HOST}:${SERVICE_PORT}"
-    echo "  健康检查: ${GATEWAY_URL}/${SERVICE_NAME}/health"
+    echo "  健康检查: ${API_GATEWAY_URL}/${SERVICE_NAME}/health"
     echo
   else
     print_error "服务注册失败"
@@ -626,4 +506,3 @@ main() {
 
 # 运行主函数
 main "$@"
-

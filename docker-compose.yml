@@ -47,9 +47,30 @@ services:
       dockerfile: Dockerfile
     container_name: project-oa-backend
     environment:
+      # ========================================
+      # 业务服务部署配置（业务服务自身运行所需）
+      # ========================================
+      # SERVER_HOST/SERVER_PORT: 业务服务在容器内监听什么地址和端口
+      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
+      SERVER_PORT: ${SERVER_PORT:-8082}
+      
+      # ========================================
+      # 服务注册配置（告诉星云Auth网关如何访问此业务服务）
+      # ========================================
+      # SERVICE_HOST/SERVICE_PORT: 网关需要知道如何访问业务服务
+      # 注意：这些配置用于服务注册，不是业务服务自身运行所需
+      # - Docker 同网络：SERVICE_HOST 可以使用容器名（如 backend）
+      # - 不同服务器：SERVICE_HOST 必须是业务服务器的实际 IP 或域名
+      SERVICE_NAME: ${SERVICE_NAME:-project-oa}
+      SERVICE_HOST: ${SERVICE_HOST:-backend}
+      SERVICE_PORT: ${SERVICE_PORT:-8082}
+      
+      # ========================================
+      # 业务应用配置
+      # ========================================
       # 数据库配置
-      DB_HOST: postgres
-      DB_PORT: 5432
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
       DB_NAME: ${DB_NAME:-project_oa}
       DB_USER: ${DB_USER:-project_oa_user}
       DB_PASSWORD: ${DB_PASSWORD:-project_oa_password}
@@ -60,7 +81,7 @@ services:
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-24}
       # 存储配置
       STORAGE_TYPE: ${STORAGE_TYPE:-minio}
-      MINIO_ENDPOINT: minio:9000
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio:9000}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-project-files}
@@ -74,17 +95,13 @@ services:
       AUTH_MODE: ${AUTH_MODE:-self_validate}
       NEBULA_AUTH_URL: ${NEBULA_AUTH_URL:-http://localhost:8080}
       API_BASE_URL: ${API_BASE_URL:-http://localhost:8082}
-      SERVICE_NAME: ${SERVICE_NAME:-project-oa}
-      SERVICE_HOST: ${SERVICE_HOST:-backend}
-      SERVICE_PORT: ${SERVICE_PORT:-8082}
-      # 服务器配置
-      SERVER_HOST: ${SERVER_HOST:-0.0.0.0}
-      SERVER_PORT: ${SERVER_PORT:-8082}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       # 日志配置
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-json}
     ports:
+      # 端口映射：将容器内的 SERVER_PORT 映射到宿主机的相同端口
+      # 注意：这是业务服务的访问端口，不是服务注册端口
       - "${SERVER_PORT:-8082}:${SERVER_PORT:-8082}"
     depends_on:
       postgres:

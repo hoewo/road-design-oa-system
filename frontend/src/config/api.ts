@@ -15,39 +15,67 @@
 
 /**
  * 获取当前环境模式
+ * 直接访问 import.meta.env.MODE，让 Vite 能够进行静态替换
  */
 const getMode = (): 'development' | 'production' => {
-  try {
-    const mode = Function(
-      'return (typeof import !== "undefined" && import.meta && import.meta.env && import.meta.env.MODE) || undefined'
-    )()
-    return mode === 'production' ? 'production' : 'development'
-  } catch {
-    const nodeProcess = (globalThis as any).process
-    return nodeProcess?.env?.NODE_ENV === 'production' ? 'production' : 'development'
+  // 直接访问 import.meta.env.MODE，Vite 会在构建时进行静态替换
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE) {
+    return import.meta.env.MODE === 'production' ? 'production' : 'development'
   }
+  
+  // 降级方案：检查 Node.js 环境
+    const nodeProcess = (globalThis as any).process
+  if (nodeProcess?.env?.NODE_ENV) {
+    return nodeProcess.env.NODE_ENV === 'production' ? 'production' : 'development'
+  }
+  
+  return 'development'
 }
 
 /**
  * 解析环境变量值
+ * 直接访问 import.meta.env，让 Vite 能够进行静态替换
+ * 注意：必须直接访问每个环境变量，不能使用动态键访问，否则 Vite 无法进行静态替换
  */
 const getEnvValue = (key: string): string | undefined => {
+  // 优先级1: window.__APP_*__ (运行时注入)
   const globalWindow = typeof window !== 'undefined' ? window : undefined
   if (globalWindow && (globalWindow as any)[`__APP_${key}__`]) {
     return (globalWindow as any)[`__APP_${key}__`]
   }
 
-  try {
-    const viteValue = Function(
-      `return (typeof import !== "undefined" && import.meta && import.meta.env && import.meta.env.${key}) || undefined`
-    )()
-    if (viteValue) {
-      return viteValue
+  // 优先级2: import.meta.env.VITE_* (Vite环境变量)
+  // 直接访问每个环境变量，让 Vite 能够进行静态替换
+  // 注意：Vite 只能识别直接访问，不能使用动态键访问
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    // 根据 key 直接访问对应的环境变量
+    switch (key) {
+      case 'VITE_API_BASE_URL':
+        return import.meta.env.VITE_API_BASE_URL
+      case 'VITE_NEBULA_AUTH_URL':
+        return import.meta.env.VITE_NEBULA_AUTH_URL
+      case 'VITE_AUTH_MODE':
+        return import.meta.env.VITE_AUTH_MODE
+      case 'VITE_API_TIMEOUT':
+        return import.meta.env.VITE_API_TIMEOUT
+      case 'VITE_MAX_FILE_SIZE':
+        return import.meta.env.VITE_MAX_FILE_SIZE
+      case 'VITE_ALLOWED_FILE_TYPES':
+        return import.meta.env.VITE_ALLOWED_FILE_TYPES
+      case 'VITE_APP_NAME':
+        return import.meta.env.VITE_APP_NAME
+      case 'VITE_VERSION':
+        return import.meta.env.VITE_VERSION
+      default:
+        // 对于其他环境变量，尝试动态访问（但可能无法被 Vite 静态替换）
+        const env = import.meta.env as Record<string, any>
+        if (env[key]) {
+          return String(env[key])
+        }
     }
-  } catch {
-    // Ignore
   }
 
+  // 优先级3: process.env.VITE_* (Node环境变量，仅用于构建时)
   const nodeProcess = (globalThis as any).process
   if (nodeProcess?.env?.[key]) {
     return nodeProcess.env[key]
