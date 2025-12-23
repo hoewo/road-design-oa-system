@@ -1,5 +1,7 @@
 .cursor/commands/speckit.*
 .specify
+.cursor/commands/arckit.*
+.arckit
 .tools
 
 # Go
