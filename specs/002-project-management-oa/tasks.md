@@ -886,54 +886,64 @@
 ## Phase 15: User Story 13 - 配置生产人员 (P2)
 
 ### Story Goal
-项目管理员或生产负责人能够为项目配置生产人员，包括按专业维度配置设计人、参与人、复核人，以及配置审核人、审定人。
+项目管理员或生产负责人能够为项目配置生产人员，包括按专业维度配置设计人、参与人、复核人，以及配置审核人、审定人。支持添加、编辑、删除生产人员配置。审核人和审定人应该与生产人员放在一起，审核人和审定人排在前面，编辑时应该一起修改（在同一个弹出框中编辑和保存）；生产人员（按专业）统一入口，在弹出框中编辑和保存，列表支持编辑和删除；专业选择支持新增、编辑、删除。
 
 ### Independent Test Criteria
 - 项目管理员和生产负责人可以按专业配置生产人员
-- 支持自定义专业并同步到专业字典
+- 审核人和审定人可以在弹出框中编辑和保存
+- 生产人员（按专业）统一入口，在弹出框中编辑和保存，列表支持编辑和删除
+- 专业选择支持新增、编辑、删除并同步到专业字典
 - 生产人员配置保存成功
+- 生产人员配置可以编辑和删除
 
 ### Implementation Tasks
 
-- [ ] T165 [US13] 更新ProjectMember模型支持生产人员角色（designer, participant, reviewer, auditor, approver）backend/internal/models/project_member.go
-- [ ] T166 [US13] 实现按专业维度配置生产人员逻辑 backend/internal/services/project_member_service.go
-- [ ] T167 [US13] 实现专业关联验证（生产人员角色必须关联专业）backend/internal/services/project_member_service.go
-- [ ] T168 [US13] 实现自定义专业创建并同步到专业字典 backend/internal/services/project_member_service.go
-- [ ] T169 [US13] 更新ProjectMemberHandler支持生产人员配置 backend/internal/handlers/project_member_handler.go
-- [ ] T170 [US13] 创建前端生产人员配置组件 frontend/src/components/production/ProductionPersonnelManager.tsx
-- [ ] T171 [US13] 实现按专业维度的人员配置UI frontend/src/components/production/DisciplinePersonnelConfig.tsx
-- [ ] T172 [US13] 实现审核人和审定人配置UI frontend/src/components/production/ReviewerConfig.tsx
-- [ ] T173 [US13] 实现专业选择器（支持创建新专业）frontend/src/components/production/DisciplineSelector.tsx
-- [ ] T174 [US13] 更新前端项目生产信息页面集成人员配置 frontend/src/pages/ProjectProduction.tsx
-- [ ] T435 [US13] 更新ProjectMemberService使用权限服务：在配置生产人员时调用权限服务检查权限（CanManageProjectMembers，memberRole为生产人员角色）backend/internal/services/project_member_service.go
-- [ ] T436 [US13] 更新ProjectMemberHandler使用权限服务：在生产人员配置Handler中调用权限服务 backend/internal/handlers/project_member_handler.go
-- [ ] T437 [US13] 更新前端生产人员配置组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionPersonnelManager.tsx
+- [X] T165 [US13] 更新ProjectMember模型支持生产人员角色（designer, participant, reviewer, auditor, approver）backend/internal/models/project_member.go
+- [X] T166 [US13] 实现按专业维度配置生产人员逻辑（包含创建、更新、删除）backend/internal/services/project_member_service.go
+- [X] T167 [US13] 实现专业关联验证（生产人员角色必须关联专业）backend/internal/services/project_member_service.go
+- [X] T168 [US13] 实现专业管理逻辑（创建、更新、删除专业并同步到专业字典）backend/internal/services/project_member_service.go
+- [X] T169 [US13] 更新ProjectMemberHandler支持生产人员配置（包含创建、读取、更新、删除接口）backend/internal/handlers/project_member_handler.go
+- [X] T180 [US13] 更新前端生产人员配置主组件：将审核人、审定人和生产人员放在一起，审核人和审定人排在前面，使用统一编辑弹出框 frontend/src/components/production/ProductionPersonnelManager.tsx
+- [X] T172 [US13] 实现生产人员（按专业）编辑弹出框（支持添加、编辑生产人员，包含专业选择、角色选择、人员选择等）frontend/src/components/production/DisciplinePersonnelModal.tsx
+- [X] T179 [US13] 实现审核人和审定人统一编辑弹出框（支持在同一个弹出框中一起编辑和保存审核人、审定人）frontend/src/components/production/ReviewerModal.tsx
+- [X] T174 [US13] 实现专业选择器组件（支持选择专业、新增专业、编辑专业、删除专业）frontend/src/components/production/DisciplineSelector.tsx
+- [X] T177 [US13] 实现专业管理弹出框（支持新增、编辑、删除专业）frontend/src/components/production/DisciplineManageModal.tsx
+- [X] T178 [US13] 更新前端项目生产信息页面集成人员配置（统一入口，包含生产人员列表和审核人/审定人配置入口）frontend/src/components/production/ProductionInfo.tsx
+- [X] T435 [US13] 更新ProjectMemberService使用权限服务：在配置生产人员时调用权限服务检查权限（CanManageProjectMembers，memberRole为生产人员角色）backend/internal/services/project_member_service.go
+- [X] T436 [US13] 更新ProjectMemberHandler使用权限服务：在生产人员配置Handler中调用权限服务 backend/internal/handlers/project_member_handler.go
+- [X] T437 [US13] 更新前端生产人员配置组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionPersonnelManager.tsx
 
 ---
 
 ## Phase 16: User Story 14 - 批复审计阶段管理 (P2)
 
 ### Story Goal
-生产负责人能够管理项目的批复和审计阶段信息，包括上传批复报告、审计报告，以及录入批复金额和审计金额（按设计费、勘察费、咨询费分别录入）。
+生产负责人能够管理项目的批复和审计阶段信息，包括上传批复报告、审计报告，以及录入批复金额和审计金额（按设计费、勘察费、咨询费分别录入）。支持添加、编辑、删除批复审计记录，文件在保存时上传，支持文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以上传批复审计报告
 - 批复审计金额明细可以分别录入
 - 批复审计金额默认引用合同金额，可手工调整
+- 批复审计记录可以编辑和删除
+- 批复审计报告文件可以下载和删除
 
 ### Implementation Tasks
 
 - [ ] T175 [US14] 更新ProductionApproval模型符合002规范 backend/internal/models/production_approval.go
 - [ ] T176 [US14] 实现批复审计金额默认引用合同金额逻辑 backend/internal/services/production_approval_service.go
 - [ ] T177 [US14] 实现批复审计金额手工调整和覆盖原因记录 backend/internal/services/production_approval_service.go
-- [ ] T178 [US14] 更新ProductionApprovalService支持批复审计管理 backend/internal/services/production_approval_service.go
-- [ ] T179 [US14] 更新ProductionApprovalHandler支持批复审计CRUD backend/internal/handlers/production_approval_handler.go
-- [ ] T180 [US14] 实现批复审计报告文件上传功能 backend/internal/handlers/production_approval_handler.go
-- [ ] T181 [US14] 创建前端批复审计表单组件 frontend/src/components/production/ApprovalForm.tsx
+- [ ] T178 [US14] 更新ProductionApprovalService支持批复审计管理（包含创建、读取、更新、删除）backend/internal/services/production_approval_service.go
+- [ ] T179 [US14] 更新ProductionApprovalHandler支持批复审计CRUD（包含创建、读取、更新、删除接口）backend/internal/handlers/production_approval_handler.go
+- [ ] T180 [US14] 实现批复审计报告文件上传功能（在保存时触发上传）backend/internal/handlers/production_approval_handler.go
+- [ ] T180.1 [US14] 实现批复审计报告文件下载功能 backend/internal/handlers/production_approval_handler.go
+- [ ] T180.2 [US14] 实现批复审计报告文件删除功能 backend/internal/handlers/production_approval_handler.go
+- [ ] T181 [US14] 创建前端批复审计表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ApprovalForm.tsx
 - [ ] T182 [US14] 实现批复审计金额明细录入（设计费、勘察费、咨询费）frontend/src/components/production/ApprovalForm.tsx
 - [ ] T183 [US14] 实现引用合同金额功能 frontend/src/components/production/ApprovalForm.tsx
-- [ ] T184 [US14] 实现批复审计报告上传UI frontend/src/components/production/ApprovalReportUpload.tsx
-- [ ] T185 [US14] 更新前端项目生产信息页面集成批复审计管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T184 [US14] 实现批复审计报告上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ApprovalForm.tsx
+- [ ] T184.1 [US14] 实现批复审计报告文件下载功能 frontend/src/components/production/ApprovalForm.tsx
+- [ ] T184.2 [US14] 实现批复审计报告文件删除功能 frontend/src/components/production/ApprovalForm.tsx
+- [ ] T185 [US14] 更新前端项目生产信息页面集成批复审计管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T438 [US14] 更新ProductionApprovalService使用权限服务：在管理批复审计信息时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_approval_service.go
 - [ ] T439 [US14] 更新ProductionApprovalHandler使用权限服务：在批复审计管理Handler中调用权限服务 backend/internal/handlers/production_approval_handler.go
 - [ ] T440 [US14] 更新前端批复审计表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ApprovalForm.tsx
@@ -943,24 +953,30 @@
 ## Phase 17: User Story 15 - 方案阶段文件管理 (P2)
 
 ### Story Goal
-生产负责人能够上传方案阶段的文件，包括方案文件、校审单和评分，确保方案阶段的工作成果得到完整记录。
+生产负责人能够上传方案阶段的文件，包括方案文件、校审单和评分，确保方案阶段的工作成果得到完整记录。支持添加、编辑、删除方案文件，文件在保存时上传，支持文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以上传方案文件、校审单和评分
 - 校审单和评分为必填项
 - 文件上传成功并关联到项目
+- 方案文件可以编辑和删除
+- 方案文件、校审单可以下载和删除
 
 ### Implementation Tasks
 
 - [ ] T186 [US15] 更新ProductionFile模型支持Stage枚举（scheme阶段）backend/internal/models/production_file.go
-- [ ] T187 [US15] 实现方案阶段文件上传逻辑（包含校审单和评分验证）backend/internal/services/production_file_service.go
+- [ ] T187 [US15] 实现方案阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
 - [ ] T188 [US15] 实现校审单和评分必填验证 backend/internal/services/production_file_service.go
-- [ ] T189 [US15] 更新ProductionFileHandler支持方案阶段文件管理 backend/internal/handlers/production_file_handler.go
-- [ ] T190 [US15] 创建前端方案阶段文件上传组件 frontend/src/components/production/SchemeFileUpload.tsx
-- [ ] T191 [US15] 实现校审单上传UI frontend/src/components/production/ReviewSheetUpload.tsx
+- [ ] T189 [US15] 更新ProductionFileHandler支持方案阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T189.1 [US15] 实现方案阶段文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T189.2 [US15] 实现方案阶段文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T190 [US15] 创建前端方案阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/SchemeFileUpload.tsx
+- [ ] T191 [US15] 实现校审单上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/SchemeFileUpload.tsx
 - [ ] T192 [US15] 实现评分录入组件 frontend/src/components/production/ScoreInput.tsx
-- [ ] T193 [US15] 实现方案文件列表显示 frontend/src/components/production/SchemeFileList.tsx
-- [ ] T194 [US15] 更新前端项目生产信息页面集成方案阶段文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T193 [US15] 实现方案文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/SchemeFileList.tsx
+- [ ] T193.1 [US15] 实现方案文件下载功能 frontend/src/components/production/SchemeFileList.tsx
+- [ ] T193.2 [US15] 实现方案文件删除功能 frontend/src/components/production/SchemeFileList.tsx
+- [ ] T194 [US15] 更新前端项目生产信息页面集成方案阶段文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T441 [US15] 更新ProductionFileService使用权限服务：在管理方案阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T442 [US15] 更新ProductionFileHandler使用权限服务：在方案阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T443 [US15] 更新前端方案阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/SchemeFileUpload.tsx
@@ -970,20 +986,26 @@
 ## Phase 18: User Story 16 - 初步设计阶段文件管理 (P2)
 
 ### Story Goal
-生产负责人能够上传初步设计阶段的文件，包括初步设计文件、校审单和评分，确保初步设计阶段的工作成果得到完整记录。
+生产负责人能够上传初步设计阶段的文件，包括初步设计文件、校审单和评分，确保初步设计阶段的工作成果得到完整记录。支持添加、编辑、删除初步设计文件，文件在保存时上传，支持文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以上传初步设计文件、校审单和评分
 - 校审单和评分为必填项
 - 文件上传成功并关联到项目
+- 初步设计文件可以编辑和删除
+- 初步设计文件、校审单可以下载和删除
 
 ### Implementation Tasks
 
-- [ ] T195 [US16] 实现初步设计阶段文件上传逻辑（包含校审单和评分验证）backend/internal/services/production_file_service.go
-- [ ] T196 [US16] 更新ProductionFileHandler支持初步设计阶段文件管理 backend/internal/handlers/production_file_handler.go
-- [ ] T197 [US16] 创建前端初步设计阶段文件上传组件 frontend/src/components/production/PreliminaryFileUpload.tsx
-- [ ] T198 [US16] 实现初步设计文件列表显示 frontend/src/components/production/PreliminaryFileList.tsx
-- [ ] T199 [US16] 更新前端项目生产信息页面集成初步设计阶段文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T195 [US16] 实现初步设计阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T196 [US16] 更新ProductionFileHandler支持初步设计阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T196.1 [US16] 实现初步设计阶段文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T196.2 [US16] 实现初步设计阶段文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T197 [US16] 创建前端初步设计阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/PreliminaryFileUpload.tsx
+- [ ] T198 [US16] 实现初步设计文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/PreliminaryFileList.tsx
+- [ ] T198.1 [US16] 实现初步设计文件下载功能 frontend/src/components/production/PreliminaryFileList.tsx
+- [ ] T198.2 [US16] 实现初步设计文件删除功能 frontend/src/components/production/PreliminaryFileList.tsx
+- [ ] T199 [US16] 更新前端项目生产信息页面集成初步设计阶段文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T444 [US16] 更新ProductionFileService使用权限服务：在管理初步设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T445 [US16] 更新ProductionFileHandler使用权限服务：在初步设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T446 [US16] 更新前端初步设计阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/PreliminaryFileUpload.tsx
@@ -993,20 +1015,26 @@
 ## Phase 19: User Story 17 - 施工图设计阶段文件管理 (P2)
 
 ### Story Goal
-生产负责人能够上传施工图设计阶段的文件，包括施工图设计文件、校审单和评分，确保施工图设计阶段的工作成果得到完整记录。
+生产负责人能够上传施工图设计阶段的文件，包括施工图设计文件、校审单和评分，确保施工图设计阶段的工作成果得到完整记录。支持添加、编辑、删除施工图设计文件，文件在保存时上传，支持文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以上传施工图设计文件、校审单和评分
 - 校审单和评分为必填项
 - 文件上传成功并关联到项目
+- 施工图设计文件可以编辑和删除
+- 施工图设计文件、校审单可以下载和删除
 
 ### Implementation Tasks
 
-- [ ] T200 [US17] 实现施工图设计阶段文件上传逻辑（包含校审单和评分验证）backend/internal/services/production_file_service.go
-- [ ] T201 [US17] 更新ProductionFileHandler支持施工图设计阶段文件管理 backend/internal/handlers/production_file_handler.go
-- [ ] T202 [US17] 创建前端施工图设计阶段文件上传组件 frontend/src/components/production/ConstructionFileUpload.tsx
-- [ ] T203 [US17] 实现施工图设计文件列表显示 frontend/src/components/production/ConstructionFileList.tsx
-- [ ] T204 [US17] 更新前端项目生产信息页面集成施工图设计阶段文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T200 [US17] 实现施工图设计阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T201 [US17] 更新ProductionFileHandler支持施工图设计阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T201.1 [US17] 实现施工图设计阶段文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T201.2 [US17] 实现施工图设计阶段文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T202 [US17] 创建前端施工图设计阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ConstructionFileUpload.tsx
+- [ ] T203 [US17] 实现施工图设计文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ConstructionFileList.tsx
+- [ ] T203.1 [US17] 实现施工图设计文件下载功能 frontend/src/components/production/ConstructionFileList.tsx
+- [ ] T203.2 [US17] 实现施工图设计文件删除功能 frontend/src/components/production/ConstructionFileList.tsx
+- [ ] T204 [US17] 更新前端项目生产信息页面集成施工图设计阶段文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T447 [US17] 更新ProductionFileService使用权限服务：在管理施工图设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T448 [US17] 更新ProductionFileHandler使用权限服务：在施工图设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T449 [US17] 更新前端施工图设计阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/ConstructionFileUpload.tsx
@@ -1016,20 +1044,24 @@
 ## Phase 20: User Story 18 - 变更洽商文件管理 (P2)
 
 ### Story Goal
-生产负责人能够上传变更洽商阶段的文件，记录项目执行过程中的变更和洽商信息。
+生产负责人能够上传变更洽商阶段的文件，记录项目执行过程中的变更和洽商信息。支持添加、编辑、删除变更洽商文件，文件在保存时上传，支持文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以上传变更洽商文件
 - 文件上传成功并关联到项目
-- 变更洽商文件可以查看和下载
+- 变更洽商文件可以查看、编辑、删除和下载
 
 ### Implementation Tasks
 
-- [ ] T205 [US18] 实现变更洽商阶段文件上传逻辑 backend/internal/services/production_file_service.go
-- [ ] T206 [US18] 更新ProductionFileHandler支持变更洽商阶段文件管理 backend/internal/handlers/production_file_handler.go
-- [ ] T207 [US18] 创建前端变更洽商阶段文件上传组件 frontend/src/components/production/ChangeFileUpload.tsx
-- [ ] T208 [US18] 实现变更洽商文件列表显示 frontend/src/components/production/ChangeFileList.tsx
-- [ ] T209 [US18] 更新前端项目生产信息页面集成变更洽商文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T205 [US18] 实现变更洽商阶段文件上传逻辑（支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T206 [US18] 更新ProductionFileHandler支持变更洽商阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T206.1 [US18] 实现变更洽商文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T206.2 [US18] 实现变更洽商文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T207 [US18] 创建前端变更洽商阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ChangeFileUpload.tsx
+- [ ] T208 [US18] 实现变更洽商文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ChangeFileList.tsx
+- [ ] T208.1 [US18] 实现变更洽商文件下载功能 frontend/src/components/production/ChangeFileList.tsx
+- [ ] T208.2 [US18] 实现变更洽商文件删除功能 frontend/src/components/production/ChangeFileList.tsx
+- [ ] T209 [US18] 更新前端项目生产信息页面集成变更洽商文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T450 [US18] 更新ProductionFileService使用权限服务：在管理变更洽商文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T451 [US18] 更新ProductionFileHandler使用权限服务：在变更洽商文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T452 [US18] 更新前端变更洽商文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/ChangeFileUpload.tsx
@@ -1039,20 +1071,24 @@
 ## Phase 21: User Story 19 - 竣工验收文件管理 (P2)
 
 ### Story Goal
-生产负责人能够上传竣工验收阶段的文件，记录项目的竣工验收信息。
+生产负责人能够上传竣工验收阶段的文件，记录项目的竣工验收信息。支持添加、编辑、删除竣工验收文件，文件在保存时上传，支持文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以上传竣工验收文件
 - 文件上传成功并关联到项目
-- 竣工验收文件可以查看和下载
+- 竣工验收文件可以查看、编辑、删除和下载
 
 ### Implementation Tasks
 
-- [ ] T210 [US19] 实现竣工验收阶段文件上传逻辑 backend/internal/services/production_file_service.go
-- [ ] T211 [US19] 更新ProductionFileHandler支持竣工验收阶段文件管理 backend/internal/handlers/production_file_handler.go
-- [ ] T212 [US19] 创建前端竣工验收阶段文件上传组件 frontend/src/components/production/CompletionFileUpload.tsx
-- [ ] T213 [US19] 实现竣工验收文件列表显示 frontend/src/components/production/CompletionFileList.tsx
-- [ ] T214 [US19] 更新前端项目生产信息页面集成竣工验收文件管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T210 [US19] 实现竣工验收阶段文件上传逻辑（支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T211 [US19] 更新ProductionFileHandler支持竣工验收阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T211.1 [US19] 实现竣工验收文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T211.2 [US19] 实现竣工验收文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T212 [US19] 创建前端竣工验收阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/CompletionFileUpload.tsx
+- [ ] T213 [US19] 实现竣工验收文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/CompletionFileList.tsx
+- [ ] T213.1 [US19] 实现竣工验收文件下载功能 frontend/src/components/production/CompletionFileList.tsx
+- [ ] T213.2 [US19] 实现竣工验收文件删除功能 frontend/src/components/production/CompletionFileList.tsx
+- [ ] T214 [US19] 更新前端项目生产信息页面集成竣工验收文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T453 [US19] 更新ProductionFileService使用权限服务：在管理竣工验收文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T454 [US19] 更新ProductionFileHandler使用权限服务：在竣工验收文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T455 [US19] 更新前端竣工验收文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/CompletionFileUpload.tsx
@@ -1062,29 +1098,37 @@
 ## Phase 22: User Story 20 - 记录生产成本 (P2)
 
 ### Story Goal
-生产负责人能够记录项目的生产成本信息，包括打车（时间、里程、金额）、住宿（时间、金额）、公共交通（时间、金额）等，并上传相关发票。
+生产负责人能够记录项目的生产成本信息，包括打车（时间、里程、金额）、住宿（时间、金额）、公共交通（时间、金额）等，并上传相关发票。支持添加、编辑、删除生产成本记录，发票文件在保存时上传，支持发票文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以记录不同类型的生产成本
 - 成本记录保存成功并更新成本统计
 - 发票文件可以上传和关联
+- 生产成本记录可以编辑和删除
+- 发票文件可以下载和删除
 
 ### Implementation Tasks
 
 - [ ] T215 [US20] 实现生产成本记录创建（使用FinancialRecord，financial_type=cost）backend/internal/services/financial_service.go
+- [ ] T215.1 [US20] 实现生产成本记录更新 backend/internal/services/financial_service.go
+- [ ] T215.2 [US20] 实现生产成本记录删除 backend/internal/services/financial_service.go
 - [ ] T216 [US20] 实现成本类别区分（打车、住宿、公共交通）backend/internal/services/financial_service.go
 - [ ] T217 [US20] 实现打车成本记录（包含里程字段）backend/internal/services/financial_service.go
-- [ ] T218 [US20] 实现成本发票文件上传和关联 backend/internal/services/financial_service.go
+- [ ] T218 [US20] 实现成本发票文件上传和关联（在保存时触发上传）backend/internal/services/financial_service.go
+- [ ] T218.1 [US20] 实现成本发票文件下载功能 backend/internal/handlers/financial_handler.go
+- [ ] T218.2 [US20] 实现成本发票文件删除功能 backend/internal/handlers/financial_handler.go
 - [ ] T219 [US20] 实现生产成本统计计算 backend/internal/services/financial_service.go
-- [ ] T220 [US20] 更新FinancialHandler支持生产成本记录 backend/internal/handlers/financial_handler.go
-- [ ] T221 [US20] 创建前端生产成本表单组件 frontend/src/components/production/ProductionCostForm.tsx
+- [ ] T220 [US20] 更新FinancialHandler支持生产成本记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [ ] T221 [US20] 创建前端生产成本表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ProductionCostForm.tsx
 - [ ] T222 [US20] 实现成本类型选择（打车、住宿、公共交通）frontend/src/components/production/ProductionCostForm.tsx
 - [ ] T223 [US20] 实现打车成本表单（时间、里程、金额）frontend/src/components/production/TaxiCostForm.tsx
 - [ ] T224 [US20] 实现住宿和公共交通成本表单 frontend/src/components/production/AccommodationCostForm.tsx
-- [ ] T225 [US20] 实现成本发票上传UI frontend/src/components/production/CostInvoiceUpload.tsx
-- [ ] T226 [US20] 实现生产成本列表显示 frontend/src/components/production/ProductionCostList.tsx
+- [ ] T225 [US20] 实现成本发票上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ProductionCostForm.tsx
+- [ ] T225.1 [US20] 实现成本发票文件下载功能 frontend/src/components/production/ProductionCostList.tsx
+- [ ] T225.2 [US20] 实现成本发票文件删除功能 frontend/src/components/production/ProductionCostList.tsx
+- [ ] T226 [US20] 实现生产成本列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ProductionCostList.tsx
 - [ ] T227 [US20] 实现成本统计展示 frontend/src/components/production/ProductionCostStatistics.tsx
-- [ ] T228 [US20] 更新前端项目生产信息页面集成成本管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T228 [US20] 更新前端项目生产信息页面集成成本管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T456 [US20] 更新FinancialService使用权限服务：在记录生产成本时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
 - [ ] T457 [US20] 更新FinancialHandler使用权限服务：在生产成本记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
 - [ ] T458 [US20] 更新前端生产成本表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionCostForm.tsx
@@ -1182,29 +1226,35 @@
 ## Phase 23: User Story 21 - 管理对外委托 (P2)
 
 ### Story Goal
-生产负责人能够管理项目的对外委托及支付信息，包括记录委托类型（个人或单位）、对委托方的评分、委托合同、给委托方支付（金额、时间、索要发票）等信息。
+生产负责人能够管理项目的对外委托及支付信息，包括记录委托类型（个人或单位）、对委托方的评分、委托合同、给委托方支付（金额、时间、索要发票）等信息。支持添加、编辑、删除对外委托记录，委托合同文件在保存时上传，支持委托合同文件下载和删除。
 
 ### Independent Test Criteria
 - 生产负责人可以创建对外委托记录
 - 委托支付信息通过FinancialRecord管理
 - 委托信息保存成功并更新成本统计
+- 对外委托记录可以编辑和删除
+- 委托合同文件可以下载和删除
 
 ### Implementation Tasks
 
 - [ ] T229 [US21] 更新ExternalCommission模型符合002规范（ID为UUID，支付信息通过FinancialRecord关联）backend/internal/models/external_commission.go
-- [ ] T230 [US21] 更新ExternalCommissionService支持对外委托管理 backend/internal/services/external_commission_service.go
+- [ ] T230 [US21] 更新ExternalCommissionService支持对外委托管理（包含创建、读取、更新、删除）backend/internal/services/external_commission_service.go
 - [ ] T231 [US21] 实现委托支付记录创建（使用FinancialRecord，financial_type=commission_payment）backend/internal/services/external_commission_service.go
 - [ ] T232 [US21] 实现对方开票记录创建（使用FinancialRecord，financial_type=vendor_invoice）backend/internal/services/external_commission_service.go
 - [ ] T233 [US21] 实现委托支付和开票关联逻辑 backend/internal/services/external_commission_service.go
-- [ ] T234 [US21] 更新ExternalCommissionHandler支持对外委托CRUD backend/internal/handlers/external_commission_handler.go
-- [ ] T235 [US21] 实现委托合同文件上传功能 backend/internal/handlers/external_commission_handler.go
-- [ ] T236 [US21] 创建前端对外委托表单组件 frontend/src/components/production/ExternalCommissionForm.tsx
+- [ ] T234 [US21] 更新ExternalCommissionHandler支持对外委托CRUD（包含创建、读取、更新、删除接口）backend/internal/handlers/external_commission_handler.go
+- [ ] T235 [US21] 实现委托合同文件上传功能（在保存时触发上传）backend/internal/handlers/external_commission_handler.go
+- [ ] T235.1 [US21] 实现委托合同文件下载功能 backend/internal/handlers/external_commission_handler.go
+- [ ] T235.2 [US21] 实现委托合同文件删除功能 backend/internal/handlers/external_commission_handler.go
+- [ ] T236 [US21] 创建前端对外委托表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ExternalCommissionForm.tsx
 - [ ] T237 [US21] 实现委托类型选择（个人/单位）frontend/src/components/production/ExternalCommissionForm.tsx
 - [ ] T238 [US21] 实现委托方评分录入组件 frontend/src/components/production/VendorScoreInput.tsx
 - [ ] T239 [US21] 实现委托支付和开票记录管理 frontend/src/components/production/CommissionPaymentManager.tsx
-- [ ] T240 [US21] 实现委托合同文件上传UI frontend/src/components/production/CommissionContractUpload.tsx
-- [ ] T241 [US21] 实现对外委托列表显示 frontend/src/components/production/ExternalCommissionList.tsx
-- [ ] T242 [US21] 更新前端项目生产信息页面集成对外委托管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T240 [US21] 实现委托合同文件上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ExternalCommissionForm.tsx
+- [ ] T240.1 [US21] 实现委托合同文件下载功能 frontend/src/components/production/ExternalCommissionList.tsx
+- [ ] T240.2 [US21] 实现委托合同文件删除功能 frontend/src/components/production/ExternalCommissionList.tsx
+- [ ] T241 [US21] 实现对外委托列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ExternalCommissionList.tsx
+- [ ] T242 [US21] 更新前端项目生产信息页面集成对外委托管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T459 [US21] 更新ExternalCommissionService使用权限服务：在管理对外委托时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/external_commission_service.go
 - [ ] T460 [US21] 更新ExternalCommissionHandler使用权限服务：在对外委托管理Handler中调用权限服务 backend/internal/handlers/external_commission_handler.go
 - [ ] T461 [US21] 更新前端对外委托表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ExternalCommissionForm.tsx
@@ -1214,7 +1264,7 @@
 ## Phase 24: User Story 22 - 分配生产奖金 (P2)
 
 ### Story Goal
-生产负责人能够为项目生产相关人员分配生产奖金，包括选择发放人员、录入发放金额、发放时间等信息。
+生产负责人能够为项目生产相关人员分配生产奖金，包括选择发放人员、录入发放金额、发放时间等信息。支持添加、编辑、删除生产奖金记录。
 
 ### Independent Test Criteria
 - 生产负责人可以选择发放人员并录入奖金信息
@@ -1224,13 +1274,15 @@
 ### Implementation Tasks
 
 - [ ] T243 [US22] 实现生产奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=production）backend/internal/services/financial_service.go
+- [ ] T243.1 [US22] 实现生产奖金记录更新 backend/internal/services/financial_service.go
+- [ ] T243.2 [US22] 实现生产奖金记录删除 backend/internal/services/financial_service.go
 - [ ] T244 [US22] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
 - [ ] T245 [US22] 实现生产奖金统计计算 backend/internal/services/financial_service.go
-- [ ] T246 [US22] 更新FinancialHandler支持生产奖金记录 backend/internal/handlers/financial_handler.go
-- [ ] T247 [US22] 创建前端生产奖金表单组件 frontend/src/components/production/ProductionBonusForm.tsx
+- [ ] T246 [US22] 更新FinancialHandler支持生产奖金记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [ ] T247 [US22] 创建前端生产奖金表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ProductionBonusForm.tsx
 - [ ] T248 [US22] 实现发放人员选择组件（从项目生产人员中选择）frontend/src/components/production/ProductionBonusRecipientSelector.tsx
-- [ ] T249 [US22] 实现奖金记录列表显示 frontend/src/components/production/ProductionBonusList.tsx
-- [ ] T250 [US22] 更新前端项目生产信息页面集成生产奖金管理 frontend/src/pages/ProjectProduction.tsx
+- [ ] T249 [US22] 实现奖金记录列表显示（包含编辑、删除按钮）frontend/src/components/production/ProductionBonusList.tsx
+- [ ] T250 [US22] 更新前端项目生产信息页面集成生产奖金管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T462 [US22] 更新FinancialService使用权限服务：在分配生产奖金时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
 - [ ] T463 [US22] 更新FinancialHandler使用权限服务：在生产奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
 - [ ] T464 [US22] 更新前端生产奖金表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionBonusForm.tsx
@@ -1440,7 +1492,7 @@
 - 文件管理需要支持搜索、下载和权限验证
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 364/502 (72%)
+**任务进度**: 364/580+ (63%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
@@ -1449,11 +1501,11 @@
 - Phase 3: 49个任务（US1 - 账号管理，包含19个登录页面改造任务，新增10个Token刷新、管理员判断、管理员预设用户任务，新增5个用户创建流程优化任务，新增6个管理员编辑用户任务）+ 14个用户角色多选支持任务（T473-T486）
 - Phase 4-8: 44个任务（US2-US6，其中Phase 5包含4个负责人配置编辑入口任务）+ 11个权限集成任务（US4: T409-T413, US5: T487-T489, US6: T414-T416）
 - Phase 9-14: 56个任务（US7-US12，优化后新增6个任务：合同列表显示、补充协议编辑删除明确化、开票记录编辑、奖金记录编辑删除）+ 18个权限集成任务（T417-T434）
-- Phase 15-22: 64个任务（US13-US20）+ 24个权限集成任务（T435-T458）
-- Phase 23-24: 22个任务（US21-US22）+ 6个权限集成任务（T459-T464）
+- Phase 15-22: 64个任务（US13-US20，优化后新增约50个任务：补充编辑删除功能、文件上传在保存时触发、文件下载和删除功能）+ 24个权限集成任务（T435-T458）
+- Phase 23-24: 22个任务（US21-US22，优化后新增约15个任务：补充编辑删除功能、文件上传在保存时触发、文件下载和删除功能）+ 6个权限集成任务（T459-T464）
 - Phase 25: 18个任务（US23）+ 5个权限集成任务（T465-T469，替换T258和T267）
 - Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 502个任务（新增14个用户角色多选支持任务：数据库迁移、后端服务更新、前端表单改造和系统管理员角色保护，确保用户角色支持多选功能；新增3个US5权限集成任务：T487-T489，为配置经营参与人功能补充权限控制；更新所有前端权限集成任务描述，明确无权限用户交互规则：可查看但隐藏编辑入口 vs 完全不可访问；新增6个US6专家费支付记录列表显示任务：T642-T647，补充专家费支付记录的查询和显示功能；**Phase 9-14优化**：新增6个任务明确化编辑删除功能，包括合同列表显示、开票记录编辑、奖金记录编辑删除等，确保所有CRUD功能完整覆盖spec.md需求）
+**总计**: 580+个任务（**User Story 13-22优化**：新增约65个任务，确保所有用户故事符合以下要求：1) 遵守统一权限管理机制（已有权限集成任务）；2) 添加、编辑、删除入口完整（补充编辑和删除任务）；3) 文件上传功能明确包含操作入口，触发上传在保存时触发（明确文件上传时机）；4) 文件都能删除和下载（为所有文件添加下载和删除任务）。具体包括：US13补充编辑删除任务；US14补充编辑删除、文件下载删除任务；US15-17补充编辑删除、文件下载删除任务；US18-19补充编辑删除、文件下载删除任务；US20补充编辑删除、发票下载删除任务；US21补充编辑删除、合同下载删除任务；US22补充编辑删除任务）
 

@@ -315,11 +315,18 @@ export interface ProjectMemberUserSummary {
   role: string
 }
 
+export interface DisciplineBrief {
+  id: string // UUID string
+  name: string // Discipline name
+}
+
 export interface ProjectMember {
   id: string // UUID string
   project_id: string // UUID string
   user_id: string // UUID string
   role: MemberRole
+  discipline_id?: string // UUID string, for production roles
+  discipline?: DisciplineBrief // Discipline info, for production roles
   join_date: string
   leave_date?: string
   is_active: boolean
@@ -331,6 +338,7 @@ export interface ProjectMember {
 export interface CreateProjectMemberRequest {
   user_id: string // UUID string
   role: MemberRole
+  discipline_id?: string // UUID string, required for production roles
   join_date: string
   leave_date?: string
   is_active?: boolean
@@ -338,6 +346,7 @@ export interface CreateProjectMemberRequest {
 
 export interface UpdateProjectMemberRequest {
   role?: MemberRole
+  discipline_id?: string // UUID string, required for production roles
   join_date?: string
   leave_date?: string
   is_active?: boolean
@@ -613,6 +622,26 @@ export interface CreateProductionFileRequest {
   review_sheet_file?: File
   score?: number
   default_amount_reference?: string
+}
+
+export interface Discipline {
+  id: string // UUID string
+  name: string // Discipline name
+  description?: string // Discipline description
+  is_active: boolean // Whether the discipline is active
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateDisciplineRequest {
+  name: string
+  description?: string
+}
+
+export interface UpdateDisciplineRequest {
+  name?: string
+  description?: string
+  is_active?: boolean
 }
 
 export type DisciplineRole = 'designer' | 'participant' | 'reviewer'

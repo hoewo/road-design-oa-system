@@ -23,7 +23,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { productionService } from '@/services/production'
 import { userService } from '@/services/user'
-import { DisciplineAssignmentForm } from './DisciplineAssignmentForm'
+import { ProductionPersonnelManager } from './ProductionPersonnelManager'
 import { ProductionFileUpload } from './ProductionFileUpload'
 import { ProductionCostList } from './ProductionCostList'
 import { ExternalCommissionList } from './ExternalCommissionList'
@@ -317,88 +317,7 @@ export const ProductionInfo = ({
   return (
     <div>
       {/* 生产人员配置 */}
-      <Card
-        title="生产人员配置"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => message.info('请使用下方的专业分配表格添加人员')}
-          >
-            添加人员
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
-        <Row gutter={16} style={{ marginBottom: 20 }}>
-          <Col span={8}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>审核人</div>
-              <Select
-                style={{ width: '100%', maxWidth: 300 }}
-                placeholder="请选择"
-                value={reviewerRecord?.approver_id}
-                onChange={(value) => {
-                  // 打开创建审核记录模态框
-                  setAuditModalVisible(true)
-                }}
-                allowClear
-              >
-                {reviewerRecord?.approver && (
-                  <Select.Option value={reviewerRecord.approver_id}>
-                    {reviewerRecord.approver.real_name}
-                  </Select.Option>
-                )}
-                {users.map((user: User) => (
-                  <Select.Option key={user.id} value={user.id}>
-                    {user.real_name}
-                  </Select.Option>
-                ))}
-              </Select>
-              <div style={{ fontSize: '12px', color: '#999', marginTop: 4 }}>
-                点击选择或创建审核记录
-              </div>
-            </div>
-          </Col>
-          <Col span={8}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>审定人</div>
-              <Select
-                style={{ width: '100%', maxWidth: 300 }}
-                placeholder="请选择"
-                value={approverRecord?.approver_id}
-                onChange={(value) => {
-                  // 打开创建审定记录模态框
-                  setAuditModalVisible(true)
-                }}
-                allowClear
-              >
-                {approverRecord?.approver && (
-                  <Select.Option value={approverRecord.approver_id}>
-                    {approverRecord.approver.real_name}
-                  </Select.Option>
-                )}
-                {users.map((user: User) => (
-                  <Select.Option key={user.id} value={user.id}>
-                    {user.real_name}
-                  </Select.Option>
-                ))}
-              </Select>
-              <div style={{ fontSize: '12px', color: '#999', marginTop: 4 }}>
-                点击选择或创建审定记录
-              </div>
-            </div>
-          </Col>
-        </Row>
-
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-            生产人员（按专业）
-          </div>
-          <DisciplineAssignmentForm projectId={projectId} />
-        </div>
-      </Card>
+      <ProductionPersonnelManager projectId={String(projectId)} />
 
       {/* 批复审计信息 */}
       <Card

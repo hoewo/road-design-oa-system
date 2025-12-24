@@ -28,6 +28,7 @@ func NewProjectMemberHandler(logger *zap.Logger) *ProjectMemberHandler {
 }
 
 // ListMembers lists members for a project.
+// Supports query parameters: role, discipline_id
 func (h *ProjectMemberHandler) ListMembers(c *gin.Context) {
 	projectID := c.Param("id")
 	if projectID == "" {
@@ -35,7 +36,18 @@ func (h *ProjectMemberHandler) ListMembers(c *gin.Context) {
 		return
 	}
 
-	members, err := h.service.ListMembers(projectID)
+	var role *models.MemberRole
+	if roleStr := c.Query("role"); roleStr != "" {
+		r := models.MemberRole(roleStr)
+		role = &r
+	}
+
+	var disciplineID *string
+	if disciplineIDStr := c.Query("discipline_id"); disciplineIDStr != "" {
+		disciplineID = &disciplineIDStr
+	}
+
+	members, err := h.service.ListMembers(projectID, role, disciplineID)
 	if err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Failed to list members", err)
 		return
@@ -49,11 +61,12 @@ func (h *ProjectMemberHandler) ListMembers(c *gin.Context) {
 
 // CreateMemberPayload represents incoming payload.
 type CreateMemberPayload struct {
-	UserID    string            `json:"user_id" binding:"required"` // UUID string
-	Role      models.MemberRole `json:"role" binding:"required"`
-	JoinDate  string            `json:"join_date" binding:"required"`
-	LeaveDate *string           `json:"leave_date"`
-	IsActive  *bool             `json:"is_active"`
+	UserID       string            `json:"user_id" binding:"required"` // UUID string
+	Role         models.MemberRole `json:"role" binding:"required"`
+	DisciplineID *string            `json:"discipline_id"` // UUID string, required for production roles
+	JoinDate     string             `json:"join_date" binding:"required"`
+	LeaveDate    *string            `json:"leave_date"`
+	IsActive     *bool              `json:"is_active"`
 }
 
 // CreateMember creates a new member.
@@ -87,11 +100,12 @@ func (h *ProjectMemberHandler) CreateMember(c *gin.Context) {
 	}
 
 	req := &services.CreateProjectMemberRequest{
-		UserID:    payload.UserID,
-		Role:      payload.Role,
-		JoinDate:  joinDate,
-		LeaveDate: leaveDate,
-		IsActive:  payload.IsActive == nil || *payload.IsActive,
+		UserID:       payload.UserID,
+		Role:         payload.Role,
+		DisciplineID: payload.DisciplineID,
+		JoinDate:     joinDate,
+		LeaveDate:    leaveDate,
+		IsActive:     payload.IsActive == nil || *payload.IsActive,
 	}
 
 	// 获取用户ID
@@ -115,10 +129,11 @@ func (h *ProjectMemberHandler) CreateMember(c *gin.Context) {
 
 // UpdateMemberPayload captures update inputs.
 type UpdateMemberPayload struct {
-	Role      *models.MemberRole `json:"role"`
-	JoinDate  *string            `json:"join_date"`
-	LeaveDate *string            `json:"leave_date"`
-	IsActive  *bool              `json:"is_active"`
+	Role         *models.MemberRole `json:"role"`
+	DisciplineID *string            `json:"discipline_id"` // UUID string, required for production roles
+	JoinDate     *string            `json:"join_date"`
+	LeaveDate    *string            `json:"leave_date"`
+	IsActive     *bool              `json:"is_active"`
 }
 
 // UpdateMember updates an existing member.
@@ -136,8 +151,9 @@ func (h *ProjectMemberHandler) UpdateMember(c *gin.Context) {
 	}
 
 	req := &services.UpdateProjectMemberRequest{
-		Role:     payload.Role,
-		IsActive: payload.IsActive,
+		Role:         payload.Role,
+		DisciplineID: payload.DisciplineID,
+		IsActive:     payload.IsActive,
 	}
 
 	if payload.JoinDate != nil && *payload.JoinDate != "" {
@@ -185,7 +201,14 @@ func (h *ProjectMemberHandler) DeleteMember(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeleteMember(memberID); err != nil {
+	// 获取用户ID
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	if err := h.service.DeleteMember(userID, memberID); err != nil {
 		utils.HandleError(c, http.StatusBadRequest, "Failed to delete member", err)
 		return
 	}

@@ -8,6 +8,7 @@
 #   - React 前端应用构建
 #   - Docker 镜像构建和打包
 #   - 支持本地部署和远程部署两种模式
+#   - 支持指定服务编译和部署（只编译和部署指定的服务）
 #   - 分阶段启动服务（避免依赖问题）
 #   - 健康检查循环确保服务就绪
 #   - 支持 SSH 密钥和密码两种认证方式（远程部署）
@@ -15,6 +16,7 @@
 # 使用方法：
 #   本地部署: ./scripts/deploy-prod.sh --local
 #   远程部署: ./scripts/deploy-prod.sh (需要配置 PROD_SERVER_HOST 等)
+#   指定服务: ./scripts/deploy-prod.sh --local --services backend frontend
 # ============================================================================
 
 set -e
@@ -37,6 +39,69 @@ cd "${PROJECT_ROOT}"
 # ============================================================================
 
 DEPLOY_MODE="remote"  # 默认远程部署
+SELECTED_SERVICES=()  # 用户明确指定的服务列表（用于编译/构建）
+DEPLOY_SERVICES=()   # 包含依赖的服务列表（用于部署）
+
+# 定义所有可用服务
+ALL_SERVICES=("postgres" "minio" "backend" "frontend")
+
+# 获取服务的依赖（使用函数替代关联数组，兼容 sh）
+get_service_deps() {
+    local svc="$1"
+    case "$svc" in
+        backend)
+            echo "postgres minio"
+            ;;
+        frontend)
+            echo "backend postgres minio"
+            ;;
+        postgres|minio)
+            echo ""
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+# 解析服务列表，自动包含依赖
+resolve_service_deps() {
+    local services=("$@")
+    local resolved=()
+    local processed=()
+    
+    # 递归解析依赖
+    resolve_deps() {
+        local svc="$1"
+        # 如果已处理过，跳过
+        for p in "${processed[@]}"; do
+            if [ "$p" = "$svc" ]; then
+                return
+            fi
+        done
+        processed+=("$svc")
+        
+        # 添加依赖
+        local deps
+        deps=$(get_service_deps "$svc")
+        if [ -n "$deps" ]; then
+            for dep in $deps; do
+                resolve_deps "$dep"
+            done
+        fi
+        
+        # 添加服务本身
+        resolved+=("$svc")
+    }
+    
+    # 解析所有服务的依赖
+    for svc in "${services[@]}"; do
+        resolve_deps "$svc"
+    done
+    
+    # 去重并返回
+    printf '%s\n' "${resolved[@]}" | sort -u
+}
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -48,13 +113,60 @@ while [[ $# -gt 0 ]]; do
             DEPLOY_MODE="remote"
             shift
             ;;
+        --services|-s)
+            shift
+            # 解析服务列表（支持空格或逗号分隔）
+            if [ $# -eq 0 ]; then
+                echo -e "${RED}✗ --services 参数需要指定服务名称${NC}"
+                echo "可用服务: ${ALL_SERVICES[*]}"
+                exit 1
+            fi
+            # 支持逗号分隔或空格分隔
+            IFS=',' read -ra SERVICES <<< "$1"
+            for svc in "${SERVICES[@]}"; do
+                svc=$(echo "$svc" | xargs)  # 去除空格
+                # 验证服务名称
+                valid=false
+                for valid_svc in "${ALL_SERVICES[@]}"; do
+                    if [ "$svc" = "$valid_svc" ]; then
+                        valid=true
+                        break
+                    fi
+                done
+                if [ "$valid" = false ]; then
+                    echo -e "${RED}✗ 无效的服务名称: $svc${NC}"
+                    echo "可用服务: ${ALL_SERVICES[*]}"
+                    exit 1
+                fi
+                SELECTED_SERVICES+=("$svc")
+            done
+            shift
+            ;;
         --help|-h)
             echo "使用方法: $0 [选项]"
             echo ""
             echo "选项:"
-            echo "  --local, -l    本地部署（在本地 Docker 环境部署）"
-            echo "  --remote, -r   远程部署（默认，需要配置 SSH）"
-            echo "  --help, -h     显示帮助信息"
+            echo "  --local, -l              本地部署（在本地 Docker 环境部署）"
+            echo "  --remote, -r             远程部署（默认，需要配置 SSH）"
+            echo "  --services, -s SERVICES   指定要编译和部署的服务（逗号或空格分隔）"
+            echo "                           可用服务: postgres, minio, backend, frontend"
+            echo "                           示例: --services backend frontend"
+            echo "                           示例: --services backend,frontend"
+            echo "                           注意: 会自动包含服务依赖（如 backend 会自动包含 postgres 和 minio）"
+            echo "  --help, -h                显示帮助信息"
+            echo ""
+            echo "示例:"
+            echo "  # 部署所有服务（默认）"
+            echo "  $0 --local"
+            echo ""
+            echo "  # 只部署后端服务（会自动包含 postgres 和 minio）"
+            echo "  $0 --local --services backend"
+            echo ""
+            echo "  # 只部署前端和后端（会自动包含 postgres 和 minio）"
+            echo "  $0 --local --services backend frontend"
+            echo ""
+            echo "  # 只部署基础设施服务"
+            echo "  $0 --local --services postgres minio"
             exit 0
             ;;
         *)
@@ -64,6 +176,42 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# 如果没有指定服务，则部署所有服务
+if [ ${#SELECTED_SERVICES[@]} -eq 0 ]; then
+    SELECTED_SERVICES=("${ALL_SERVICES[@]}")
+    DEPLOY_SERVICES=("${ALL_SERVICES[@]}")
+    echo -e "${BLUE}未指定服务，将部署所有服务: ${SELECTED_SERVICES[*]}${NC}"
+else
+    # 保存用户指定的服务（用于编译/构建）
+    echo -e "${BLUE}用户指定的服务: ${SELECTED_SERVICES[*]}${NC}"
+    # 解析服务依赖（用于部署）
+    DEPLOY_SERVICES=($(resolve_service_deps "${SELECTED_SERVICES[@]}"))
+    echo -e "${BLUE}包含依赖后的部署服务列表: ${DEPLOY_SERVICES[*]}${NC}"
+    echo -e "${BLUE}说明: 只编译/构建用户指定的服务，但部署时会启动所有依赖服务${NC}"
+fi
+
+# 检查服务是否在编译/构建列表中（用户明确指定的服务）
+is_service_selected() {
+    local svc="$1"
+    for selected in "${SELECTED_SERVICES[@]}"; do
+        if [ "$selected" = "$svc" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 检查服务是否在部署列表中（包含依赖）
+is_service_deployed() {
+    local svc="$1"
+    for deployed in "${DEPLOY_SERVICES[@]}"; do
+        if [ "$deployed" = "$svc" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 # ============================================================================
 # 环境变量加载和验证
@@ -432,8 +580,12 @@ echo -e "项目类型: ${GREEN}全栈应用（Go 后端 + React 前端）${NC}"
 echo -e "技术栈: ${GREEN}Go + React + Docker Compose${NC}"
 echo ""
 echo -e "服务列表:"
-echo -e "  ${GREEN}✓${NC} 应用服务: backend (Go), frontend (React)"
-echo -e "  ${GREEN}✓${NC} 基础设施: postgres, minio"
+if [ ${#SELECTED_SERVICES[@]} -eq ${#ALL_SERVICES[@]} ]; then
+    echo -e "  ${GREEN}✓${NC} 应用服务: backend (Go), frontend (React)"
+    echo -e "  ${GREEN}✓${NC} 基础设施: postgres, minio"
+else
+    echo -e "  ${GREEN}✓${NC} 选中的服务: ${SELECTED_SERVICES[*]}"
+fi
 echo ""
 echo -e "部署目标:"
 if [ "$DEPLOY_MODE" = "local" ]; then
@@ -471,24 +623,30 @@ echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Step 0: 编译构建${NC}"
 echo -e "${BLUE}========================================${NC}"
 
-# 0.1: Go 后端编译
-echo ""
-echo -e "${CYAN}[0.1] 编译 Go 后端服务...${NC}"
-if [ -f "scripts/build-services.sh" ]; then
-    chmod +x scripts/build-services.sh
-    ./scripts/build-services.sh || {
-        echo -e "${RED}✗ Go 后端编译失败${NC}"
-        exit 1
-    }
-    echo -e "${GREEN}✓ Go 后端编译成功${NC}"
+# 0.1: Go 后端编译（仅在需要 backend 服务时编译）
+if is_service_selected "backend"; then
+    echo ""
+    echo -e "${CYAN}[0.1] 编译 Go 后端服务...${NC}"
+    if [ -f "scripts/build-services.sh" ]; then
+        chmod +x scripts/build-services.sh
+        ./scripts/build-services.sh || {
+            echo -e "${RED}✗ Go 后端编译失败${NC}"
+            exit 1
+        }
+        echo -e "${GREEN}✓ Go 后端编译成功${NC}"
+    else
+        echo -e "${YELLOW}⚠ 未找到 build-services.sh，将在 Docker 构建时编译${NC}"
+    fi
 else
-    echo -e "${YELLOW}⚠ 未找到 build-services.sh，将在 Docker 构建时编译${NC}"
+    echo ""
+    echo -e "${BLUE}[0.1] 跳过 Go 后端编译（未选择 backend 服务）${NC}"
 fi
 
-# 0.2: React 前端构建
-echo ""
-echo -e "${CYAN}[0.2] 构建 React 前端应用...${NC}"
-cd frontend
+# 0.2: React 前端构建（仅在需要 frontend 服务时构建）
+if is_service_selected "frontend"; then
+    echo ""
+    echo -e "${CYAN}[0.2] 构建 React 前端应用...${NC}"
+    cd frontend
 
 # 加载环境变量到 shell（用于后续步骤）
 if [ -f "../.env" ]; then
@@ -557,8 +715,12 @@ echo -e "${BLUE}  构建产物大小: ${DIST_SIZE}${NC}"
 #     rm -f .env.production
 # fi
 
-cd "${PROJECT_ROOT}"
-echo -e "${GREEN}✓ React 前端构建成功${NC}"
+    cd "${PROJECT_ROOT}"
+    echo -e "${GREEN}✓ React 前端构建成功${NC}"
+else
+    echo ""
+    echo -e "${BLUE}[0.2] 跳过 React 前端构建（未选择 frontend 服务）${NC}"
+fi
 
 # ============================================================================
 # Step 0.5: 配置模板处理（如果需要）
@@ -625,13 +787,25 @@ echo -e "${BLUE}  构建平台: linux/amd64${NC}"
 echo -e "${BLUE}  开始构建镜像...${NC}"
 echo -e "${BLUE}  使用 docker-compose.yml（环境变量已从 .env 加载）${NC}"
 
-# 直接使用 docker-compose.yml（已支持环境变量）
-docker compose build --no-cache || {
-    echo -e "${RED}✗ Docker 镜像构建失败${NC}"
-    exit 1
-}
+# 构建选中的服务
+BUILD_SERVICES=()
+for svc in "${SELECTED_SERVICES[@]}"; do
+    # postgres 和 minio 使用官方镜像，不需要构建
+    if [ "$svc" != "postgres" ] && [ "$svc" != "minio" ]; then
+        BUILD_SERVICES+=("$svc")
+    fi
+done
 
-echo -e "${GREEN}✓ Docker 镜像构建成功${NC}"
+if [ ${#BUILD_SERVICES[@]} -gt 0 ]; then
+    echo -e "${BLUE}  构建服务: ${BUILD_SERVICES[*]}${NC}"
+    docker compose build --no-cache "${BUILD_SERVICES[@]}" || {
+        echo -e "${RED}✗ Docker 镜像构建失败${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ Docker 镜像构建成功${NC}"
+else
+    echo -e "${BLUE}  无需构建镜像（只选择了基础设施服务 postgres/minio）${NC}"
+fi
 
 # ============================================================================
 # Step 2: 保存镜像为 tar 文件（仅远程部署需要）
@@ -658,32 +832,48 @@ if [ "$DEPLOY_MODE" = "remote" ]; then
         if [ -n "$line" ]; then
             # 排除 postgres 和 minio 等基础镜像（它们不需要保存，可以直接拉取）
             if [[ "$line" != *"postgres"* ]] && [[ "$line" != *"minio"* ]]; then
-                IMAGES+=("$line")
+                # 只保存选中的服务镜像
+                local should_include=false
+                for svc in "${SELECTED_SERVICES[@]}"; do
+                    if [ "$svc" = "backend" ] && [[ "$line" == *"backend"* ]] || \
+                       [ "$svc" = "frontend" ] && [[ "$line" == *"frontend"* ]]; then
+                        should_include=true
+                        break
+                    fi
+                done
+                if [ "$should_include" = true ]; then
+                    IMAGES+=("$line")
+                fi
             fi
         fi
     done <<< "$COMPOSE_IMAGES"
 
     if [ ${#IMAGES[@]} -eq 0 ]; then
-        echo -e "${RED}✗ 未找到需要保存的镜像${NC}"
-        exit 1
+        echo -e "${YELLOW}⚠ 未找到需要保存的镜像（可能只选择了基础设施服务）${NC}"
+        echo -e "${BLUE}  跳过镜像保存步骤${NC}"
+        IMAGES_TAR=""
     fi
 
-    IMAGES_TAR="/tmp/road-design-oa-images-$(date +%Y%m%d-%H%M%S).tar"
+    if [ ${#IMAGES[@]} -gt 0 ]; then
+        IMAGES_TAR="/tmp/road-design-oa-images-$(date +%Y%m%d-%H%M%S).tar"
 
-    echo -e "${BLUE}  保存镜像到: ${IMAGES_TAR}${NC}"
-    echo -e "${BLUE}  镜像列表:${NC}"
-    for image in "${IMAGES[@]}"; do
-        echo -e "${BLUE}    - ${image}${NC}"
-    done
+        echo -e "${BLUE}  保存镜像到: ${IMAGES_TAR}${NC}"
+        echo -e "${BLUE}  镜像列表:${NC}"
+        for image in "${IMAGES[@]}"; do
+            echo -e "${BLUE}    - ${image}${NC}"
+        done
 
-    docker save "${IMAGES[@]}" -o "${IMAGES_TAR}" || {
-        echo -e "${RED}✗ 镜像保存失败${NC}"
-        exit 1
-    }
+        docker save "${IMAGES[@]}" -o "${IMAGES_TAR}" || {
+            echo -e "${RED}✗ 镜像保存失败${NC}"
+            exit 1
+        }
 
-    # 获取文件大小
-    TAR_SIZE=$(du -h "${IMAGES_TAR}" | cut -f1)
-    echo -e "${GREEN}✓ 镜像保存成功 (${TAR_SIZE})${NC}"
+        # 获取文件大小
+        TAR_SIZE=$(du -h "${IMAGES_TAR}" | cut -f1)
+        echo -e "${GREEN}✓ 镜像保存成功 (${TAR_SIZE})${NC}"
+    else
+        IMAGES_TAR=""
+    fi
 
     # ============================================================================
     # Step 3: 上传镜像到服务器
@@ -694,15 +884,20 @@ if [ "$DEPLOY_MODE" = "remote" ]; then
     echo -e "${BLUE}  Step 3: 上传镜像到服务器${NC}"
     echo -e "${BLUE}========================================${NC}"
 
-    REMOTE_TAR="/tmp/images.tar"
+    if [ -n "$IMAGES_TAR" ] && [ -f "$IMAGES_TAR" ]; then
+        REMOTE_TAR="/tmp/images.tar"
 
-    echo -e "${BLUE}  上传镜像文件...${NC}"
-    ${SCP_CMD} "${IMAGES_TAR}" "${SSH_TARGET}:${REMOTE_TAR}" || {
-        echo -e "${RED}✗ 镜像上传失败${NC}"
-        exit 1
-    }
+        echo -e "${BLUE}  上传镜像文件...${NC}"
+        ${SCP_CMD} "${IMAGES_TAR}" "${SSH_TARGET}:${REMOTE_TAR}" || {
+            echo -e "${RED}✗ 镜像上传失败${NC}"
+            exit 1
+        }
 
-    echo -e "${GREEN}✓ 镜像上传成功${NC}"
+        echo -e "${GREEN}✓ 镜像上传成功${NC}"
+    else
+        REMOTE_TAR=""
+        echo -e "${BLUE}  跳过镜像上传（无需要上传的镜像）${NC}"
+    fi
 
     # ============================================================================
     # Step 3.5: 上传配置文件到服务器
@@ -818,12 +1013,27 @@ deploy_services() {
         echo -e "${GREEN}✓ 已加载 .env 配置${NC}"
     fi
     
-    # 停止现有服务
+    # 停止需要更新的服务（只停止用户指定的服务，保持其他服务运行）
     echo ""
-    echo -e "${CYAN}[1/8] 停止现有服务...${NC}"
-    docker compose down || {
-        echo -e "${YELLOW}⚠ 停止服务时出现警告（可能是首次部署）${NC}"
-    }
+    echo -e "${CYAN}[1/8] 停止需要更新的服务...${NC}"
+    
+    # 只停止用户指定的服务（需要重新构建/部署的服务）
+    STOP_SERVICES=()
+    for svc in "${SELECTED_SERVICES[@]}"; do
+        # 检查服务是否在运行
+        if docker compose ps "$svc" 2>/dev/null | grep -q "Up"; then
+            STOP_SERVICES+=("$svc")
+        fi
+    done
+    
+    if [ ${#STOP_SERVICES[@]} -gt 0 ]; then
+        echo -e "${BLUE}  停止服务: ${STOP_SERVICES[*]}${NC}"
+        docker compose stop "${STOP_SERVICES[@]}" || {
+            echo -e "${YELLOW}⚠ 停止服务时出现警告${NC}"
+        }
+    else
+        echo -e "${BLUE}  无需停止服务（服务未运行或未指定需要更新的服务）${NC}"
+    fi
     
     # 清理旧镜像（可选，节省空间）
     echo ""
@@ -941,75 +1151,102 @@ EOF
     echo -e "${CYAN}[6/8] 分阶段启动服务...${NC}"
     
     # 阶段1: 启动基础设施服务
-    echo -e "${BLUE}  阶段1: 启动基础设施服务 (postgres, minio)...${NC}"
-    docker compose up -d postgres minio
-    sleep 15
+    INFRA_SERVICES=()
+    if is_service_deployed "postgres"; then
+        INFRA_SERVICES+=("postgres")
+    fi
+    if is_service_deployed "minio"; then
+        INFRA_SERVICES+=("minio")
+    fi
+    
+    if [ ${#INFRA_SERVICES[@]} -gt 0 ]; then
+        echo -e "${BLUE}  阶段1: 启动基础设施服务 (${INFRA_SERVICES[*]})...${NC}"
+        docker compose up -d "${INFRA_SERVICES[@]}"
+        sleep 15
+    else
+        echo -e "${BLUE}  阶段1: 跳过基础设施服务启动${NC}"
+    fi
     
     # 等待 PostgreSQL 就绪
-    echo -e "${BLUE}  等待 PostgreSQL 就绪...${NC}"
-    max_wait=30
-    wait_count=0
-    while [ $wait_count -lt $max_wait ]; do
-        if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
-            echo -e "${GREEN}  ✓ PostgreSQL 就绪${NC}"
-            break
-        fi
-        sleep 1
-        ((wait_count++))
-    done
+    if is_service_deployed "postgres"; then
+        echo -e "${BLUE}  等待 PostgreSQL 就绪...${NC}"
+        max_wait=30
+        wait_count=0
+        while [ $wait_count -lt $max_wait ]; do
+            if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+                echo -e "${GREEN}  ✓ PostgreSQL 就绪${NC}"
+                break
+            fi
+            sleep 1
+            ((wait_count++))
+        done
+    fi
     
     # 等待 MinIO 就绪
-    echo -e "${BLUE}  等待 MinIO 就绪...${NC}"
-    max_wait=30
-    wait_count=0
-    MINIO_PORT="${MINIO_API_PORT:-9000}"
-    while [ $wait_count -lt $max_wait ]; do
-        if curl -s "http://localhost:${MINIO_PORT}/minio/health/live" > /dev/null 2>&1; then
-            echo -e "${GREEN}  ✓ MinIO 就绪${NC}"
-            break
-        fi
-        sleep 1
-        ((wait_count++))
-    done
+    if is_service_deployed "minio"; then
+        echo -e "${BLUE}  等待 MinIO 就绪...${NC}"
+        max_wait=30
+        wait_count=0
+        MINIO_PORT="${MINIO_API_PORT:-9000}"
+        while [ $wait_count -lt $max_wait ]; do
+            if curl -s "http://localhost:${MINIO_PORT}/minio/health/live" > /dev/null 2>&1; then
+                echo -e "${GREEN}  ✓ MinIO 就绪${NC}"
+                break
+            fi
+            sleep 1
+            ((wait_count++))
+        done
+    fi
     
     # 阶段2: 启动应用服务
-    echo ""
-    echo -e "${BLUE}  阶段2: 启动应用服务 (backend)...${NC}"
-    docker compose up -d backend
-    sleep 10
-    
-    # 阶段3: 健康检查循环（等待后端就绪）
-    echo ""
-    echo -e "${BLUE}  阶段3: 等待后端服务就绪...${NC}"
-    # 使用环境变量中的 SERVICE_NAME，默认为 project-oa
-    SERVICE_NAME="${SERVICE_NAME:-project-oa}"
-    SERVER_PORT="${SERVER_PORT:-8082}"
-    BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
-    echo -e "${BLUE}  健康检查端点: ${BACKEND_HEALTH_URL}${NC}"
-    max_attempts=30
-    attempt=1
-    
-    while [ $attempt -le $max_attempts ]; do
-        if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
-            echo -e "${GREEN}  ✓ 后端服务就绪 (尝试 ${attempt}/${max_attempts})${NC}"
-            break
-        fi
+    if is_service_deployed "backend"; then
+        echo ""
+        echo -e "${BLUE}  阶段2: 启动应用服务 (backend)...${NC}"
+        docker compose up -d backend
+        sleep 10
         
-        if [ $attempt -eq $max_attempts ]; then
-            echo -e "${YELLOW}  ⚠ 后端服务健康检查超时，但继续部署${NC}"
-        else
-            echo -e "${BLUE}    等待后端服务... (${attempt}/${max_attempts})${NC}"
-        fi
+        # 阶段3: 健康检查循环（等待后端就绪）
+        echo ""
+        echo -e "${BLUE}  阶段3: 等待后端服务就绪...${NC}"
+        # 使用环境变量中的 SERVICE_NAME，默认为 project-oa
+        SERVICE_NAME="${SERVICE_NAME:-project-oa}"
+        SERVER_PORT="${SERVER_PORT:-8082}"
+        BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
+        echo -e "${BLUE}  健康检查端点: ${BACKEND_HEALTH_URL}${NC}"
+        max_attempts=30
+        attempt=1
         
-        sleep 2
-        ((attempt++))
-    done
+        while [ $attempt -le $max_attempts ]; do
+            if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
+                echo -e "${GREEN}  ✓ 后端服务就绪 (尝试 ${attempt}/${max_attempts})${NC}"
+                break
+            fi
+            
+            if [ $attempt -eq $max_attempts ]; then
+                echo -e "${YELLOW}  ⚠ 后端服务健康检查超时，但继续部署${NC}"
+            else
+                echo -e "${BLUE}    等待后端服务... (${attempt}/${max_attempts})${NC}"
+            fi
+            
+            sleep 2
+            ((attempt++))
+        done
+    else
+        echo ""
+        echo -e "${BLUE}  阶段2: 跳过后端服务启动${NC}"
+        echo -e "${BLUE}  阶段3: 跳过后端健康检查${NC}"
+    fi
     
     # 阶段4: 启动前端服务
-    echo ""
-    echo -e "${BLUE}  阶段4: 启动前端服务 (frontend)...${NC}"
-    docker compose up -d frontend
-    sleep 5
+    if is_service_deployed "frontend"; then
+        echo ""
+        echo -e "${BLUE}  阶段4: 启动前端服务 (frontend)...${NC}"
+        docker compose up -d frontend
+        sleep 5
+    else
+        echo ""
+        echo -e "${BLUE}  阶段4: 跳过前端服务启动${NC}"
+    fi
     
     # 阶段5: 启动监控和报警服务（已注释，如需要可取消注释）
     # echo ""
@@ -1022,12 +1259,19 @@ EOF
     # 容器状态检查
     echo ""
     echo -e "${CYAN}[7/8] 检查容器状态...${NC}"
-    REQUIRED_CONTAINERS=(
-        "project-oa-postgres"
-        "project-oa-minio"
-        "project-oa-backend"
-        "project-oa-frontend"
-    )
+    REQUIRED_CONTAINERS=()
+    if is_service_deployed "postgres"; then
+        REQUIRED_CONTAINERS+=("project-oa-postgres")
+    fi
+    if is_service_deployed "minio"; then
+        REQUIRED_CONTAINERS+=("project-oa-minio")
+    fi
+    if is_service_deployed "backend"; then
+        REQUIRED_CONTAINERS+=("project-oa-backend")
+    fi
+    if is_service_deployed "frontend"; then
+        REQUIRED_CONTAINERS+=("project-oa-frontend")
+    fi
     
     all_running=true
     for container in "${REQUIRED_CONTAINERS[@]}"; do
@@ -1050,21 +1294,25 @@ EOF
     echo -e "${CYAN}[8/8] 最终健康检查...${NC}"
     
     # 检查后端健康
-    SERVICE_NAME="${SERVICE_NAME:-project-oa}"
-    SERVER_PORT="${SERVER_PORT:-8082}"
-    BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
-    if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ 后端健康检查通过${NC}"
-    else
-        echo -e "${YELLOW}  ⚠ 后端健康检查失败 (${BACKEND_HEALTH_URL})${NC}"
+    if is_service_deployed "backend"; then
+        SERVICE_NAME="${SERVICE_NAME:-project-oa}"
+        SERVER_PORT="${SERVER_PORT:-8082}"
+        BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
+        if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ 后端健康检查通过${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ 后端健康检查失败 (${BACKEND_HEALTH_URL})${NC}"
+        fi
     fi
     
     # 检查前端（通过 nginx）
-    FRONTEND_PORT="${FRONTEND_PORT:-3000}"
-    if curl -sf "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ 前端服务可访问${NC}"
-    else
-        echo -e "${YELLOW}  ⚠ 前端服务检查失败${NC}"
+    if is_service_deployed "frontend"; then
+        FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+        if curl -sf "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ 前端服务可访问${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ 前端服务检查失败${NC}"
+        fi
     fi
     
     echo ""
@@ -1083,6 +1331,8 @@ if [ "$DEPLOY_MODE" = "local" ]; then
     deploy_services "$DEPLOY_DIR" "" "local"
 else
     # 远程部署：生成并上传部署脚本
+    # 将服务列表转换为环境变量，传递给远程脚本
+    SELECTED_SERVICES_STR=$(IFS=','; echo "${SELECTED_SERVICES[*]}")
 
 cat > "${REMOTE_DEPLOY_SCRIPT}" <<'REMOTE_SCRIPT_EOF'
 #!/bin/bash
@@ -1098,6 +1348,99 @@ NC='\033[0m'
 
 REMOTE_DIR="${1:-/root/workspace/road-design-oa-system}"
 REMOTE_TAR="${2:-/tmp/images.tar}"
+SELECTED_SERVICES_STR="${3:-}"
+
+# 获取服务的依赖（使用函数替代关联数组，兼容 sh）
+get_service_deps() {
+    local svc="$1"
+    case "$svc" in
+        backend)
+            echo "postgres minio"
+            ;;
+        frontend)
+            echo "backend postgres minio"
+            ;;
+        postgres|minio)
+            echo ""
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+# 解析服务列表，自动包含依赖
+resolve_service_deps() {
+    local services=("$@")
+    local resolved=()
+    local processed=()
+    
+    # 递归解析依赖
+    resolve_deps() {
+        local svc="$1"
+        # 如果已处理过，跳过
+        for p in "${processed[@]}"; do
+            if [ "$p" = "$svc" ]; then
+                return
+            fi
+        done
+        processed+=("$svc")
+        
+        # 添加依赖
+        local deps
+        deps=$(get_service_deps "$svc")
+        if [ -n "$deps" ]; then
+            for dep in $deps; do
+                resolve_deps "$dep"
+            done
+        fi
+        
+        # 添加服务本身
+        resolved+=("$svc")
+    }
+    
+    # 解析所有服务的依赖
+    for svc in "${services[@]}"; do
+        resolve_deps "$svc"
+    done
+    
+    # 去重并返回
+    printf '%s\n' "${resolved[@]}" | sort -u
+}
+
+# 解析服务列表
+SELECTED_SERVICES=()
+if [ -n "$SELECTED_SERVICES_STR" ]; then
+    IFS=',' read -ra SELECTED_SERVICES <<< "$SELECTED_SERVICES_STR"
+    # 解析依赖
+    DEPLOY_SERVICES=($(resolve_service_deps "${SELECTED_SERVICES[@]}"))
+else
+    # 如果没有指定，则部署所有服务
+    SELECTED_SERVICES=("postgres" "minio" "backend" "frontend")
+    DEPLOY_SERVICES=("postgres" "minio" "backend" "frontend")
+fi
+
+# 检查服务是否在编译/构建列表中（用户明确指定的服务）
+is_service_selected() {
+    local svc="$1"
+    for selected in "${SELECTED_SERVICES[@]}"; do
+        if [ "$selected" = "$svc" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 检查服务是否在部署列表中（包含依赖）
+is_service_deployed() {
+    local svc="$1"
+    for deployed in "${DEPLOY_SERVICES[@]}"; do
+        if [ "$deployed" = "$svc" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  远程部署执行${NC}"
@@ -1105,6 +1448,8 @@ echo -e "${BLUE}========================================${NC}"
 echo ""
 echo -e "项目目录: ${REMOTE_DIR}"
 echo -e "镜像文件: ${REMOTE_TAR}"
+echo -e "用户指定的服务: ${SELECTED_SERVICES_STR:-全部服务}"
+echo -e "包含依赖后的部署服务: ${DEPLOY_SERVICES[*]}"
 echo ""
 
 # 检查项目目录
@@ -1129,12 +1474,27 @@ if [ -f ".env" ]; then
     echo -e "${GREEN}✓ 已加载 .env 配置${NC}"
 fi
 
-# 停止现有服务
+# 停止需要更新的服务（只停止用户指定的服务，保持其他服务运行）
 echo ""
-echo -e "${CYAN}[1/8] 停止现有服务...${NC}"
-docker compose down || {
-    echo -e "${YELLOW}⚠ 停止服务时出现警告（可能是首次部署）${NC}"
-}
+echo -e "${CYAN}[1/8] 停止需要更新的服务...${NC}"
+
+# 只停止用户指定的服务（需要重新构建/部署的服务）
+STOP_SERVICES=()
+for svc in "${SELECTED_SERVICES[@]}"; do
+    # 检查服务是否在运行
+    if docker compose ps "$svc" 2>/dev/null | grep -q "Up"; then
+        STOP_SERVICES+=("$svc")
+    fi
+done
+
+if [ ${#STOP_SERVICES[@]} -gt 0 ]; then
+    echo -e "${BLUE}  停止服务: ${STOP_SERVICES[*]}${NC}"
+    docker compose stop "${STOP_SERVICES[@]}" || {
+        echo -e "${YELLOW}⚠ 停止服务时出现警告${NC}"
+    }
+else
+    echo -e "${BLUE}  无需停止服务（服务未运行或未指定需要更新的服务）${NC}"
+fi
 
 # 清理旧镜像（可选，节省空间）
 echo ""
@@ -1154,22 +1514,23 @@ fi
 # 加载新镜像
 echo ""
 echo -e "${CYAN}[3/8] 加载新镜像...${NC}"
-if [ ! -f "$REMOTE_TAR" ]; then
-    echo -e "${RED}✗ 镜像文件不存在: ${REMOTE_TAR}${NC}"
-    exit 1
+if [ -n "$REMOTE_TAR" ] && [ -f "$REMOTE_TAR" ]; then
+    docker load -i "$REMOTE_TAR" || {
+        echo -e "${RED}✗ 镜像加载失败${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✓ 镜像加载成功${NC}"
+    
+    # 清理镜像文件（节省空间）
+    echo ""
+    echo -e "${CYAN}[4/8] 清理镜像文件...${NC}"
+    rm -f "$REMOTE_TAR"
+    echo -e "${GREEN}✓ 镜像文件已清理${NC}"
+else
+    echo -e "${BLUE}  跳过镜像加载（无镜像文件）${NC}"
+    echo ""
+    echo -e "${CYAN}[4/8] 跳过镜像文件清理...${NC}"
 fi
-
-docker load -i "$REMOTE_TAR" || {
-    echo -e "${RED}✗ 镜像加载失败${NC}"
-    exit 1
-}
-echo -e "${GREEN}✓ 镜像加载成功${NC}"
-
-# 清理镜像文件（节省空间）
-echo ""
-echo -e "${CYAN}[4/8] 清理镜像文件...${NC}"
-rm -f "$REMOTE_TAR"
-echo -e "${GREEN}✓ 镜像文件已清理${NC}"
 
 # 数据库初始化检查
 echo ""
@@ -1181,28 +1542,29 @@ DB_NAME="${DB_NAME:-project_oa}"
 DB_USER="${DB_USER:-project_oa_user}"
 DB_PASSWORD="${DB_PASSWORD:-project_oa_password}"
 
-# 等待 PostgreSQL 就绪（如果还没启动）
-if ! docker compose ps postgres | grep -q "Up"; then
-    echo -e "${BLUE}  启动 PostgreSQL...${NC}"
-    docker compose up -d postgres
-    sleep 5
-fi
-
-# 等待 PostgreSQL 就绪
-max_wait=30
-wait_count=0
-while [ $wait_count -lt $max_wait ]; do
-    if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
-        break
+# 等待 PostgreSQL 就绪（如果还没启动且需要 postgres 服务）
+if is_service_deployed "postgres"; then
+    if ! docker compose ps postgres | grep -q "Up"; then
+        echo -e "${BLUE}  启动 PostgreSQL...${NC}"
+        docker compose up -d postgres
+        sleep 5
     fi
-    sleep 1
-    ((wait_count++))
-done
-
-if [ $wait_count -ge $max_wait ]; then
-    echo -e "${YELLOW}⚠ PostgreSQL 启动超时，跳过数据库初始化${NC}"
-    DB_INITIALIZED=true  # 假设已初始化，避免后续步骤失败
-else
+    
+    # 等待 PostgreSQL 就绪
+    max_wait=30
+    wait_count=0
+    while [ $wait_count -lt $max_wait ]; do
+        if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+        ((wait_count++))
+    done
+    
+    if [ $wait_count -ge $max_wait ]; then
+        echo -e "${YELLOW}⚠ PostgreSQL 启动超时，跳过数据库初始化${NC}"
+        DB_INITIALIZED=true  # 假设已初始化，避免后续步骤失败
+    else
     # 检查数据库是否存在
     DB_EXISTS=$(docker compose exec -T postgres psql -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'" 2>/dev/null || echo "")
     # 检查用户是否存在
@@ -1244,6 +1606,9 @@ EOF
             echo -e "${YELLOW}⚠ 数据库初始化可能不完整，请手动检查${NC}"
         fi
     fi
+else
+    echo -e "${BLUE}  跳过数据库初始化（未选择 postgres 服务）${NC}"
+    DB_INITIALIZED=true
 fi
 
 # 分阶段启动服务
@@ -1251,74 +1616,102 @@ echo ""
 echo -e "${CYAN}[6/8] 分阶段启动服务...${NC}"
 
 # 阶段1: 启动基础设施服务
-echo -e "${BLUE}  阶段1: 启动基础设施服务 (postgres, minio)...${NC}"
-docker compose up -d postgres minio
-sleep 15
+INFRA_SERVICES=()
+if is_service_deployed "postgres"; then
+    INFRA_SERVICES+=("postgres")
+fi
+if is_service_deployed "minio"; then
+    INFRA_SERVICES+=("minio")
+fi
+
+if [ \${#INFRA_SERVICES[@]} -gt 0 ]; then
+    echo -e "${BLUE}  阶段1: 启动基础设施服务 (\${INFRA_SERVICES[*]})...${NC}"
+    docker compose up -d "\${INFRA_SERVICES[@]}"
+    sleep 15
+else
+    echo -e "${BLUE}  阶段1: 跳过基础设施服务启动${NC}"
+fi
 
 # 等待 PostgreSQL 就绪
-echo -e "${BLUE}  等待 PostgreSQL 就绪...${NC}"
-max_wait=30
-wait_count=0
-while [ $wait_count -lt $max_wait ]; do
-    if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ PostgreSQL 就绪${NC}"
-        break
-    fi
-    sleep 1
-    ((wait_count++))
-done
+if is_service_deployed "postgres"; then
+    echo -e "${BLUE}  等待 PostgreSQL 就绪...${NC}"
+    max_wait=30
+    wait_count=0
+    while [ \$wait_count -lt \$max_wait ]; do
+        if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ PostgreSQL 就绪${NC}"
+            break
+        fi
+        sleep 1
+        ((wait_count++))
+    done
+fi
 
 # 等待 MinIO 就绪
-echo -e "${BLUE}  等待 MinIO 就绪...${NC}"
-max_wait=30
-wait_count=0
-while [ $wait_count -lt $max_wait ]; do
-    if curl -s http://localhost:9000/minio/health/live > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ MinIO 就绪${NC}"
-        break
-    fi
-    sleep 1
-    ((wait_count++))
-done
+if is_service_deployed "minio"; then
+    echo -e "${BLUE}  等待 MinIO 就绪...${NC}"
+    max_wait=30
+    wait_count=0
+    MINIO_PORT="\${MINIO_API_PORT:-9000}"
+    while [ \$wait_count -lt \$max_wait ]; do
+        if curl -s "http://localhost:\${MINIO_PORT}/minio/health/live" > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ MinIO 就绪${NC}"
+            break
+        fi
+        sleep 1
+        ((wait_count++))
+    done
+fi
 
 # 阶段2: 启动应用服务
-echo ""
-echo -e "${BLUE}  阶段2: 启动应用服务 (backend)...${NC}"
-docker compose up -d backend
-sleep 10
-
-# 阶段3: 健康检查循环（等待后端就绪）
-echo ""
-echo -e "${BLUE}  阶段3: 等待后端服务就绪...${NC}"
-# 使用环境变量中的 SERVICE_NAME，默认为 project-oa
-SERVICE_NAME="${SERVICE_NAME:-project-oa}"
-SERVER_PORT="${SERVER_PORT:-8082}"
-BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
-echo -e "${BLUE}  健康检查端点: ${BACKEND_HEALTH_URL}${NC}"
-max_attempts=30
-attempt=1
-
-while [ $attempt -le $max_attempts ]; do
-    if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
-        echo -e "${GREEN}  ✓ 后端服务就绪 (尝试 ${attempt}/${max_attempts})${NC}"
-        break
-    fi
+if is_service_deployed "backend"; then
+    echo ""
+    echo -e "${BLUE}  阶段2: 启动应用服务 (backend)...${NC}"
+    docker compose up -d backend
+    sleep 10
     
-    if [ $attempt -eq $max_attempts ]; then
-        echo -e "${YELLOW}  ⚠ 后端服务健康检查超时，但继续部署${NC}"
-    else
-        echo -e "${BLUE}    等待后端服务... (${attempt}/${max_attempts})${NC}"
-    fi
+    # 阶段3: 健康检查循环（等待后端就绪）
+    echo ""
+    echo -e "${BLUE}  阶段3: 等待后端服务就绪...${NC}"
+    # 使用环境变量中的 SERVICE_NAME，默认为 project-oa
+    SERVICE_NAME="\${SERVICE_NAME:-project-oa}"
+    SERVER_PORT="\${SERVER_PORT:-8082}"
+    BACKEND_HEALTH_URL="http://localhost:\${SERVER_PORT}/\${SERVICE_NAME}/health"
+    echo -e "${BLUE}  健康检查端点: \${BACKEND_HEALTH_URL}${NC}"
+    max_attempts=30
+    attempt=1
     
-    sleep 2
-    ((attempt++))
-done
+    while [ \$attempt -le \$max_attempts ]; do
+        if curl -sf "\${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ 后端服务就绪 (尝试 \${attempt}/\${max_attempts})${NC}"
+            break
+        fi
+        
+        if [ \$attempt -eq \$max_attempts ]; then
+            echo -e "${YELLOW}  ⚠ 后端服务健康检查超时，但继续部署${NC}"
+        else
+            echo -e "${BLUE}    等待后端服务... (\${attempt}/\${max_attempts})${NC}"
+        fi
+        
+        sleep 2
+        ((attempt++))
+    done
+else
+    echo ""
+    echo -e "${BLUE}  阶段2: 跳过后端服务启动${NC}"
+    echo -e "${BLUE}  阶段3: 跳过后端健康检查${NC}"
+fi
 
 # 阶段4: 启动前端服务
-echo ""
-echo -e "${BLUE}  阶段4: 启动前端服务 (frontend)...${NC}"
-docker compose up -d frontend
-sleep 5
+if is_service_deployed "frontend"; then
+    echo ""
+    echo -e "${BLUE}  阶段4: 启动前端服务 (frontend)...${NC}"
+    docker compose up -d frontend
+    sleep 5
+else
+    echo ""
+    echo -e "${BLUE}  阶段4: 跳过前端服务启动${NC}"
+fi
 
 # 阶段5: 启动监控和报警服务（已注释，如需要可取消注释）
 # echo ""
@@ -1331,25 +1724,32 @@ echo -e "${GREEN}✓ 所有服务启动完成${NC}"
 # 容器状态检查
 echo ""
 echo -e "${CYAN}[7/8] 检查容器状态...${NC}"
-REQUIRED_CONTAINERS=(
-    "project-oa-postgres"
-    "project-oa-minio"
-    "project-oa-backend"
-    "project-oa-frontend"
-)
+REQUIRED_CONTAINERS=()
+if is_service_deployed "postgres"; then
+    REQUIRED_CONTAINERS+=("project-oa-postgres")
+fi
+if is_service_deployed "minio"; then
+    REQUIRED_CONTAINERS+=("project-oa-minio")
+fi
+if is_service_deployed "backend"; then
+    REQUIRED_CONTAINERS+=("project-oa-backend")
+fi
+if is_service_deployed "frontend"; then
+    REQUIRED_CONTAINERS+=("project-oa-frontend")
+fi
 
 all_running=true
-for container in "${REQUIRED_CONTAINERS[@]}"; do
-    if docker ps --format "{{.Names}}" | grep -q "^${container}$"; then
-        STATUS=$(docker ps --format "{{.Status}}" --filter "name=^${container}$")
-        echo -e "${GREEN}  ✓ ${container}: ${STATUS}${NC}"
+for container in "\${REQUIRED_CONTAINERS[@]}"; do
+    if docker ps --format "{{.Names}}" | grep -q "^\${container}\$"; then
+        STATUS=\$(docker ps --format "{{.Status}}" --filter "name=^\${container}\$")
+        echo -e "${GREEN}  ✓ \${container}: \${STATUS}${NC}"
     else
-        echo -e "${RED}  ✗ ${container}: 未运行${NC}"
+        echo -e "${RED}  ✗ \${container}: 未运行${NC}"
         all_running=false
     fi
 done
 
-if [ "$all_running" = false ]; then
+if [ "\$all_running" = false ]; then
     echo -e "${YELLOW}⚠ 部分容器未运行，请检查日志${NC}"
     echo -e "${BLUE}  查看日志: docker compose logs${NC}"
 fi
@@ -1359,20 +1759,25 @@ echo ""
 echo -e "${CYAN}[8/8] 最终健康检查...${NC}"
 
 # 检查后端健康
-SERVICE_NAME="${SERVICE_NAME:-project-oa}"
-SERVER_PORT="${SERVER_PORT:-8082}"
-BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
-if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
-    echo -e "${GREEN}  ✓ 后端健康检查通过${NC}"
-else
-    echo -e "${YELLOW}  ⚠ 后端健康检查失败 (${BACKEND_HEALTH_URL})${NC}"
+if is_service_deployed "backend"; then
+    SERVICE_NAME="\${SERVICE_NAME:-project-oa}"
+    SERVER_PORT="\${SERVER_PORT:-8082}"
+    BACKEND_HEALTH_URL="http://localhost:\${SERVER_PORT}/\${SERVICE_NAME}/health"
+    if curl -sf "\${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ 后端健康检查通过${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ 后端健康检查失败 (\${BACKEND_HEALTH_URL})${NC}"
+    fi
 fi
 
 # 检查前端（通过 nginx）
-if curl -sf "http://localhost:3000" > /dev/null 2>&1; then
-    echo -e "${GREEN}  ✓ 前端服务可访问${NC}"
-else
-    echo -e "${YELLOW}  ⚠ 前端服务检查失败${NC}"
+if is_service_deployed "frontend"; then
+    FRONTEND_PORT="\${FRONTEND_PORT:-3000}"
+    if curl -sf "http://localhost:\${FRONTEND_PORT}" > /dev/null 2>&1; then
+        echo -e "${GREEN}  ✓ 前端服务可访问${NC}"
+    else
+        echo -e "${YELLOW}  ⚠ 前端服务检查失败${NC}"
+    fi
 fi
 
 echo ""
@@ -1388,9 +1793,9 @@ ${SCP_CMD} "${REMOTE_DEPLOY_SCRIPT}" "${SSH_TARGET}:/tmp/remote-deploy.sh" || {
     exit 1
 }
 
-# 执行远程部署
+# 执行远程部署（传递服务列表）
 echo -e "${BLUE}  执行远程部署...${NC}"
-${SSH_CMD} "${SSH_TARGET}" "chmod +x /tmp/remote-deploy.sh && /tmp/remote-deploy.sh ${REMOTE_DIR} ${REMOTE_TAR}" || {
+${SSH_CMD} "${SSH_TARGET}" "chmod +x /tmp/remote-deploy.sh && /tmp/remote-deploy.sh ${REMOTE_DIR} ${REMOTE_TAR} ${SELECTED_SERVICES_STR}" || {
     echo -e "${RED}✗ 远程部署失败${NC}"
     exit 1
 }

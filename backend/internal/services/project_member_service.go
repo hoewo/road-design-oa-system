@@ -64,19 +64,21 @@ func NewProjectMemberService(notifier MemberNotifier) *ProjectMemberService {
 
 // CreateProjectMemberRequest represents payload for creating members.
 type CreateProjectMemberRequest struct {
-	UserID    string            `json:"user_id" binding:"required"` // UUID string
-	Role      models.MemberRole `json:"role" binding:"required"`
-	JoinDate  time.Time         `json:"join_date" binding:"required"`
-	LeaveDate *time.Time        `json:"leave_date"`
-	IsActive  bool              `json:"is_active"`
+	UserID       string            `json:"user_id" binding:"required"` // UUID string
+	Role         models.MemberRole `json:"role" binding:"required"`
+	DisciplineID *string            `json:"discipline_id"` // UUID string, required for production roles (designer, participant, reviewer)
+	JoinDate     time.Time          `json:"join_date" binding:"required"`
+	LeaveDate    *time.Time         `json:"leave_date"`
+	IsActive     bool               `json:"is_active"`
 }
 
 // UpdateProjectMemberRequest represents payload for updating members.
 type UpdateProjectMemberRequest struct {
-	Role      *models.MemberRole `json:"role"`
-	JoinDate  *time.Time         `json:"join_date"`
-	LeaveDate *time.Time         `json:"leave_date"`
-	IsActive  *bool              `json:"is_active"`
+	Role         *models.MemberRole `json:"role"`
+	DisciplineID *string            `json:"discipline_id"` // UUID string, required for production roles
+	JoinDate     *time.Time         `json:"join_date"`
+	LeaveDate    *time.Time         `json:"leave_date"`
+	IsActive     *bool              `json:"is_active"`
 }
 
 // MemberUserBrief represents lightweight user information for members.
@@ -87,32 +89,50 @@ type MemberUserBrief struct {
 	Role     string `json:"role"`
 }
 
+// DisciplineBrief represents lightweight discipline information.
+type DisciplineBrief struct {
+	ID   string `json:"id"`   // UUID string
+	Name string `json:"name"` // Discipline name
+}
+
 // ProjectMemberResponse represents the data returned to callers.
 type ProjectMemberResponse struct {
-	ID        string            `json:"id"`         // UUID string
-	ProjectID string            `json:"project_id"` // UUID string
-	UserID    string            `json:"user_id"`    // UUID string
-	Role      models.MemberRole `json:"role"`
-	JoinDate  time.Time         `json:"join_date"`
-	LeaveDate *time.Time        `json:"leave_date,omitempty"`
-	IsActive  bool              `json:"is_active"`
-	User      MemberUserBrief   `json:"user"`
-	CreatedAt time.Time         `json:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at"`
+	ID           string            `json:"id"`            // UUID string
+	ProjectID    string            `json:"project_id"`   // UUID string
+	UserID       string            `json:"user_id"`       // UUID string
+	Role         models.MemberRole `json:"role"`
+	DisciplineID *string           `json:"discipline_id,omitempty"` // UUID string, for production roles
+	Discipline   *DisciplineBrief  `json:"discipline,omitempty"`    // Discipline info, for production roles
+	JoinDate     time.Time          `json:"join_date"`
+	LeaveDate    *time.Time         `json:"leave_date,omitempty"`
+	IsActive     bool               `json:"is_active"`
+	User         MemberUserBrief   `json:"user"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
 }
 
 // ListMembers returns members belonging to a project (UUID string).
-func (s *ProjectMemberService) ListMembers(projectID string) ([]*ProjectMemberResponse, error) {
+// Supports filtering by role and discipline.
+func (s *ProjectMemberService) ListMembers(projectID string, role *models.MemberRole, disciplineID *string) ([]*ProjectMemberResponse, error) {
 	if err := s.ensureProjectExists(projectID); err != nil {
 		return nil, err
 	}
 
 	var members []models.ProjectMember
-	if err := s.db.
+	query := s.db.
 		Preload("User").
-		Where("project_id = ?", projectID).
-		Order("join_date ASC").
-		Find(&members).Error; err != nil {
+		Preload("Discipline").
+		Where("project_id = ?", projectID)
+
+	if role != nil {
+		query = query.Where("role = ?", *role)
+	}
+
+	if disciplineID != nil {
+		query = query.Where("discipline_id = ?", *disciplineID)
+	}
+
+	if err := query.Order("join_date ASC").Find(&members).Error; err != nil {
 		return nil, err
 	}
 
@@ -149,7 +169,21 @@ func (s *ProjectMemberService) CreateMember(userID string, projectID string, req
 		return nil, err
 	}
 
-	if err := s.ensureRoleAvailable(projectID, req.Role); err != nil {
+	// 专业关联验证：生产人员角色（designer, participant, reviewer）必须关联专业
+	if err := s.validateDisciplineAssociation(req.Role, req.DisciplineID); err != nil {
+		return nil, err
+	}
+
+	// 如果提供了专业ID，验证专业是否存在
+	if req.DisciplineID != nil {
+		if err := s.ensureDisciplineExists(*req.DisciplineID); err != nil {
+			return nil, err
+		}
+	}
+
+	// 对于按专业配置的生产人员角色，允许同一角色在同一专业下有多人
+	// 但对于审核人和审定人，每个项目只能有一个
+	if err := s.validateRoleAvailability(projectID, req.Role, req.DisciplineID); err != nil {
 		return nil, err
 	}
 
@@ -158,12 +192,13 @@ func (s *ProjectMemberService) CreateMember(userID string, projectID string, req
 	}
 
 	member := &models.ProjectMember{
-		ProjectID: projectID,
-		UserID:    req.UserID,
-		Role:      req.Role,
-		JoinDate:  req.JoinDate,
-		LeaveDate: req.LeaveDate,
-		IsActive:  req.IsActive,
+		ProjectID:    projectID,
+		UserID:       req.UserID,
+		Role:         req.Role,
+		DisciplineID: req.DisciplineID,
+		JoinDate:     req.JoinDate,
+		LeaveDate:    req.LeaveDate,
+		IsActive:     req.IsActive,
 	}
 
 	if err := s.db.Create(member).Error; err != nil {
@@ -214,12 +249,36 @@ func (s *ProjectMemberService) UpdateMember(userID string, memberID string, req 
 		if err := s.validateRole(*req.Role); err != nil {
 			return nil, err
 		}
+		// 专业关联验证：生产人员角色必须关联专业
+		disciplineID := req.DisciplineID
+		if disciplineID == nil {
+			disciplineID = member.DisciplineID
+		}
+		if err := s.validateDisciplineAssociation(*req.Role, disciplineID); err != nil {
+			return nil, err
+		}
 		if *req.Role != member.Role {
-			if err := s.ensureRoleAvailable(member.ProjectID, *req.Role); err != nil {
+			if err := s.validateRoleAvailability(member.ProjectID, *req.Role, disciplineID); err != nil {
 				return nil, err
 			}
 			member.Role = *req.Role
 		}
+	}
+
+	if req.DisciplineID != nil {
+		// 如果提供了专业ID，验证专业是否存在
+		if err := s.ensureDisciplineExists(*req.DisciplineID); err != nil {
+			return nil, err
+		}
+		// 如果角色变更，需要重新验证专业关联
+		role := member.Role
+		if req.Role != nil {
+			role = *req.Role
+		}
+		if err := s.validateDisciplineAssociation(role, req.DisciplineID); err != nil {
+			return nil, err
+		}
+		member.DisciplineID = req.DisciplineID
 	}
 
 	if req.JoinDate != nil {
@@ -258,10 +317,21 @@ func (s *ProjectMemberService) UpdateMember(userID string, memberID string, req 
 }
 
 // DeleteMember removes a project member (UUID string).
-func (s *ProjectMemberService) DeleteMember(memberID string) error {
+// userID: 删除项目成员的用户ID，用于权限检查
+func (s *ProjectMemberService) DeleteMember(userID string, memberID string) error {
 	member, err := s.getMember(memberID)
 	if err != nil {
 		return err
+	}
+
+	// 权限检查：系统管理员、项目管理员、项目经营负责人、项目生产负责人可以配置项目成员
+	permissionService := NewPermissionService()
+	canManage, err := permissionService.CanManageProjectMembers(userID, member.ProjectID, member.Role)
+	if err != nil {
+		return fmt.Errorf("权限检查失败: %w", err)
+	}
+	if !canManage {
+		return errors.New("权限不足：无法删除项目成员")
 	}
 
 	if err := s.db.Delete(&models.ProjectMember{}, "id = ?", memberID).Error; err != nil {
@@ -310,18 +380,56 @@ func (s *ProjectMemberService) validateRole(role models.MemberRole) error {
 	return nil
 }
 
-func (s *ProjectMemberService) ensureRoleAvailable(projectID string, role models.MemberRole) error {
+// validateDisciplineAssociation 验证专业关联：生产人员角色必须关联专业
+func (s *ProjectMemberService) validateDisciplineAssociation(role models.MemberRole, disciplineID *string) error {
+	// 生产人员角色（designer, participant, reviewer）必须关联专业
+	productionRoles := []models.MemberRole{
+		models.MemberRoleDesigner,
+		models.MemberRoleParticipant,
+		models.MemberRoleReviewer,
+	}
+	for _, prodRole := range productionRoles {
+		if role == prodRole {
+			if disciplineID == nil || *disciplineID == "" {
+				return fmt.Errorf("生产人员角色 %s 必须关联专业", role)
+			}
+			return nil
+		}
+	}
+	// 审核人和审定人不需要关联专业
+	return nil
+}
+
+// ensureDisciplineExists 确保专业存在
+func (s *ProjectMemberService) ensureDisciplineExists(disciplineID string) error {
+	var discipline models.Discipline
+	if err := s.db.First(&discipline, "id = ? AND is_active = ?", disciplineID, true).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("专业不存在或已禁用")
+		}
+		return err
+	}
+	return nil
+}
+
+// validateRoleAvailability 验证角色可用性
+// 对于按专业配置的生产人员角色，允许同一角色在同一专业下有多人
+// 但对于审核人和审定人，每个项目只能有一个
+func (s *ProjectMemberService) validateRoleAvailability(projectID string, role models.MemberRole, disciplineID *string) error {
+	// 审核人和审定人每个项目只能有一个
+	if role == models.MemberRoleAuditor || role == models.MemberRoleApprover {
 	var count int64
 	if err := s.db.Model(&models.ProjectMember{}).
 		Where("project_id = ? AND role = ?", projectID, role).
 		Count(&count).Error; err != nil {
 		return err
 	}
-
 	if count > 0 {
-		return fmt.Errorf("role already assigned for project: %s", role)
+			return fmt.Errorf("项目已存在 %s，每个项目只能有一个", role)
+		}
 	}
-
+	// 生产人员角色（designer, participant, reviewer）按专业配置，允许同一专业下有多人
+	// 这里不做唯一性检查，允许同一专业下同一角色有多人
 	return nil
 }
 
@@ -338,7 +446,7 @@ func (s *ProjectMemberService) validateDates(joinDate time.Time, leaveDate *time
 
 func (s *ProjectMemberService) getMember(memberID string) (*models.ProjectMember, error) {
 	var member models.ProjectMember
-	if err := s.db.Preload("User").First(&member, "id = ?", memberID).Error; err != nil {
+	if err := s.db.Preload("User").Preload("Discipline").First(&member, "id = ?", memberID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project member not found")
 		}
@@ -366,17 +474,27 @@ func mapMemberToResponse(member *models.ProjectMember) *ProjectMemberResponse {
 		}
 	}
 
+	var disciplineBrief *DisciplineBrief
+	if member.DisciplineID != nil && member.Discipline != nil {
+		disciplineBrief = &DisciplineBrief{
+			ID:   member.Discipline.ID,
+			Name: member.Discipline.Name,
+		}
+	}
+
 	return &ProjectMemberResponse{
-		ID:        member.ID,
-		ProjectID: member.ProjectID,
-		UserID:    member.UserID,
-		Role:      member.Role,
-		JoinDate:  member.JoinDate,
-		LeaveDate: member.LeaveDate,
-		IsActive:  member.IsActive,
-		User:      user,
-		CreatedAt: member.CreatedAt,
-		UpdatedAt: member.UpdatedAt,
+		ID:           member.ID,
+		ProjectID:    member.ProjectID,
+		UserID:       member.UserID,
+		Role:         member.Role,
+		DisciplineID: member.DisciplineID,
+		Discipline:   disciplineBrief,
+		JoinDate:     member.JoinDate,
+		LeaveDate:    member.LeaveDate,
+		IsActive:     member.IsActive,
+		User:         user,
+		CreatedAt:    member.CreatedAt,
+		UpdatedAt:    member.UpdatedAt,
 	}
 }
 
