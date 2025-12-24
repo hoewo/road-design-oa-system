@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { productionService } from '@/services/production'
 import { businessService } from '@/services/business'
 import { userService } from '@/services/user'
-import type { CreateProductionApprovalRequest, User } from '@/types'
+import type { CreateProductionApprovalRequestLegacy, User } from '@/types'
 import dayjs from 'dayjs'
 
 interface ProductionAuditFormProps {
@@ -33,7 +33,7 @@ export const ProductionAuditForm = ({
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateProductionApprovalRequest) =>
+    mutationFn: (data: CreateProductionApprovalRequestLegacy) =>
       productionService.createApproval(projectId, data),
     onSuccess: () => {
       message.success('审核/审定记录创建成功')
@@ -77,7 +77,7 @@ export const ProductionAuditForm = ({
   }
 
   const handleFinish = (values: any) => {
-    const data: CreateProductionApprovalRequest = {
+    const data: CreateProductionApprovalRequestLegacy = {
       record_type: values.record_type,
       approver_id: values.approver_id,
       status: values.status,

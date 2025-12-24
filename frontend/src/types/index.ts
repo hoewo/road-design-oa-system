@@ -673,8 +673,100 @@ export interface ReplaceDisciplineAssignmentsRequest {
   }[]
 }
 
+// 保留旧类型以保持向后兼容
 export type ProductionApprovalType = 'review' | 'approval'
 export type AuditReportType = 'approval' | 'audit'
+
+// 新的批复审计类型（符合002规范）
+export type ApprovalType = 'approval' | 'audit' // 批复/审计
+export type ApprovalStatus = 'pending' | 'approved' // 待审核/已审核
+
+// ProductionApproval 批复审计信息实体（符合002规范）
+export interface ProductionApproval {
+  id: string // UUID string
+  project_id: string // UUID string
+  approval_type: ApprovalType // 类型：批复/审计
+  approver_id?: string // UUID string (可选)
+  approver?: User
+  status: ApprovalStatus // 状态：待审核/已审核
+  signed_at?: string // 签字/确认时间
+  report_file_id?: string // UUID string (可选)
+  report_file?: File // 批复/审计报告文件
+  amount_design: number // 设计费（元）
+  amount_survey: number // 勘察费（元）
+  amount_consulting: number // 咨询费（元）
+  total_amount: number // 总金额
+  source_contract_id?: string // UUID string (可选) // 关联的合同ID
+  source_contract?: Contract // 关联的合同
+  override_reason?: string // 覆盖原因说明
+  remarks?: string // 备注
+  created_at: string
+  updated_at: string
+}
+
+// 批复审计信息响应（分别返回批复和审计）
+export interface ApprovalAndAuditResponse {
+  approval: ProductionApproval | null // 批复信息
+  audit: ProductionApproval | null // 审计信息
+}
+
+// 创建批复审计信息请求
+export interface CreateProductionApprovalRequest {
+  approval_type: ApprovalType // 类型：批复/审计
+  approver_id?: string // UUID string (可选)
+  status?: ApprovalStatus // 状态（可选，默认pending）
+  signed_at?: string // 签字时间（可选）
+  report_file_id?: string // UUID string (可选) // 报告文件ID
+  amount_design?: number // 设计费（元）
+  amount_survey?: number // 勘察费（元）
+  amount_consulting?: number // 咨询费（元）
+  source_contract_id?: string // UUID string (可选) // 关联的合同ID
+  use_contract_amount?: boolean // 是否引用合同金额
+  override_reason?: string // 覆盖原因说明
+  remarks?: string // 备注
+}
+
+// 更新批复审计信息请求
+export interface UpdateProductionApprovalRequest {
+  approval_type?: ApprovalType
+  approver_id?: string // UUID string (可选)
+  status?: ApprovalStatus
+  signed_at?: string
+  report_file_id?: string // UUID string (可选)
+  amount_design?: number
+  amount_survey?: number
+  amount_consulting?: number
+  source_contract_id?: string // UUID string (可选)
+  use_contract_amount?: boolean
+  override_reason?: string
+  remarks?: string
+}
+
+// 合同金额响应（用于引用）
+export interface ContractAmountsResponse {
+  design_fee: number
+  survey_fee: number
+  consultation_fee: number
+  total: number
+}
+
+// 保留旧类型以保持向后兼容（已废弃）
+export interface CreateProductionApprovalRequestLegacy {
+  record_type: ProductionApprovalType
+  approver_id: number
+  status: string
+  signed_at?: string
+  attachment_file_id?: number
+  remarks?: string
+  report_type: AuditReportType
+  report_file_id?: number
+  amount_design?: number
+  amount_survey?: number
+  amount_consultation?: number
+  source_contract_id?: number
+  default_amount_reference?: string
+  override_reason?: string
+}
 
 export interface ProductionApprovalRecord {
   id: number
@@ -711,23 +803,6 @@ export interface AuditResolution {
   created_by?: User
   created_at: string
   updated_at: string
-}
-
-export interface CreateProductionApprovalRequest {
-  record_type: ProductionApprovalType
-  approver_id: number
-  status: string
-  signed_at?: string
-  attachment_file_id?: number
-  remarks?: string
-  report_type: AuditReportType
-  report_file_id?: number
-  amount_design?: number
-  amount_survey?: number
-  amount_consultation?: number
-  source_contract_id?: number
-  default_amount_reference?: string
-  override_reason?: string
 }
 
 export type ExternalVendorType = 'company' | 'person'

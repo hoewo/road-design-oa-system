@@ -200,3 +200,46 @@ func (h *PermissionHandler) CheckManageBusinessInfoPermission(c *gin.Context) {
 	})
 }
 
+// CheckManageProductionInfoPermission 检查用户是否可以管理项目生产信息
+// @Summary 检查管理项目生产信息权限
+// @Description 检查当前用户是否可以管理指定项目的生产信息
+// @Tags 权限管理
+// @Security BearerAuth
+// @Produce json
+// @Param project_id query string true "Project ID (UUID)"
+// @Success 200 {object} map[string]bool
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Router /permissions/can-manage-production-info [get]
+func (h *PermissionHandler) CheckManageProductionInfoPermission(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	projectID := c.Query("project_id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "project_id parameter is required", nil)
+		return
+	}
+
+	canManage, err := h.permissionService.CanManageProductionInfo(userID, projectID)
+	if err != nil {
+		h.logger.Error("Failed to check manage production info permission",
+			zap.Error(err),
+			zap.String("user_id", userID),
+			zap.String("project_id", projectID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"can_manage": canManage,
+		},
+	})
+}
+

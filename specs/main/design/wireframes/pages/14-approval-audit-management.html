@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批复审计阶段管理 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .tabs { border-bottom: 2px solid #333; margin-bottom: 20px; }
+        .tab { display: inline-block; padding: 12px 24px; border: 1px solid #ccc; border-bottom: none; margin-right: 5px; cursor: pointer; background: #f0f0f0; }
+        .tab.active { background: white; border-bottom: 2px solid white; margin-bottom: -2px; }
+        .section { margin: 30px 0; border: 1px solid #ccc; padding: 20px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .form-row { display: flex; margin-bottom: 15px; gap: 20px; }
+        .form-group { flex: 1; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input, .select, .textarea { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 4px; }
+        .textarea { min-height: 80px; resize: vertical; }
+        .button { padding: 8px 16px; border: 2px solid #333; background: #fff; cursor: pointer; margin-right: 10px; }
+        .button-primary { background: #333; color: white; }
+        .button-small { padding: 6px 12px; font-size: 12px; }
+        .button-danger { background: #d32f2f; color: white; border-color: #d32f2f; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        .table th { background: #f0f0f0; font-weight: bold; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .file-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; background: white; display: flex; justify-content: space-between; align-items: center; }
+        .file-info { flex: 1; }
+        .file-actions { display: flex; gap: 10px; }
+        .required { color: red; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+        .amount-group { margin-bottom: 15px; }
+        .amount-item { display: flex; align-items: center; margin-bottom: 10px; }
+        .amount-label { width: 100px; font-weight: bold; }
+        .amount-input { flex: 1; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .error { padding: 15px; background: #ffebee; border: 1px solid #d32f2f; color: #d32f2f; margin: 15px 0; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 15px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border: 2px solid #333; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .approval-audit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .approval-column, .audit-column { border: 1px solid #ddd; padding: 15px; background: #fafafa; }
+        .column-title { font-size: 16px; font-weight: bold; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #ccc; }
+        .report-section, .amount-section { margin-bottom: 20px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; }
+        .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .modal-footer { margin-top: 20px; text-align: right; }
+        .checkbox-group { margin: 10px 0; }
+        .checkbox-group input[type="checkbox"] { margin-right: 8px; }
+        details { margin: 20px 0; border: 1px solid #ccc; }
+        summary { padding: 15px; background: #f0f0f0; cursor: pointer; font-weight: bold; }
+        details[open] summary { border-bottom: 1px solid #ccc; }
+        .state-content { padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>批复审计阶段管理 - 线框图</h1>
+            <p>User Story 14 - 生产负责人管理项目的批复和审计阶段信息</p>
+        </div>
+
+        <!-- 加载中状态 -->
+        <details>
+            <summary>状态 1: 加载中</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="tabs">
+                        <div class="tab">基本信息</div>
+                        <div class="tab">经营信息</div>
+                        <div class="tab active">生产信息</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">批复审计信息</div>
+                        <div class="loading">
+                            <div>正在加载批复审计信息...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 成功状态 - 有数据 -->
+        <details open>
+            <summary>状态 2: 成功 - 有数据（查看模式）</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="tabs">
+                        <div class="tab">基本信息</div>
+                        <div class="tab">经营信息</div>
+                        <div class="tab active">生产信息</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span>批复审计信息</span>
+                            <div style="float: right;">
+                                <button class="button button-small">编辑</button>
+                            </div>
+                        </div>
+
+                        <!-- 批复和审计左右并排布局 -->
+                        <div class="approval-audit-grid">
+                            <!-- 批复列 -->
+                            <div class="approval-column">
+                                <div class="column-title">批复</div>
+                                
+                                <!-- 批复报告 -->
+                                <div class="report-section">
+                                    <label class="label">批复报告</label>
+                                    <div class="file-item">
+                                        <div class="file-info">
+                                            <span class="link">批复报告.pdf</span> (3.2MB) - 2024-02-10
+                                        </div>
+                                        <div class="file-actions">
+                                            <span class="link">下载</span>
+                                            <span class="link" style="color: #d32f2f;">删除</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 批复金额 -->
+                                <div class="amount-section">
+                                    <label class="label">批复金额</label>
+                                    <div style="padding: 15px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                                        <div style="margin-bottom: 8px;">设计费: ¥1,200,000</div>
+                                        <div style="margin-bottom: 8px;">勘察费: ¥200,000</div>
+                                        <div>咨询费: ¥100,000</div>
+                                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-weight: bold;">
+                                            合计: ¥1,500,000
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 审计列 -->
+                            <div class="audit-column">
+                                <div class="column-title">审计</div>
+                                
+                                <!-- 审计报告 -->
+                                <div class="report-section">
+                                    <label class="label">审计报告</label>
+                                    <div class="file-item">
+                                        <div class="file-info">
+                                            <span class="link">审计报告.pdf</span> (2.8MB) - 2024-02-15
+                                        </div>
+                                        <div class="file-actions">
+                                            <span class="link">下载</span>
+                                            <span class="link" style="color: #d32f2f;">删除</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 审计金额 -->
+                                <div class="amount-section">
+                                    <label class="label">审计金额</label>
+                                    <div style="padding: 15px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                                        <div style="margin-bottom: 8px;">设计费: ¥1,200,000</div>
+                                        <div style="margin-bottom: 8px;">勘察费: ¥200,000</div>
+                                        <div>咨询费: ¥100,000</div>
+                                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-weight: bold;">
+                                            合计: ¥1,500,000
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 空状态 -->
+        <details>
+            <summary>状态 3: 空状态（无数据）</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="tabs">
+                        <div class="tab">基本信息</div>
+                        <div class="tab">经营信息</div>
+                        <div class="tab active">生产信息</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span>批复审计信息</span>
+                            <div style="float: right;">
+                                <button class="button button-small">+ 新建</button>
+                            </div>
+                        </div>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📄</div>
+                            <div style="font-size: 16px; margin-bottom: 10px;">暂无批复审计信息</div>
+                            <div style="color: #666; margin-bottom: 20px;">请点击右上角"新建"按钮创建第一条批复审计记录</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 编辑状态 - 新建 -->
+        <details>
+            <summary>状态 4: 编辑状态 - 新建记录（弹窗）</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="tabs">
+                        <div class="tab">基本信息</div>
+                        <div class="tab">经营信息</div>
+                        <div class="tab active">生产信息</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span>批复审计信息</span>
+                            <div style="float: right;">
+                                <button class="button button-small">+ 新建</button>
+                            </div>
+                        </div>
+                        <div class="empty-state">
+                            <div class="empty-state-icon">📄</div>
+                            <div style="font-size: 16px; margin-bottom: 10px;">暂无批复审计信息</div>
+                        </div>
+                    </div>
+
+                    <!-- 新建弹窗 -->
+                    <div class="modal" style="display: block;">
+                        <div class="modal-content">
+                            <div class="modal-header">新建批复审计信息</div>
+
+                            <!-- 批复和审计左右并排布局 -->
+                            <div class="approval-audit-grid">
+                                <!-- 批复列 -->
+                                <div class="approval-column">
+                                    <div class="column-title">批复</div>
+                                    
+                                    <!-- 批复报告上传 -->
+                                    <div class="report-section">
+                                        <label class="label">批复报告 <span class="required">*</span></label>
+                                        <input type="file" class="input" accept=".pdf,.doc,.docx" style="padding: 8px;">
+                                        <div style="margin-top: 8px; color: #666; font-size: 12px;">支持 PDF、Word 格式，最大 100MB</div>
+                                    </div>
+
+                                    <!-- 批复金额 -->
+                                    <div class="amount-section">
+                                        <label class="label">批复金额</label>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="use-contract-amount" checked>
+                                            <label for="use-contract-amount">引用合同金额</label>
+                                        </div>
+                                        <div class="amount-group" style="margin-top: 15px;">
+                                            <div class="amount-item">
+                                                <span class="amount-label">设计费:</span>
+                                                <input type="number" class="amount-input input" placeholder="请输入设计费（元）" value="1200000">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">勘察费:</span>
+                                                <input type="number" class="amount-input input" placeholder="请输入勘察费（元）" value="200000">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">咨询费:</span>
+                                                <input type="number" class="amount-input input" placeholder="请输入咨询费（元）" value="100000">
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                                            <strong>合计: ¥1,500,000</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 审计列 -->
+                                <div class="audit-column">
+                                    <div class="column-title">审计</div>
+                                    
+                                    <!-- 审计报告上传 -->
+                                    <div class="report-section">
+                                        <label class="label">审计报告 <span class="required">*</span></label>
+                                        <input type="file" class="input" accept=".pdf,.doc,.docx" style="padding: 8px;">
+                                        <div style="margin-top: 8px; color: #666; font-size: 12px;">支持 PDF、Word 格式，最大 100MB</div>
+                                    </div>
+
+                                    <!-- 审计金额 -->
+                                    <div class="amount-section">
+                                        <label class="label">审计金额</label>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="use-approval-amount">
+                                            <label for="use-approval-amount">引用批复金额</label>
+                                        </div>
+                                        <div class="amount-group" style="margin-top: 15px;">
+                                            <div class="amount-item">
+                                                <span class="amount-label">设计费:</span>
+                                                <input type="number" class="amount-input input" placeholder="请输入设计费（元）">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">勘察费:</span>
+                                                <input type="number" class="amount-input input" placeholder="请输入勘察费（元）">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">咨询费:</span>
+                                                <input type="number" class="amount-input input" placeholder="请输入咨询费（元）">
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                                            <strong>合计: ¥0</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 覆盖原因说明（当金额被调整时显示） -->
+                            <div class="form-group" style="margin-bottom: 20px; margin-top: 20px; display: none;" id="override-reason-group">
+                                <label class="label">覆盖原因说明</label>
+                                <textarea class="textarea" placeholder="请说明为什么调整金额（可选）"></textarea>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="modal-footer">
+                                <button class="button">取消</button>
+                                <button class="button button-primary">保存</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 编辑状态 - 编辑现有记录 -->
+        <details>
+            <summary>状态 5: 编辑状态 - 编辑现有记录（弹窗）</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="tabs">
+                        <div class="tab">基本信息</div>
+                        <div class="tab">经营信息</div>
+                        <div class="tab active">生产信息</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">
+                            <span>批复审计信息</span>
+                            <div style="float: right;">
+                                <button class="button button-small">编辑</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 查看模式的内容 -->
+                        <div class="approval-audit-grid">
+                            <div class="approval-column">
+                                <div class="column-title">批复</div>
+                                <div class="report-section">
+                                    <label class="label">批复报告</label>
+                                    <div class="file-item">
+                                        <div class="file-info">
+                                            <span class="link">批复报告.pdf</span> (3.2MB) - 2024-02-10
+                                        </div>
+                                        <div class="file-actions">
+                                            <span class="link">下载</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="amount-section">
+                                    <label class="label">批复金额</label>
+                                    <div style="padding: 15px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                                        <div style="margin-bottom: 8px;">设计费: ¥1,200,000</div>
+                                        <div style="margin-bottom: 8px;">勘察费: ¥200,000</div>
+                                        <div>咨询费: ¥100,000</div>
+                                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-weight: bold;">
+                                            合计: ¥1,500,000
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="audit-column">
+                                <div class="column-title">审计</div>
+                                <div class="report-section">
+                                    <label class="label">审计报告</label>
+                                    <div class="file-item">
+                                        <div class="file-info">
+                                            <span class="link">审计报告.pdf</span> (2.8MB) - 2024-02-15
+                                        </div>
+                                        <div class="file-actions">
+                                            <span class="link">下载</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="amount-section">
+                                    <label class="label">审计金额</label>
+                                    <div style="padding: 15px; border: 2px solid #e0e0e0; background: #f9f9f9;">
+                                        <div style="margin-bottom: 8px;">设计费: ¥1,200,000</div>
+                                        <div style="margin-bottom: 8px;">勘察费: ¥200,000</div>
+                                        <div>咨询费: ¥100,000</div>
+                                        <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; font-weight: bold;">
+                                            合计: ¥1,500,000
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 编辑弹窗 -->
+                    <div class="modal" style="display: block;">
+                        <div class="modal-content">
+                            <div class="modal-header">编辑批复审计信息</div>
+
+                            <!-- 批复和审计左右并排布局 -->
+                            <div class="approval-audit-grid">
+                                <!-- 批复列 -->
+                                <div class="approval-column">
+                                    <div class="column-title">批复</div>
+                                    
+                                    <!-- 批复报告 -->
+                                    <div class="report-section">
+                                        <label class="label">批复报告</label>
+                                        <div class="file-item" style="margin-bottom: 10px;">
+                                            <div class="file-info">
+                                                <span class="link">批复报告.pdf</span> (3.2MB) - 2024-02-10
+                                            </div>
+                                            <div class="file-actions">
+                                                <span class="link">下载</span>
+                                                <span class="link" style="color: #d32f2f;">删除</span>
+                                            </div>
+                                        </div>
+                                        <input type="file" class="input" accept=".pdf,.doc,.docx" style="padding: 8px;">
+                                        <div style="margin-top: 8px; color: #666; font-size: 12px;">重新上传将替换现有文件</div>
+                                    </div>
+
+                                    <!-- 批复金额 -->
+                                    <div class="amount-section">
+                                        <label class="label">批复金额</label>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="use-contract-amount-edit">
+                                            <label for="use-contract-amount-edit">引用合同金额</label>
+                                        </div>
+                                        <div class="amount-group" style="margin-top: 15px;">
+                                            <div class="amount-item">
+                                                <span class="amount-label">设计费:</span>
+                                                <input type="number" class="amount-input input" value="1200000">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">勘察费:</span>
+                                                <input type="number" class="amount-input input" value="200000">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">咨询费:</span>
+                                                <input type="number" class="amount-input input" value="100000">
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                                            <strong>合计: ¥1,500,000</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 审计列 -->
+                                <div class="audit-column">
+                                    <div class="column-title">审计</div>
+                                    
+                                    <!-- 审计报告 -->
+                                    <div class="report-section">
+                                        <label class="label">审计报告</label>
+                                        <div class="file-item" style="margin-bottom: 10px;">
+                                            <div class="file-info">
+                                                <span class="link">审计报告.pdf</span> (2.8MB) - 2024-02-15
+                                            </div>
+                                            <div class="file-actions">
+                                                <span class="link">下载</span>
+                                                <span class="link" style="color: #d32f2f;">删除</span>
+                                            </div>
+                                        </div>
+                                        <input type="file" class="input" accept=".pdf,.doc,.docx" style="padding: 8px;">
+                                        <div style="margin-top: 8px; color: #666; font-size: 12px;">重新上传将替换现有文件</div>
+                                    </div>
+
+                                    <!-- 审计金额 -->
+                                    <div class="amount-section">
+                                        <label class="label">审计金额</label>
+                                        <div class="checkbox-group">
+                                            <input type="checkbox" id="use-approval-amount-edit">
+                                            <label for="use-approval-amount-edit">引用批复金额</label>
+                                        </div>
+                                        <div class="amount-group" style="margin-top: 15px;">
+                                            <div class="amount-item">
+                                                <span class="amount-label">设计费:</span>
+                                                <input type="number" class="amount-input input" value="1200000">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">勘察费:</span>
+                                                <input type="number" class="amount-input input" value="200000">
+                                            </div>
+                                            <div class="amount-item">
+                                                <span class="amount-label">咨询费:</span>
+                                                <input type="number" class="amount-input input" value="100000">
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 4px;">
+                                            <strong>合计: ¥1,500,000</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 覆盖原因说明 -->
+                            <div class="form-group" style="margin-bottom: 20px; margin-top: 20px;">
+                                <label class="label">覆盖原因说明</label>
+                                <textarea class="textarea" placeholder="请说明为什么调整金额（可选）">因合同变更，批复金额已调整</textarea>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="modal-footer">
+                                <button class="button">取消</button>
+                                <button class="button button-primary">保存</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 错误状态 -->
+        <details>
+            <summary>状态 6: 错误状态</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="tabs">
+                        <div class="tab">基本信息</div>
+                        <div class="tab">经营信息</div>
+                        <div class="tab active">生产信息</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">批复审计信息</div>
+                        
+                        <!-- 文件上传错误 -->
+                        <div class="error">
+                            <strong>文件上传失败</strong><br>
+                            批复报告上传失败：文件大小超过限制（最大 100MB），请压缩文件或选择较小的文件。
+                        </div>
+
+                        <!-- 表单验证错误 -->
+                        <div class="error" style="margin-top: 15px;">
+                            <strong>表单验证失败</strong><br>
+                            <ul style="margin: 10px 0 0 20px;">
+                                <li>批复报告为必填项，请上传文件</li>
+                                <li>审计报告为必填项，请上传文件</li>
+                                <li>批复金额中的设计费不能为空</li>
+                            </ul>
+                        </div>
+
+                        <!-- 网络错误 -->
+                        <div class="error" style="margin-top: 15px;">
+                            <strong>网络错误</strong><br>
+                            无法连接到服务器，请检查网络连接后重试。
+                        </div>
+
+                        <!-- 权限错误 -->
+                        <div class="error" style="margin-top: 15px;">
+                            <strong>权限不足</strong><br>
+                            您没有权限编辑批复审计信息，请联系项目管理员或生产负责人。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 删除确认对话框 -->
+        <details>
+            <summary>状态 7: 删除确认对话框</summary>
+            <div class="state-content">
+                <div class="container">
+                    <div class="modal" style="display: block;">
+                        <div class="modal-content">
+                            <div class="modal-header">确认删除</div>
+                            <div style="margin: 20px 0;">
+                                <p>您确定要删除这条批复审计记录吗？</p>
+                                <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                                    删除后，相关的批复报告、审计报告文件也将被删除，此操作不可恢复。
+                                </p>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="button">取消</button>
+                                <button class="button button-danger">确认删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 设计说明 -->
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 批复审计信息作为生产信息的一部分，位于项目详情页面的"生产信息"标签下<br>
+            - 布局：批复和审计左右并排，垂直方向从上到下依次是报告和金额<br>
+            - 新建和编辑入口位于右上角，同一个按钮：无内容时显示"+ 新建"，有内容时显示"编辑"，点击后弹出独立弹窗进行编辑<br>
+            - 支持上传批复报告和审计报告文件（PDF、Word 格式，最大 100MB）<br>
+            - 批复金额和审计金额按设计费、勘察费、咨询费分别录入，支持引用合同金额或批复金额<br>
+            - 当金额被手工调整时，可填写覆盖原因说明<br>
+            - 文件上传在表单保存时触发，支持文件下载和删除<br>
+            - 支持添加、编辑、删除批复审计记录<br>
+            - 仅生产负责人和项目管理员可以编辑批复审计信息，其他用户可查看但隐藏编辑入口<br>
+            - 文件显示文件名、大小、上传时间，支持下载和删除操作<br>
+            - 金额自动计算合计，实时显示总额
+        </div>
+    </div>
+</body>
+</html>
+

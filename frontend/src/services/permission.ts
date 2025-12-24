@@ -64,6 +64,24 @@ export const permissionService = {
   },
 
   /**
+   * 检查用户是否可以管理项目生产信息
+   * @param projectId 项目ID
+   */
+  canManageProductionInfo: async (projectId: string | number): Promise<boolean> => {
+    try {
+      // get 函数已经提取了 response.data.data，所以返回的是 {can_manage: true} 格式
+      const response = await get<{ can_manage: boolean }>(
+        `/user/permissions/can-manage-production-info?project_id=${projectId}`
+      )
+      return response?.can_manage ?? false
+    } catch (error) {
+      console.error('Failed to check manage production info permission:', error)
+      // 如果权限检查失败，返回 false 而不是抛出错误
+      return false
+    }
+  },
+
+  /**
    * 获取可用于配置项目负责人的用户列表
    * @param managerType 'business' 或 'production'
    */

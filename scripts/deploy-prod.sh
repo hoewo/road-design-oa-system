@@ -121,26 +121,36 @@ while [[ $# -gt 0 ]]; do
                 echo "可用服务: ${ALL_SERVICES[*]}"
                 exit 1
             fi
-            # 支持逗号分隔或空格分隔
-            IFS=',' read -ra SERVICES <<< "$1"
-            for svc in "${SERVICES[@]}"; do
-                svc=$(echo "$svc" | xargs)  # 去除空格
-                # 验证服务名称
-                valid=false
-                for valid_svc in "${ALL_SERVICES[@]}"; do
-                    if [ "$svc" = "$valid_svc" ]; then
-                        valid=true
-                        break
+            
+            # 收集所有服务名称，直到遇到下一个选项（以 - 开头）
+            while [ $# -gt 0 ] && ! echo "$1" | grep -qE '^-'; do
+                # 支持逗号分隔或空格分隔
+                IFS=',' read -ra SERVICES <<< "$1"
+                for svc in "${SERVICES[@]}"; do
+                    svc=$(echo "$svc" | xargs)  # 去除空格
+                    # 跳过空字符串
+                    if [ -z "$svc" ]; then
+                        continue
                     fi
+                    # 验证服务名称
+                    valid=false
+                    for valid_svc in "${ALL_SERVICES[@]}"; do
+                        if [ "$svc" = "$valid_svc" ]; then
+                            valid=true
+                            break
+                        fi
+                    done
+                    if [ "$valid" = false ]; then
+                        echo -e "${RED}✗ 无效的服务名称: $svc${NC}"
+                        echo "可用服务: ${ALL_SERVICES[*]}"
+                        exit 1
+                    fi
+                    SELECTED_SERVICES+=("$svc")
                 done
-                if [ "$valid" = false ]; then
-                    echo -e "${RED}✗ 无效的服务名称: $svc${NC}"
-                    echo "可用服务: ${ALL_SERVICES[*]}"
-                    exit 1
-                fi
-                SELECTED_SERVICES+=("$svc")
+                shift
             done
-            shift
+            # 注意：这里不 shift，因为已经在上面的循环中处理了所有服务参数
+            continue
             ;;
         --help|-h)
             echo "使用方法: $0 [选项]"

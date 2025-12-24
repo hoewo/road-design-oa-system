@@ -45,9 +45,7 @@ export const ProductionPersonnelManager = ({
 }: ProductionPersonnelManagerProps) => {
   const [personnelModalVisible, setPersonnelModalVisible] = useState(false)
   const [reviewerModalVisible, setReviewerModalVisible] = useState(false)
-  const [editingMember, setEditingMember] = useState<ProjectMember | null>(null)
   const [selectedDisciplineId, setSelectedDisciplineId] = useState<string | undefined>()
-  const [selectedRole, setSelectedRole] = useState<MemberRole | undefined>()
   const queryClient = useQueryClient()
   const { user } = useAuth()
 
@@ -114,17 +112,13 @@ export const ProductionPersonnelManager = ({
     return acc
   }, {} as Record<string, { disciplineId: string; disciplineName: string; members: ProjectMember[] }>)
 
-  const handleAddPersonnel = (disciplineId?: string, role?: MemberRole) => {
-    setEditingMember(null)
-    setSelectedDisciplineId(disciplineId)
-    setSelectedRole(role)
+  const handleAddPersonnel = () => {
+    setSelectedDisciplineId(undefined)
     setPersonnelModalVisible(true)
   }
 
-  const handleEditPersonnel = (member: ProjectMember) => {
-    setEditingMember(member)
-    setSelectedDisciplineId(member.discipline_id)
-    setSelectedRole(member.role as MemberRole)
+  const handleEditPersonnel = (disciplineId: string) => {
+    setSelectedDisciplineId(disciplineId)
     setPersonnelModalVisible(true)
   }
 
@@ -137,9 +131,7 @@ export const ProductionPersonnelManager = ({
       queryKey: ['projectMembers', projectId],
     })
     setPersonnelModalVisible(false)
-    setEditingMember(null)
     setSelectedDisciplineId(undefined)
-    setSelectedRole(undefined)
   }
 
   const handleReviewerSuccess = () => {
@@ -205,11 +197,7 @@ export const ProductionPersonnelManager = ({
                   type="link"
                   size="small"
                   icon={<EditOutlined />}
-                  onClick={() => {
-                    // 编辑该专业下的人员，打开弹出框
-                    // 这里可以打开一个显示该专业所有人员的列表，或者直接打开添加人员的弹出框
-                    handleAddPersonnel(record.disciplineId)
-                  }}
+                  onClick={() => handleEditPersonnel(record.disciplineId)}
                 >
                   编辑
                 </Button>
@@ -322,14 +310,15 @@ export const ProductionPersonnelManager = ({
       <DisciplinePersonnelModal
         visible={personnelModalVisible}
         projectId={projectId}
-        member={editingMember}
         disciplineId={selectedDisciplineId}
-        role={selectedRole}
+        existingMembers={
+          selectedDisciplineId
+            ? membersByDiscipline[selectedDisciplineId]?.members || []
+            : []
+        }
         onCancel={() => {
           setPersonnelModalVisible(false)
-          setEditingMember(null)
           setSelectedDisciplineId(undefined)
-          setSelectedRole(undefined)
         }}
         onSuccess={handlePersonnelSuccess}
       />

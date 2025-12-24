@@ -13,6 +13,7 @@ interface DisciplineSelectorProps {
   onChange?: (value: string) => void
   placeholder?: string
   allowManage?: boolean // 是否允许管理专业（新增、编辑、删除）
+  disabled?: boolean // 是否禁用
   onDisciplineChange?: (discipline: Discipline | null) => void
 }
 
@@ -21,6 +22,7 @@ export const DisciplineSelector = ({
   onChange,
   placeholder = '请选择专业',
   allowManage = true,
+  disabled = false,
   onDisciplineChange,
 }: DisciplineSelectorProps) => {
   const [manageModalVisible, setManageModalVisible] = useState(false)
@@ -93,6 +95,7 @@ export const DisciplineSelector = ({
           placeholder={placeholder}
           style={{ flex: 1 }}
           showSearch
+          disabled={disabled}
           filterOption={(input, option) =>
             (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
           }

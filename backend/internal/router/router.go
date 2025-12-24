@@ -96,6 +96,7 @@ func (r *Router) SetupRoutes(
 		permissions.GET("/can-create-project", permissionHandler.CheckCreateProjectPermission)
 		permissions.GET("/can-manage-project-managers", permissionHandler.CheckManageProjectManagersPermission)
 		permissions.GET("/can-manage-business-info", permissionHandler.CheckManageBusinessInfoPermission)
+			permissions.GET("/can-manage-production-info", permissionHandler.CheckManageProductionInfoPermission)
 			permissions.GET("/available-users-for-manager", permissionHandler.GetAvailableUsersForManagerRole)
 			permissions.GET("/available-users-for-member", permissionHandler.GetAvailableUsersForMemberRole)
 		}
@@ -104,11 +105,9 @@ func (r *Router) SetupRoutes(
 		projects := user.Group("/projects")
 		{
 			projects.GET("", projectHandler.ListProjects)
-			projects.GET("/:id", projectHandler.GetProject)
 			projects.POST("", projectHandler.CreateProject)
-			projects.PUT("/:id", projectHandler.UpdateProject)
-			projects.DELETE("/:id", projectHandler.DeleteProject)
 
+			// 注意：更具体的路由必须放在更通用的路由（如 /:id）之前
 			// Project business information routes
 			projects.GET("/:id/business", projectBusinessHandler.GetProjectBusiness)
 			projects.PUT("/:id/business", projectBusinessHandler.UpdateProjectBusiness)
@@ -144,9 +143,16 @@ func (r *Router) SetupRoutes(
 			projects.GET("/:id/production/files", productionFileHandler.ListProductionFiles)
 			projects.GET("/:id/production/files/:fileId/download", productionFileHandler.DownloadProductionFile)
 
-			// Production approvals
-			projects.GET("/:id/production/approvals", productionApprovalHandler.ListApprovals)
-			projects.POST("/:id/production/approvals", productionApprovalHandler.CreateApproval)
+			// Production approvals (old API, kept for backward compatibility)
+			// projects.GET("/:id/production/approvals", productionApprovalHandler.ListApprovals)
+			// projects.POST("/:id/production/approvals", productionApprovalHandler.CreateApproval)
+
+			// Production approval and audit management (new API, US14)
+			// 注意：这些路由必须在 /:id 之前注册
+			projects.GET("/:id/approval-audit", productionApprovalHandler.GetApprovalAndAudit)
+			projects.POST("/:id/approval-audit", productionApprovalHandler.CreateProductionApproval)
+			projects.POST("/:id/approval-audit/upload-report", productionApprovalHandler.UploadReportFile)
+			projects.GET("/:id/contract-amounts", productionApprovalHandler.GetContractAmounts)
 
 			// External commissions
 			projects.GET("/:id/production/external-commissions", externalCommissionHandler.ListCommissions)
@@ -170,6 +176,11 @@ func (r *Router) SetupRoutes(
 			// Bonus routes
 			projects.GET("/:id/bonuses", bonusHandler.GetBonuses)
 			projects.POST("/:id/bonuses", bonusHandler.CreateBonus)
+
+			// 通用路由放在最后（/:id）
+			projects.GET("/:id", projectHandler.GetProject)
+			projects.PUT("/:id", projectHandler.UpdateProject)
+			projects.DELETE("/:id", projectHandler.DeleteProject)
 		}
 
 		// Contract routes
@@ -210,6 +221,16 @@ func (r *Router) SetupRoutes(
 		{
 			bonuses.PUT("/:id", bonusHandler.UpdateBonus)
 			bonuses.DELETE("/:id", bonusHandler.DeleteBonus)
+		}
+
+		// Production approval and audit routes (standalone, US14)
+		approvalAudit := user.Group("/approval-audit")
+		{
+			approvalAudit.GET("/:id", productionApprovalHandler.GetProductionApproval)
+			approvalAudit.PUT("/:id", productionApprovalHandler.UpdateProductionApproval)
+			approvalAudit.DELETE("/:id", productionApprovalHandler.DeleteProductionApproval)
+			approvalAudit.GET("/files/:fileId/download", productionApprovalHandler.DownloadReportFile)
+			approvalAudit.DELETE("/files/:fileId", productionApprovalHandler.DeleteReportFile)
 		}
 
 		// Client routes

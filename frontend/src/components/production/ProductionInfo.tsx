@@ -29,7 +29,7 @@ import { ProductionCostList } from './ProductionCostList'
 import { ExternalCommissionList } from './ExternalCommissionList'
 import { BonusList } from '@/components/financial/BonusList'
 import { BonusForm } from '@/components/financial/BonusForm'
-import { ProductionAuditForm } from './ProductionAuditForm'
+import { ApprovalAuditView } from './ApprovalAuditView'
 import type {
   ProductionFile,
   ProductionFileType,
@@ -72,20 +72,12 @@ export const ProductionInfo = ({
   const queryClient = useQueryClient()
   const [uploadModalVisible, setUploadModalVisible] = useState(false)
   const [uploadStage, setUploadStage] = useState<string | null>(null)
-  const [auditModalVisible, setAuditModalVisible] = useState(false)
   const [bonusModalVisible, setBonusModalVisible] = useState(false)
 
   // 获取用户列表
   const { data: usersData } = useQuery({
     queryKey: ['users', { is_active: true }],
     queryFn: () => userService.listUsers({ is_active: true, size: 1000 }),
-  })
-
-  // 获取审核/审定记录
-  const { data: approvalsData, refetch: refetchApprovals } = useQuery({
-    queryKey: ['productionApprovals', projectId],
-    queryFn: () => productionService.listApprovals(projectId),
-    enabled: !!projectId,
   })
 
   // 获取生产文件
@@ -97,22 +89,7 @@ export const ProductionInfo = ({
   })
 
   const users = usersData?.data || []
-  const approvals = approvalsData?.data || []
   const files = filesData?.data || []
-
-  // 获取审核人和审定人
-  const reviewerRecord = approvals.find(
-    (a: ProductionApprovalRecord) => a.record_type === 'review'
-  )
-  const approverRecord = approvals.find(
-    (a: ProductionApprovalRecord) => a.record_type === 'approval'
-  )
-
-  // 获取批复和审计记录
-  const approvalResolution = approverRecord?.audit_resolution
-  const auditResolution = approvals.find(
-    (a: ProductionApprovalRecord) => a.audit_resolution?.report_type === 'audit'
-  )?.audit_resolution
 
   // 按阶段组织文件
   const getFilesByStage = (stage: string) => {
@@ -154,10 +131,6 @@ export const ProductionInfo = ({
     refetchFiles()
   }
 
-  const handleAuditSuccess = () => {
-    setAuditModalVisible(false)
-    refetchApprovals()
-  }
 
   // 生产人员配置表格列
   const personnelColumns = [
@@ -320,160 +293,7 @@ export const ProductionInfo = ({
       <ProductionPersonnelManager projectId={String(projectId)} />
 
       {/* 批复审计信息 */}
-      <Card
-        title="批复审计信息"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => setAuditModalVisible(true)}
-          >
-            上传报告
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
-        <Row gutter={16}>
-          <Col span={12}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                批复报告
-              </div>
-              {approvalResolution?.report_file ? (
-                <div
-                  style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
-                    borderRadius: '4px',
-                  }}
-                >
-                  <a
-                    onClick={() =>
-                      handleDownload(
-                        approvalResolution.report_file!.id,
-                        approvalResolution.report_file!.original_name
-                      )
-                    }
-                  >
-                    {approvalResolution.report_file.original_name}
-                  </a>
-                  <span style={{ color: '#999', marginLeft: 8 }}>
-                    ({formatFileSize(approvalResolution.report_file.file_size)})
-                    -{' '}
-                    {dayjs(approvalResolution.created_at).format('YYYY-MM-DD')}
-                  </span>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
-                    borderRadius: '4px',
-                    color: '#999',
-                  }}
-                >
-                  未上传
-                </div>
-              )}
-            </div>
-          </Col>
-          <Col span={12}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                审计报告
-              </div>
-              {auditResolution?.report_file ? (
-                <div
-                  style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
-                    borderRadius: '4px',
-                  }}
-                >
-                  <a
-                    onClick={() =>
-                      handleDownload(
-                        auditResolution.report_file!.id,
-                        auditResolution.report_file!.original_name
-                      )
-                    }
-                  >
-                    {auditResolution.report_file.original_name}
-                  </a>
-                  <span style={{ color: '#999', marginLeft: 8 }}>
-                    ({formatFileSize(auditResolution.report_file.file_size)}) -{' '}
-                    {dayjs(auditResolution.created_at).format('YYYY-MM-DD')}
-                  </span>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
-                    borderRadius: '4px',
-                    color: '#999',
-                  }}
-                >
-                  未上传
-                </div>
-              )}
-            </div>
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={12}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                批复金额
-              </div>
-              <div
-                style={{
-                  padding: '10px',
-                  border: '2px solid #e0e0e0',
-                  background: '#f9f9f9',
-                  borderRadius: '4px',
-                }}
-              >
-                设计费: ¥
-                {approvalResolution?.amount_design?.toLocaleString() || 0}
-                <br />
-                勘察费: ¥
-                {approvalResolution?.amount_survey?.toLocaleString() || 0}
-                <br />
-                咨询费: ¥
-                {approvalResolution?.amount_consultation?.toLocaleString() || 0}
-              </div>
-            </div>
-          </Col>
-          <Col span={12}>
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
-                审计金额
-              </div>
-              <div
-                style={{
-                  padding: '10px',
-                  border: '2px solid #e0e0e0',
-                  background: '#f9f9f9',
-                  borderRadius: '4px',
-                }}
-              >
-                设计费: ¥{auditResolution?.amount_design?.toLocaleString() || 0}
-                <br />
-                勘察费: ¥{auditResolution?.amount_survey?.toLocaleString() || 0}
-                <br />
-                咨询费: ¥
-                {auditResolution?.amount_consultation?.toLocaleString() || 0}
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </Card>
+      <ApprovalAuditView projectId={projectId} />
 
       {/* 方案阶段 */}
       {renderStageSection('方案阶段', 'scheme', ['scheme_ppt'])}
@@ -660,21 +480,6 @@ export const ProductionInfo = ({
           projectId={projectId}
           onSuccess={handleUploadSuccess}
           onGetContractAmount={onGetContractAmount}
-        />
-      </Modal>
-
-      {/* 审核/审定记录模态框 */}
-      <Modal
-        title="新建审核/审定记录"
-        open={auditModalVisible}
-        onCancel={() => setAuditModalVisible(false)}
-        footer={null}
-        width={800}
-        destroyOnHidden
-      >
-        <ProductionAuditForm
-          projectId={projectId}
-          onSuccess={handleAuditSuccess}
         />
       </Modal>
 

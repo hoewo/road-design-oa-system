@@ -143,7 +143,8 @@ func Migrate() error {
 		&models.Bonus{},
 		&models.ProjectDisciplineAssignment{},
 		&models.ProductionFile{},
-		&models.ProductionApprovalRecord{},
+		&models.ProductionApproval{},      // 新的批复审计信息实体（符合002规范）
+		&models.ProductionApprovalRecord{}, // 保留旧模型以保持向后兼容
 		&models.AuditResolution{},
 		&models.ExternalCommission{},
 		&models.ProductionCost{},

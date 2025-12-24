@@ -929,24 +929,30 @@
 
 ### Implementation Tasks
 
-- [ ] T175 [US14] 更新ProductionApproval模型符合002规范 backend/internal/models/production_approval.go
-- [ ] T176 [US14] 实现批复审计金额默认引用合同金额逻辑 backend/internal/services/production_approval_service.go
-- [ ] T177 [US14] 实现批复审计金额手工调整和覆盖原因记录 backend/internal/services/production_approval_service.go
-- [ ] T178 [US14] 更新ProductionApprovalService支持批复审计管理（包含创建、读取、更新、删除）backend/internal/services/production_approval_service.go
-- [ ] T179 [US14] 更新ProductionApprovalHandler支持批复审计CRUD（包含创建、读取、更新、删除接口）backend/internal/handlers/production_approval_handler.go
-- [ ] T180 [US14] 实现批复审计报告文件上传功能（在保存时触发上传）backend/internal/handlers/production_approval_handler.go
-- [ ] T180.1 [US14] 实现批复审计报告文件下载功能 backend/internal/handlers/production_approval_handler.go
-- [ ] T180.2 [US14] 实现批复审计报告文件删除功能 backend/internal/handlers/production_approval_handler.go
-- [ ] T181 [US14] 创建前端批复审计表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ApprovalForm.tsx
-- [ ] T182 [US14] 实现批复审计金额明细录入（设计费、勘察费、咨询费）frontend/src/components/production/ApprovalForm.tsx
-- [ ] T183 [US14] 实现引用合同金额功能 frontend/src/components/production/ApprovalForm.tsx
-- [ ] T184 [US14] 实现批复审计报告上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ApprovalForm.tsx
-- [ ] T184.1 [US14] 实现批复审计报告文件下载功能 frontend/src/components/production/ApprovalForm.tsx
-- [ ] T184.2 [US14] 实现批复审计报告文件删除功能 frontend/src/components/production/ApprovalForm.tsx
-- [ ] T185 [US14] 更新前端项目生产信息页面集成批复审计管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
-- [ ] T438 [US14] 更新ProductionApprovalService使用权限服务：在管理批复审计信息时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_approval_service.go
-- [ ] T439 [US14] 更新ProductionApprovalHandler使用权限服务：在批复审计管理Handler中调用权限服务 backend/internal/handlers/production_approval_handler.go
-- [ ] T440 [US14] 更新前端批复审计表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ApprovalForm.tsx
+- [X] T175 [US14] 更新ProductionApproval模型符合002规范 backend/internal/models/production_approval.go
+- [X] T176 [US14] 实现批复审计金额默认引用合同金额逻辑 backend/internal/services/production_approval_service.go
+- [X] T177 [US14] 实现批复审计金额手工调整和覆盖原因记录 backend/internal/services/production_approval_service.go
+- [X] T178 [US14] 更新ProductionApprovalService支持批复审计管理（包含创建、读取、更新、删除）backend/internal/services/production_approval_service.go
+- [X] T179 [US14] 更新ProductionApprovalHandler支持批复审计CRUD（包含创建、读取、更新、删除接口）backend/internal/handlers/production_approval_handler.go
+- [X] T180 [US14] 实现批复审计报告文件上传功能（在保存时触发上传）backend/internal/handlers/production_approval_handler.go
+- [X] T180.1 [US14] 实现批复审计报告文件下载功能 backend/internal/handlers/production_approval_handler.go
+- [X] T180.2 [US14] 实现批复审计报告文件删除功能 backend/internal/handlers/production_approval_handler.go
+- [X] T438 [US14] 更新ProductionApprovalService使用权限服务：在管理批复审计信息时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_approval_service.go
+- [X] T439 [US14] 更新ProductionApprovalHandler使用权限服务：在批复审计管理Handler中调用权限服务 backend/internal/handlers/production_approval_handler.go
+- [X] T440 [US14] 更新前端批复审计查看组件：使用权限服务检查权限，无权限时隐藏编辑入口（新建/编辑按钮），所有用户可查看内容 frontend/src/components/production/ApprovalAuditView.tsx
+- [X] T456 [US14] 创建前端批复审计查看组件（左右并排布局：批复列和审计列，每列包含报告和金额）frontend/src/components/production/ApprovalAuditView.tsx
+- [X] T457 [US14] 创建前端批复审计弹窗表单组件（支持新建和编辑模式，弹窗形式，左右并排布局）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T458 [US14] 实现批复审计左右并排布局（批复列：批复报告+批复金额，审计列：审计报告+审计金额）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T459 [US14] 实现批复审计金额明细录入（设计费、勘察费、咨询费，分别录入批复金额和审计金额）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T460 [US14] 实现引用合同金额功能（批复金额可引用合同金额，审计金额可引用批复金额）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T461 [US14] 实现批复审计报告上传UI（批复报告和审计报告分别上传，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T462 [US14] 实现批复审计报告文件下载功能（批复报告和审计报告分别支持下载）frontend/src/components/production/ApprovalAuditView.tsx
+- [X] T463 [US14] 实现批复审计报告文件删除功能（批复报告和审计报告分别支持删除）frontend/src/components/production/ApprovalAuditView.tsx
+- [X] T464 [US14] 实现统一的编辑入口按钮（无内容时显示"+ 新建"，有内容时显示"编辑"，位于右上角）frontend/src/components/production/ApprovalAuditView.tsx
+- [X] T465 [US14] 实现覆盖原因说明录入（当金额被手工调整时显示并填写）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T466 [US14] 实现金额自动计算合计（批复金额和审计金额分别计算合计并实时显示）frontend/src/components/production/ApprovalAuditModal.tsx
+- [X] T467 [US14] 更新前端项目生产信息页面集成批复审计管理（集成查看组件，支持新建/编辑弹窗，删除确认）frontend/src/components/production/ProductionInfo.tsx
+- [X] T468 [US14] 更新前端批复审计弹窗组件：使用权限服务检查权限，无权限时禁用编辑功能 frontend/src/components/production/ApprovalAuditModal.tsx
 
 ---
 

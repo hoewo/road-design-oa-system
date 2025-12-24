@@ -64,7 +64,7 @@ func main() {
 	projectDisciplineHandler := handlers.NewProjectDisciplineHandler(logger)
 	projectMemberHandler := handlers.NewProjectMemberHandler(logger)
 	productionFileHandler := handlers.NewProductionFileHandler(cfg, logger)
-	productionApprovalHandler := handlers.NewProductionApprovalHandler(logger)
+	productionApprovalHandler := handlers.NewProductionApprovalHandler(cfg, logger)
 	externalCommissionHandler := handlers.NewExternalCommissionHandler(logger)
 	productionCostHandler := handlers.NewProductionCostHandler(logger)
 	contractHandler := handlers.NewContractHandler(cfg, logger)
