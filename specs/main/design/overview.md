@@ -33,6 +33,7 @@
   - `statistic.md` - 统计数值组件
   - `table.md` - 表格组件
   - `modal.md` - 模态框组件
+  - `file-list.md` - 文件列表组件
 
 ### 4. 线框图 (Wireframes)
 - **目录**: `wireframes/`
@@ -42,6 +43,8 @@
   - `15-scheme-stage-file-management.html` - 方案阶段文件管理
   - `16-preliminary-design-stage-file-management.html` - 初步设计阶段文件管理
   - `17-construction-drawing-stage-file-management.html` - 施工图设计阶段文件管理
+  - `18-change-negotiation-file-management.html` - 变更洽商文件管理
+  - `19-completion-acceptance-file-management.html` - 竣工验收文件管理
 
 ### 5. 状态定义 (State Definitions)
 - **文件**: `states.md`

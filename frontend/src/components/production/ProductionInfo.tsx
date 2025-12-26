@@ -33,6 +33,8 @@ import { ApprovalAuditView } from './ApprovalAuditView'
 import { SchemeStageFileManagement } from './SchemeStageFileManagement'
 import { PreliminaryStageFileManagement } from './PreliminaryStageFileManagement'
 import { ConstructionStageFileManagement } from './ConstructionStageFileManagement'
+import { ChangeFileList } from './ChangeFileList'
+import { CompletionFileList } from './CompletionFileList'
 import type {
   ProductionFile,
   ProductionFileType,
@@ -303,106 +305,10 @@ export const ProductionInfo = ({
       </div>
 
       {/* 变更洽商 */}
-      <Card
-        title="变更洽商"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setUploadStage('variation')
-              setUploadModalVisible(true)
-            }}
-          >
-            上传文件
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
-        {getFilesByStage('variation').length > 0 ? (
-          getFilesByStage('variation').map((file: ProductionFile) => (
-            <div
-              key={file.id}
-              style={{
-                marginBottom: 10,
-                padding: '10px',
-                border: '1px solid #ccc',
-                background: 'white',
-              }}
-            >
-              <a
-                onClick={() =>
-                  handleDownload(
-                    file.file_id,
-                    file.file?.original_name || 'file'
-                  )
-                }
-                style={{ marginRight: 8 }}
-              >
-                {file.file?.original_name}
-              </a>
-              <span style={{ color: '#999' }}>
-                ({formatFileSize(file.file?.file_size || 0)}) -{' '}
-                {dayjs(file.created_at).format('YYYY-MM-DD')}
-              </span>
-            </div>
-          ))
-        ) : (
-          <div style={{ color: '#999', padding: '10px' }}>暂无文件</div>
-        )}
-      </Card>
+      <ChangeFileList projectId={projectId} />
 
       {/* 竣工验收 */}
-      <Card
-        title="竣工验收"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => {
-              setUploadStage('completion')
-              setUploadModalVisible(true)
-            }}
-          >
-            上传文件
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
-        {getFilesByStage('completion').length > 0 ? (
-          getFilesByStage('completion').map((file: ProductionFile) => (
-            <div
-              key={file.id}
-              style={{
-                marginBottom: 10,
-                padding: '10px',
-                border: '1px solid #ccc',
-                background: 'white',
-              }}
-            >
-              <a
-                onClick={() =>
-                  handleDownload(
-                    file.file_id,
-                    file.file?.original_name || 'file'
-                  )
-                }
-                style={{ marginRight: 8 }}
-              >
-                {file.file?.original_name}
-              </a>
-              <span style={{ color: '#999' }}>
-                ({formatFileSize(file.file?.file_size || 0)}) -{' '}
-                {dayjs(file.created_at).format('YYYY-MM-DD')}
-              </span>
-            </div>
-          ))
-        ) : (
-          <div style={{ color: '#999', padding: '10px' }}>暂无文件</div>
-        )}
-      </Card>
+      <CompletionFileList projectId={projectId} />
 
       {/* 生产成本 */}
       <Card
