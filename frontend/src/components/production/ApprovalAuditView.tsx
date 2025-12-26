@@ -122,18 +122,18 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
   const renderAmountDetails = (approval: ProductionApproval | null, title: string) => {
     if (!approval) {
       return (
-        <div style={{ padding: '15px', border: '2px solid #e0e0e0', background: '#f9f9f9', minHeight: '100px' }}>
+        <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px', minHeight: '100px' }}>
           <Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       )
     }
 
     return (
-      <div style={{ padding: '15px', border: '2px solid #e0e0e0', background: '#f9f9f9' }}>
+      <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px' }}>
         <div style={{ marginBottom: '8px' }}>设计费: {formatAmount(approval.amount_design)}</div>
         <div style={{ marginBottom: '8px' }}>勘察费: {formatAmount(approval.amount_survey)}</div>
         <div style={{ marginBottom: '8px' }}>咨询费: {formatAmount(approval.amount_consulting)}</div>
-        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #ddd', fontWeight: 'bold' }}>
+        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e8e8e8', fontWeight: 'bold' }}>
           合计: {formatAmount(approval.total_amount)}
         </div>
       </div>
@@ -144,7 +144,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
   const renderReportFile = (approval: ProductionApproval | null, type: 'approval' | 'audit') => {
     if (!approval || !approval.report_file) {
       return (
-        <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', minHeight: '60px' }}>
+        <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px', minHeight: '60px' }}>
           <Empty description="暂无文件" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       )
@@ -155,7 +155,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
     const uploadTime = dayjs(file.created_at).format('YYYY-MM-DD')
 
     return (
-      <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9' }}>
+      <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <a
@@ -232,7 +232,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
             </div>
           </div>
         ) : (
-          <Row gutter={20}>
+          <Row gutter={16}>
             {/* 批复列 */}
             <Col span={12}>
               <Card
@@ -241,7 +241,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
                 style={{ background: '#fafafa' }}
               >
                 {/* 批复报告 */}
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: '24px' }}>
                   <Text strong style={{ display: 'block', marginBottom: '8px' }}>
                     批复报告
                   </Text>
@@ -266,7 +266,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
                 style={{ background: '#fafafa' }}
               >
                 {/* 审计报告 */}
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: '24px' }}>
                   <Text strong style={{ display: 'block', marginBottom: '8px' }}>
                     审计报告
                   </Text>

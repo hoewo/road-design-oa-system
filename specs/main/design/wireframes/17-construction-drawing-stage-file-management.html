@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>施工图设计阶段文件管理 - 线框图 (17)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .tabs { border-bottom: 2px solid #333; margin-bottom: 20px; }
+        .tab { display: inline-block; padding: 12px 24px; border: 1px solid #ccc; border-bottom: none; margin-right: 5px; cursor: pointer; background: #f0f0f0; }
+        .tab.active { background: white; border-bottom: 2px solid white; margin-bottom: -2px; }
+        .section { margin: 30px 0; border: 1px solid #ccc; padding: 20px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .form-row { display: flex; margin-bottom: 15px; gap: 20px; }
+        .form-group { flex: 1; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input, .select, .textarea { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 4px; }
+        .button { padding: 8px 16px; border: 2px solid #333; background: #fff; cursor: pointer; margin-right: 10px; }
+        .button-primary { background: #333; color: white; }
+        .button-small { padding: 6px 12px; font-size: 12px; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .stage-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; background: #f9f9f9; }
+        .stage-title { font-weight: bold; margin-bottom: 10px; }
+        .file-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; background: white; display: flex; justify-content: space-between; align-items: center; }
+        .file-info { flex: 1; }
+        .file-actions { display: flex; gap: 10px; }
+        .required { color: red; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .error { padding: 15px; background: #ffe0e0; border: 1px solid #ff9999; color: #cc0000; margin: 20px 0; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; background: #f9f9f9; cursor: pointer; }
+        .score-input { max-width: 150px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border: 2px solid #333; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .modal-footer { margin-top: 20px; text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>施工图设计阶段文件管理 - 线框图</h1>
+        </div>
+
+        <!-- 加载中状态 -->
+        <div class="container">
+            <h2>加载中状态</h2>
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab active">生产信息</div>
+            </div>
+            <div class="section">
+                <div class="section-title">施工图设计阶段</div>
+                <div class="loading">正在加载文件信息...</div>
+            </div>
+        </div>
+
+        <!-- 成功状态 - 有文件数据 -->
+        <div class="container">
+            <h2>成功状态 - 有文件数据</h2>
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab active">生产信息</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    施工图设计阶段
+                    <button class="button button-small" style="float: right;" onclick="document.getElementById('editModal').style.display='block'">编辑</button>
+                </div>
+                
+                <div class="stage-section">
+                    <div class="stage-title">施工图设计文件</div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图设计文件-道路部分.pdf</span> (12.5MB) - 2024-04-01 10:15
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图设计文件-桥梁部分.pdf</span> (15.2MB) - 2024-04-02 14:30
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图设计文件-排水部分.pdf</span> (8.7MB) - 2024-04-03 09:45
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">校审单 <span class="required">*</span></div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图校审单.pdf</span> (2.1MB) - 2024-04-03 16:20
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">评分 <span class="required">*</span></div>
+                    <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9; display: inline-block; min-width: 150px;">
+                        88分
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 - 无文件 -->
+        <div class="container">
+            <h2>空状态 - 无文件</h2>
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab active">生产信息</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    施工图设计阶段
+                    <button class="button button-small" style="float: right;" onclick="document.getElementById('editModal').style.display='block'">+ 新建</button>
+                </div>
+                
+                <div class="stage-section">
+                    <div class="stage-title">施工图设计文件</div>
+                    <div class="empty-state">暂无文件，请上传施工图设计文件</div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">校审单 <span class="required">*</span></div>
+                    <div class="empty-state">暂无文件，请上传校审单</div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">评分 <span class="required">*</span></div>
+                    <div class="empty-state">暂无评分，请录入评分</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 编辑/上传状态 - 弹窗 -->
+        <div class="container">
+            <h2>编辑/上传状态 - 弹窗</h2>
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab active">生产信息</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">
+                    施工图设计阶段
+                    <button class="button button-small" style="float: right;" onclick="document.getElementById('uploadModal').style.display='block'">+ 上传文件</button>
+                </div>
+                
+                <div class="stage-section">
+                    <div class="stage-title">施工图设计文件</div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图设计文件-道路部分.pdf</span> (12.5MB) - 2024-04-01 10:15
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">校审单 <span class="required">*</span></div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图校审单.pdf</span> (2.1MB) - 2024-04-03 16:20
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">评分 <span class="required">*</span></div>
+                    <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9; display: inline-block; min-width: 150px;">
+                        88分
+                    </div>
+                </div>
+            </div>
+
+            <!-- 编辑/上传弹窗 -->
+            <div class="modal" id="editModal" style="display: block;">
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">编辑施工图设计阶段文件</div>
+                    
+                    <!-- 施工图设计文件上传区域 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">施工图设计文件</label>
+                            <div class="upload-area">
+                                <p>点击或拖拽文件到此处上传</p>
+                                <p style="font-size: 12px; color: #999; margin-top: 10px;">支持 PDF、DOC、DOCX 格式，最大 50MB，可上传多个文件</p>
+                            </div>
+                            <!-- 已上传的文件列表 -->
+                            <div style="margin-top: 15px;">
+                                <div class="file-item" style="margin-bottom: 10px;">
+                                    <div class="file-info">
+                                        <span class="link">施工图设计文件-道路部分.pdf</span> (12.5MB) - 2024-04-01 10:15
+                                    </div>
+                                    <div class="file-actions">
+                                        <span class="link" style="color: #ff4d4f;">删除</span>
+                                    </div>
+                                </div>
+                                <div class="file-item" style="margin-bottom: 10px;">
+                                    <div class="file-info">
+                                        <span class="link">施工图设计文件-桥梁部分.pdf</span> (15.2MB) - 2024-04-02 14:30
+                                    </div>
+                                    <div class="file-actions">
+                                        <span class="link" style="color: #ff4d4f;">删除</span>
+                                    </div>
+                                </div>
+                                <div class="file-item">
+                                    <div class="file-info">
+                                        <span class="link">施工图设计文件-排水部分.pdf</span> (8.7MB) - 2024-04-03 09:45
+                                    </div>
+                                    <div class="file-actions">
+                                        <span class="link" style="color: #ff4d4f;">删除</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 校审单上传区域 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">校审单 <span class="required">*</span></label>
+                            <div class="upload-area">
+                                <p>点击或拖拽文件到此处上传</p>
+                                <p style="font-size: 12px; color: #999; margin-top: 10px;">支持 PDF、DOC、DOCX 格式，最大 50MB</p>
+                            </div>
+                            <!-- 已上传的校审单 -->
+                            <div style="margin-top: 15px;">
+                                <div class="file-item">
+                                    <div class="file-info">
+                                        <span class="link">施工图校审单.pdf</span> (2.1MB) - 2024-04-03 16:20
+                                    </div>
+                                    <div class="file-actions">
+                                        <span class="link" style="color: #ff4d4f;">删除</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 评分输入区域 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="label">评分 <span class="required">*</span></label>
+                            <input type="number" class="input score-input" placeholder="请输入评分（0-100）" min="0" max="100" value="88" style="max-width: 200px;" />
+                            <div style="margin-top: 8px; color: #666; font-size: 12px;">请输入0-100之间的分数</div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button class="button button-primary">保存</button>
+                        <button class="button" onclick="document.getElementById('editModal').style.display='none'">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 -->
+        <div class="container">
+            <h2>错误状态</h2>
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab active">生产信息</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">施工图设计阶段</div>
+                <div class="error">
+                    <strong>错误：</strong>文件上传失败，请检查文件格式和大小后重试。
+                </div>
+                
+                <div class="stage-section">
+                    <div class="stage-title">施工图设计文件</div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图设计文件-道路部分.pdf</span> (12.5MB) - 2024-04-01 10:15
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;" onclick="document.getElementById('deleteModal').style.display='block'">删除</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">校审单 <span class="required">*</span></div>
+                    <div class="empty-state">暂无文件，请上传校审单</div>
+                </div>
+
+                <div class="stage-section">
+                    <div class="stage-title">评分 <span class="required">*</span></div>
+                    <div style="padding: 10px; border: 2px solid #ff9999; background: #ffe0e0; display: inline-block; min-width: 150px;">
+                        未录入
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 删除确认对话框 -->
+        <div class="container">
+            <h2>删除确认对话框</h2>
+            <div class="tabs">
+                <div class="tab">基本信息</div>
+                <div class="tab">经营信息</div>
+                <div class="tab active">生产信息</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">施工图设计阶段</div>
+                <div class="stage-section">
+                    <div class="stage-title">施工图设计文件</div>
+                    <div class="file-item">
+                        <div class="file-info">
+                            <span class="link">施工图设计文件-道路部分.pdf</span> (12.5MB) - 2024-04-01 10:15
+                        </div>
+                        <div class="file-actions">
+                            <span class="link">下载</span>
+                            <span class="link" style="color: #ff4d4f;">删除</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 删除确认对话框 -->
+            <div class="modal" id="deleteModal" style="display: block;">
+                <div class="modal-content">
+                    <div class="modal-header">确认删除</div>
+                    <div style="margin: 20px 0;">
+                        <p>您确定要删除文件"施工图设计文件-道路部分.pdf"吗？</p>
+                        <p style="margin-top: 10px; color: #666; font-size: 14px;">
+                            删除后文件将无法恢复，此操作不可撤销。
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="button" onclick="document.getElementById('deleteModal').style.display='none'">取消</button>
+                        <button class="button button-primary" style="background: #ff4d4f; border-color: #ff4d4f;">确认删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 施工图设计阶段文件管理包含：施工图设计文件、校审单（必填）、评分（必填）<br>
+            - 支持上传多个施工图设计文件，可按专业或部分分别上传，保留历史版本记录<br>
+            - 校审单和评分为必填项，系统会进行验证<br>
+            - 文件上传后显示文件名、大小、上传时间，支持下载和删除<br>
+            - 仅生产负责人和项目管理员可以编辑施工图设计阶段文件<br>
+            - 文件支持按项目、文件类型、上传时间搜索和下载<br>
+            - 编辑状态统一使用独立弹窗实现，点击"编辑"按钮打开弹窗，弹窗中同时支持施工图设计文件、校审单、评分的编辑和保存<br>
+            - 施工图设计文件支持上传多个文件，可按专业或部分分别上传，保留历史版本记录<br>
+            - 校审单和评分为必填项，在编辑弹窗中必须填写才能保存<br>
+            - 删除操作需要确认对话框，点击"删除"链接后弹出确认对话框，确认后执行删除
+        </div>
+    </div>
+</body>
+</html>
+

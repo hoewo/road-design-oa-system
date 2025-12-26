@@ -1,6 +1,7 @@
 import { get, post, put, getPaginated, del } from './api'
 import type {
   ProductionFile,
+  StageFileInfo,
   DisciplineAssignmentResponse,
   ReplaceDisciplineAssignmentsRequest,
   ProductionApprovalRecord,
@@ -45,19 +46,76 @@ export const productionService = {
   downloadProductionFile: async (
     projectId: string | number,
     fileId: string | number
-  ): Promise<Blob> => {
+  ): Promise<void> => {
+    const token = localStorage.getItem('access_token')
     const response = await fetch(
       `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/project-oa/v1'}/user/projects/${projectId}/production/files/${fileId}/download`,
       {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('access_token')}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     )
     if (!response.ok) {
       throw new Error('下载失败')
     }
-    return response.blob()
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let fileName = `file-${fileId}`
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (fileNameMatch && fileNameMatch[1]) {
+        fileName = fileNameMatch[1].replace(/['"]/g, '')
+      }
+    }
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  },
+
+  // 按阶段获取生产文件信息
+  getProductionFilesByStage: async (
+    projectId: string | number,
+    stage: 'scheme' | 'preliminary' | 'construction' | 'change' | 'completion'
+  ): Promise<StageFileInfo> => {
+    return get<StageFileInfo>(`/user/projects/${projectId}/production/files/stage/${stage}`)
+  },
+
+  // 更新生产文件
+  updateProductionFile: async (
+    projectId: string | number,
+    fileId: string,
+    data: {
+      stage?: string
+      file_id?: string
+      description?: string
+      review_sheet_file_id?: string
+      score?: number
+    }
+  ): Promise<ProductionFile> => {
+    return put<ProductionFile>(`/user/projects/${projectId}/production/files/${fileId}`, data)
+  },
+
+  // 删除生产文件
+  deleteProductionFile: async (
+    projectId: string | number,
+    fileId: string
+  ): Promise<void> => {
+    return del<void>(`/user/projects/${projectId}/production/files/${fileId}`)
+  },
+
+  // 更新阶段评分
+  updateStageScore: async (
+    projectId: string | number,
+    stage: 'scheme' | 'preliminary' | 'construction' | 'change' | 'completion',
+    score: number
+  ): Promise<void> => {
+    return put<void>(`/user/projects/${projectId}/production/files/stage/${stage}/score`, { score })
   },
 
   // Discipline Assignment operations

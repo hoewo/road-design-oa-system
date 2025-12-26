@@ -376,7 +376,7 @@ export const ApprovalAuditModal = ({
       title={isEditMode ? '编辑批复审计信息' : '新建批复审计信息'}
       open={visible}
       onCancel={onCancel}
-      width={1000}
+      width={800}
       footer={[
         <Button key="cancel" onClick={onCancel} disabled={isSubmitting}>
           取消
@@ -393,7 +393,7 @@ export const ApprovalAuditModal = ({
       ]}
     >
       <Form form={form} layout="vertical" disabled={!canManage}>
-        <Row gutter={20}>
+        <Row gutter={16}>
           {/* 批复列 */}
           <Col span={12}>
             <div style={{ border: '1px solid #d9d9d9', padding: '16px', borderRadius: '4px', background: '#fafafa' }}>
@@ -477,7 +477,7 @@ export const ApprovalAuditModal = ({
                   />
                 </Form.Item>
 
-                <div style={{ marginTop: '8px', padding: '8px', background: '#f0f0f0', borderRadius: '4px' }}>
+                <div style={{ marginTop: '8px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
                   <Text strong>合计: {formatAmount(calculateTotal('approval'))}</Text>
                 </div>
 
@@ -589,7 +589,7 @@ export const ApprovalAuditModal = ({
                   />
                 </Form.Item>
 
-                <div style={{ marginTop: '8px', padding: '8px', background: '#f0f0f0', borderRadius: '4px' }}>
+                <div style={{ marginTop: '8px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
                   <Text strong>合计: {formatAmount(calculateTotal('audit'))}</Text>
                 </div>
 

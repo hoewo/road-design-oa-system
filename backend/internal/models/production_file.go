@@ -14,6 +14,17 @@ const (
 	ProductionFileOther        ProductionFileType = "other"
 )
 
+// ProductionStage 生产阶段枚举
+type ProductionStage string
+
+const (
+	StageScheme        ProductionStage = "scheme"         // 方案
+	StagePreliminary   ProductionStage = "preliminary"    // 初步设计
+	StageConstruction  ProductionStage = "construction"   // 施工图设计
+	StageChange        ProductionStage = "change"         // 变更洽商
+	StageCompletion    ProductionStage = "completion"     // 竣工验收
+)
+
 // ProductionFile stores metadata for production stage files while the actual blob lives in FileService.
 type ProductionFile struct {
 	ID                     string             `json:"id" gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
@@ -21,11 +32,11 @@ type ProductionFile struct {
 	FileID                 string             `json:"file_id" gorm:"type:uuid;not null"`
 	File                   File               `json:"file" gorm:"foreignKey:FileID"`
 	FileType               ProductionFileType `json:"file_type" gorm:"size:64;not null"`
-	Stage                  string             `json:"stage" gorm:"size:64"` // 阶段：scheme/preliminary/construction/change/completion
+	Stage                  ProductionStage    `json:"stage" gorm:"size:64;not null"` // 阶段：scheme/preliminary/construction/change/completion
 	Description            string             `json:"description" gorm:"type:text"`
 	ReviewSheetFileID      *string            `json:"review_sheet_file_id" gorm:"type:uuid"`
 	ReviewSheetFile        *File              `json:"review_sheet_file" gorm:"foreignKey:ReviewSheetFileID"`
-	Score                  *int               `json:"score"`
+	Score                  *float64           `json:"score"` // 评分：0-100
 	DefaultAmountReference string             `json:"default_amount_reference"`
 	CreatedByID            string             `json:"created_by_id" gorm:"type:uuid;not null"`
 	CreatedBy              User               `json:"created_by" gorm:"foreignKey:CreatedByID"`

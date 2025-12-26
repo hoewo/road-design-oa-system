@@ -79,20 +79,9 @@ export const ProductionFileList = ({
     enabled: !!projectId,
   })
 
-  const handleDownload = async (fileId: number, fileName: string) => {
+  const handleDownload = async (fileId: string | number, fileName: string) => {
     try {
-      const blob = await productionService.downloadProductionFile(
-        projectId,
-        fileId
-      )
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = fileName
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      await productionService.downloadProductionFile(projectId, fileId)
       message.success(`正在下载 ${fileName}`)
     } catch (error: any) {
       message.error(error.message || '下载失败')

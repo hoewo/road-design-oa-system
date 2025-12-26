@@ -52,10 +52,17 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 	description := c.PostForm("description")
 	defaultAmountReference := c.PostForm("default_amount_reference")
 
+	stageStr := c.PostForm("stage")
+	if stageStr == "" {
+		utils.HandleError(c, http.StatusBadRequest, "stage 必填", nil)
+		return
+	}
+	stage := models.ProductionStage(stageStr)
+
 	scoreValue, scoreProvided := c.GetPostForm("score")
-	var score *int
+	var score *float64
 	if scoreProvided {
-		parsed, err := strconv.Atoi(scoreValue)
+		parsed, err := strconv.ParseFloat(scoreValue, 64)
 		if err != nil {
 			utils.HandleError(c, http.StatusBadRequest, "score 必须为数字", err)
 			return
@@ -93,7 +100,11 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 	}
 
 	var reviewSheetFileID *string
-	if reviewHeader, err := c.FormFile("review_sheet_file"); err == nil {
+	// 优先检查是否通过 review_sheet_file_id 引用已存在的校审单文件
+	if reviewSheetFileIDStr := c.PostForm("review_sheet_file_id"); reviewSheetFileIDStr != "" {
+		reviewSheetFileID = &reviewSheetFileIDStr
+	} else if reviewHeader, err := c.FormFile("review_sheet_file"); err == nil {
+		// 如果没有提供 review_sheet_file_id，则上传新的校审单文件
 		reviewFile, err := reviewHeader.Open()
 		if err != nil {
 			utils.HandleError(c, http.StatusBadRequest, "无法读取校审单文件", err)
@@ -121,6 +132,7 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 		ProjectID:              projectID,
 		FileID:                 uploadedFile.ID,
 		FileType:               fileType,
+		Stage:                  stage,
 		Description:            description,
 		ReviewSheetFileID:      reviewSheetFileID,
 		Score:                  score,
@@ -154,6 +166,10 @@ func (h *ProductionFileHandler) ListProductionFiles(c *gin.Context) {
 	if fileType := c.Query("fileType"); fileType != "" {
 		ft := models.ProductionFileType(fileType)
 		params.FileType = &ft
+	}
+	if stageStr := c.Query("stage"); stageStr != "" {
+		stage := models.ProductionStage(stageStr)
+		params.Stage = &stage
 	}
 
 	if start := c.Query("startDate"); start != "" {
@@ -201,6 +217,186 @@ func (h *ProductionFileHandler) DownloadProductionFile(c *gin.Context) {
 	c.Header("Content-Type", file.MimeType)
 	c.Header("Content-Length", strconv.FormatInt(file.FileSize, 10))
 	c.DataFromReader(http.StatusOK, file.FileSize, file.MimeType, reader, nil)
+}
+
+// GetProductionFilesByStage 按阶段获取生产文件
+func (h *ProductionFileHandler) GetProductionFilesByStage(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	stageStr := c.Param("stage")
+	if stageStr == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Stage is required", nil)
+		return
+	}
+
+	stage := models.ProductionStage(stageStr)
+	if !isValidStage(stage) {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid stage", nil)
+		return
+	}
+
+	info, err := h.productionFileService.GetProductionFileStageInfo(projectID, stage)
+	if err != nil {
+		utils.HandleError(c, http.StatusInternalServerError, "查询阶段文件失败", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    info,
+	})
+}
+
+// UpdateProductionFile 更新生产文件
+func (h *ProductionFileHandler) UpdateProductionFile(c *gin.Context) {
+	fileID := c.Param("fileId")
+	if fileID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "File ID is required", nil)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	var req struct {
+		Stage             *string  `json:"stage"`
+		FileID            *string  `json:"file_id"`
+		Description       *string  `json:"description"`
+		ReviewSheetFileID *string  `json:"review_sheet_file_id"`
+		Score             *float64 `json:"score"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request", err)
+		return
+	}
+
+	updateReq := &services.UpdateProductionFileRequest{}
+	if req.Stage != nil {
+		stage := models.ProductionStage(*req.Stage)
+		if !isValidStage(stage) {
+			utils.HandleError(c, http.StatusBadRequest, "Invalid stage", nil)
+			return
+		}
+		updateReq.Stage = &stage
+	}
+	if req.FileID != nil {
+		updateReq.FileID = req.FileID
+	}
+	if req.Description != nil {
+		updateReq.Description = req.Description
+	}
+	if req.ReviewSheetFileID != nil {
+		updateReq.ReviewSheetFileID = req.ReviewSheetFileID
+	}
+	if req.Score != nil {
+		updateReq.Score = req.Score
+	}
+
+	file, err := h.productionFileService.UpdateProductionFile(fileID, userID, updateReq)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "更新生产文件失败", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    file,
+	})
+}
+
+// DeleteProductionFile 删除生产文件
+func (h *ProductionFileHandler) DeleteProductionFile(c *gin.Context) {
+	fileID := c.Param("fileId")
+	if fileID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "File ID is required", nil)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	if err := h.productionFileService.DeleteProductionFile(fileID, userID); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "删除生产文件失败", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "删除成功",
+	})
+}
+
+// UpdateStageScore 更新阶段评分
+func (h *ProductionFileHandler) UpdateStageScore(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	stageStr := c.Param("stage")
+	if stageStr == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Stage is required", nil)
+		return
+	}
+
+	stage := models.ProductionStage(stageStr)
+	if !isValidStage(stage) {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid stage", nil)
+		return
+	}
+
+	var req struct {
+		Score float64 `json:"score" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request", err)
+		return
+	}
+
+	if err := h.productionFileService.UpdateStageScore(projectID, userID, stage, req.Score); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "更新评分失败", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "更新评分成功",
+	})
+}
+
+func isValidStage(stage models.ProductionStage) bool {
+	validStages := []models.ProductionStage{
+		models.StageScheme,
+		models.StagePreliminary,
+		models.StageConstruction,
+		models.StageChange,
+		models.StageCompletion,
+	}
+	for _, s := range validStages {
+		if s == stage {
+			return true
+		}
+	}
+	return false
 }
 
 func parseQueryInt(c *gin.Context, key string, defaultValue int) int {

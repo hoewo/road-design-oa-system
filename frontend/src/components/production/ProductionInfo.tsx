@@ -30,6 +30,9 @@ import { ExternalCommissionList } from './ExternalCommissionList'
 import { BonusList } from '@/components/financial/BonusList'
 import { BonusForm } from '@/components/financial/BonusForm'
 import { ApprovalAuditView } from './ApprovalAuditView'
+import { SchemeStageFileManagement } from './SchemeStageFileManagement'
+import { PreliminaryStageFileManagement } from './PreliminaryStageFileManagement'
+import { ConstructionStageFileManagement } from './ConstructionStageFileManagement'
 import type {
   ProductionFile,
   ProductionFileType,
@@ -107,18 +110,7 @@ export const ProductionInfo = ({
 
   const handleDownload = async (fileId: string | number, fileName: string) => {
     try {
-      const blob = await productionService.downloadProductionFile(
-        projectId,
-        fileId
-      )
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = fileName
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      await productionService.downloadProductionFile(projectId, fileId)
       message.success(`正在下载 ${fileName}`)
     } catch (error: any) {
       message.error(error.message || '下载失败')
@@ -295,18 +287,20 @@ export const ProductionInfo = ({
       {/* 批复审计信息 */}
       <ApprovalAuditView projectId={projectId} />
 
-      {/* 方案阶段 */}
-      {renderStageSection('方案阶段', 'scheme', ['scheme_ppt'])}
+      {/* 方案阶段文件管理 */}
+      <div style={{ marginBottom: 24 }}>
+        <SchemeStageFileManagement projectId={projectId} />
+      </div>
 
-      {/* 初步设计阶段 */}
-      {renderStageSection('初步设计阶段', 'preliminary', [
-        'preliminary_design',
-      ])}
+      {/* 初步设计阶段文件管理 */}
+      <div style={{ marginBottom: 24 }}>
+        <PreliminaryStageFileManagement projectId={projectId} />
+      </div>
 
-      {/* 施工图设计阶段 */}
-      {renderStageSection('施工图设计阶段', 'construction', [
-        'construction_drawing',
-      ])}
+      {/* 施工图设计阶段文件管理 */}
+      <div style={{ marginBottom: 24 }}>
+        <ConstructionStageFileManagement projectId={projectId} />
+      </div>
 
       {/* 变更洽商 */}
       <Card

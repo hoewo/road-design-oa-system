@@ -142,6 +142,11 @@ func (r *Router) SetupRoutes(
 			projects.POST("/:id/production/files", productionFileHandler.UploadProductionFile)
 			projects.GET("/:id/production/files", productionFileHandler.ListProductionFiles)
 			projects.GET("/:id/production/files/:fileId/download", productionFileHandler.DownloadProductionFile)
+			projects.PUT("/:id/production/files/:fileId", productionFileHandler.UpdateProductionFile)
+			projects.DELETE("/:id/production/files/:fileId", productionFileHandler.DeleteProductionFile)
+			// Production file by stage
+			projects.GET("/:id/production/files/stage/:stage", productionFileHandler.GetProductionFilesByStage)
+			projects.PUT("/:id/production/files/stage/:stage/score", productionFileHandler.UpdateStageScore)
 
 			// Production approvals (old API, kept for backward compatibility)
 			// projects.GET("/:id/production/approvals", productionApprovalHandler.ListApprovals)

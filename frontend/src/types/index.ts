@@ -598,21 +598,31 @@ export type ProductionFileType =
   | 'audit_report'
   | 'other'
 
+export type ProductionStage = 'scheme' | 'preliminary' | 'construction' | 'change' | 'completion'
+
 export interface ProductionFile {
-  id: number
-  project_id: number
-  file_id: number
+  id: string
+  project_id: string
+  file_id: string
   file?: File
   file_type: ProductionFileType
+  stage: ProductionStage
   description?: string
-  review_sheet_file_id?: number
+  review_sheet_file_id?: string
   review_sheet_file?: File
   score?: number
   default_amount_reference?: string
-  created_by_id: number
+  created_by_id: string
   created_by?: User
   created_at: string
   updated_at: string
+}
+
+export interface StageFileInfo {
+  stage: ProductionStage
+  main_files: ProductionFile[]
+  review_sheet?: ProductionFile
+  score?: number
 }
 
 export interface CreateProductionFileRequest {

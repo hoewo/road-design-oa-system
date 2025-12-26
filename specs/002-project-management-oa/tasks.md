@@ -2,9 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
-**Last Updated**: 2025-02-01  
+**Last Updated**: 2025-01-28  
 **Status**: In Progress  
-**Total Tasks**: 510 (已完成: 510)
+**Total Tasks**: 621 (已完成: 510, 待完成: 111)
 
 ## Summary
 
@@ -976,16 +976,29 @@
 - [ ] T189 [US15] 更新ProductionFileHandler支持方案阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
 - [ ] T189.1 [US15] 实现方案阶段文件下载功能 backend/internal/handlers/production_file_handler.go
 - [ ] T189.2 [US15] 实现方案阶段文件删除功能 backend/internal/handlers/production_file_handler.go
-- [ ] T190 [US15] 创建前端方案阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/SchemeFileUpload.tsx
-- [ ] T191 [US15] 实现校审单上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/SchemeFileUpload.tsx
-- [ ] T192 [US15] 实现评分录入组件 frontend/src/components/production/ScoreInput.tsx
-- [ ] T193 [US15] 实现方案文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/SchemeFileList.tsx
-- [ ] T193.1 [US15] 实现方案文件下载功能 frontend/src/components/production/SchemeFileList.tsx
-- [ ] T193.2 [US15] 实现方案文件删除功能 frontend/src/components/production/SchemeFileList.tsx
-- [ ] T194 [US15] 更新前端项目生产信息页面集成方案阶段文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
+- [ ] T190 [US15] 创建前端方案阶段文件管理主组件（包含加载中、成功、空状态、错误状态）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T190.1 [US15] 实现加载中状态显示（显示"正在加载文件信息..."）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T190.2 [US15] 实现成功状态显示（有文件数据时显示文件列表和评分）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T190.3 [US15] 实现空状态显示（无文件时显示提示信息）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T190.4 [US15] 实现错误状态显示（显示错误提示信息）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T191 [US15] 创建上传文件弹窗组件（文件类型选择、文件上传区域、保存/取消按钮）frontend/src/components/production/SchemeFileUploadModal.tsx
+- [ ] T191.1 [US15] 实现文件类型选择（方案文件、校审单）frontend/src/components/production/SchemeFileUploadModal.tsx
+- [ ] T191.2 [US15] 实现文件上传区域（支持点击和拖拽上传，显示文件格式和大小限制提示）frontend/src/components/production/SchemeFileUploadModal.tsx
+- [ ] T191.3 [US15] 实现弹窗保存和取消功能（保存时触发文件上传，取消时关闭弹窗）frontend/src/components/production/SchemeFileUploadModal.tsx
+- [ ] T192 [US15] 创建编辑评分弹窗组件（评分输入框、保存/取消按钮）frontend/src/components/production/SchemeScoreEditModal.tsx
+- [ ] T192.1 [US15] 实现评分输入验证（0-100范围，必填项验证）frontend/src/components/production/SchemeScoreEditModal.tsx
+- [ ] T192.2 [US15] 实现弹窗保存和取消功能（保存时更新评分，取消时关闭弹窗）frontend/src/components/production/SchemeScoreEditModal.tsx
+- [ ] T193 [US15] 实现方案文件列表显示（包含文件名、大小、上传时间、下载、删除按钮）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T193.1 [US15] 实现方案文件下载功能 frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T193.2 [US15] 实现方案文件删除功能（包含删除确认）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T194 [US15] 实现校审单文件显示（包含文件名、大小、上传时间、下载、删除按钮）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T194.1 [US15] 实现校审单文件下载功能 frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T194.2 [US15] 实现校审单文件删除功能（包含删除确认）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T195 [US15] 实现评分显示和编辑入口（显示当前评分，点击编辑按钮打开评分编辑弹窗）frontend/src/components/production/SchemeStageFileManagement.tsx
+- [ ] T196 [US15] 更新前端项目生产信息页面集成方案阶段文件管理（集成主组件，支持所有状态和弹窗交互）frontend/src/components/production/ProductionInfo.tsx
 - [ ] T441 [US15] 更新ProductionFileService使用权限服务：在管理方案阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T442 [US15] 更新ProductionFileHandler使用权限服务：在方案阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T443 [US15] 更新前端方案阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/SchemeFileUpload.tsx
+- [ ] T443 [US15] 更新前端方案阶段文件管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除、编辑按钮等），所有用户可查看内容 frontend/src/components/production/SchemeStageFileManagement.tsx
 
 ---
 
@@ -1003,18 +1016,33 @@
 
 ### Implementation Tasks
 
-- [ ] T195 [US16] 实现初步设计阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
-- [ ] T196 [US16] 更新ProductionFileHandler支持初步设计阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
-- [ ] T196.1 [US16] 实现初步设计阶段文件下载功能 backend/internal/handlers/production_file_handler.go
-- [ ] T196.2 [US16] 实现初步设计阶段文件删除功能 backend/internal/handlers/production_file_handler.go
-- [ ] T197 [US16] 创建前端初步设计阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/PreliminaryFileUpload.tsx
-- [ ] T198 [US16] 实现初步设计文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/PreliminaryFileList.tsx
-- [ ] T198.1 [US16] 实现初步设计文件下载功能 frontend/src/components/production/PreliminaryFileList.tsx
-- [ ] T198.2 [US16] 实现初步设计文件删除功能 frontend/src/components/production/PreliminaryFileList.tsx
-- [ ] T199 [US16] 更新前端项目生产信息页面集成初步设计阶段文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
+- [ ] T197 [US16] 实现初步设计阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T198 [US16] 更新ProductionFileHandler支持初步设计阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T198.1 [US16] 实现初步设计阶段文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T198.2 [US16] 实现初步设计阶段文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T199 [US16] 创建前端初步设计阶段文件管理主组件（包含加载中、成功、空状态、错误状态）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T199.1 [US16] 实现加载中状态显示（显示"正在加载文件信息..."）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T199.2 [US16] 实现成功状态显示（有文件数据时显示文件列表和评分）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T199.3 [US16] 实现空状态显示（无文件时显示提示信息）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T199.4 [US16] 实现错误状态显示（显示错误提示信息）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T200 [US16] 创建上传文件弹窗组件（文件类型选择、文件上传区域、保存/取消按钮）frontend/src/components/production/PreliminaryFileUploadModal.tsx
+- [ ] T200.1 [US16] 实现文件类型选择（初步设计文件、校审单）frontend/src/components/production/PreliminaryFileUploadModal.tsx
+- [ ] T200.2 [US16] 实现文件上传区域（支持点击和拖拽上传，显示文件格式和大小限制提示）frontend/src/components/production/PreliminaryFileUploadModal.tsx
+- [ ] T200.3 [US16] 实现弹窗保存和取消功能（保存时触发文件上传，取消时关闭弹窗）frontend/src/components/production/PreliminaryFileUploadModal.tsx
+- [ ] T201 [US16] 创建编辑评分弹窗组件（评分输入框、保存/取消按钮）frontend/src/components/production/PreliminaryScoreEditModal.tsx
+- [ ] T201.1 [US16] 实现评分输入验证（0-100范围，必填项验证）frontend/src/components/production/PreliminaryScoreEditModal.tsx
+- [ ] T201.2 [US16] 实现弹窗保存和取消功能（保存时更新评分，取消时关闭弹窗）frontend/src/components/production/PreliminaryScoreEditModal.tsx
+- [ ] T202 [US16] 实现初步设计文件列表显示（包含文件名、大小、上传时间、下载、删除按钮）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T202.1 [US16] 实现初步设计文件下载功能 frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T202.2 [US16] 实现初步设计文件删除功能（包含删除确认）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T203 [US16] 实现校审单文件显示（包含文件名、大小、上传时间、下载、删除按钮）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T203.1 [US16] 实现校审单文件下载功能 frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T203.2 [US16] 实现校审单文件删除功能（包含删除确认）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T204 [US16] 实现评分显示和编辑入口（显示当前评分，点击编辑按钮打开评分编辑弹窗）frontend/src/components/production/PreliminaryStageFileManagement.tsx
+- [ ] T205 [US16] 更新前端项目生产信息页面集成初步设计阶段文件管理（集成主组件，支持所有状态和弹窗交互）frontend/src/components/production/ProductionInfo.tsx
 - [ ] T444 [US16] 更新ProductionFileService使用权限服务：在管理初步设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T445 [US16] 更新ProductionFileHandler使用权限服务：在初步设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T446 [US16] 更新前端初步设计阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/PreliminaryFileUpload.tsx
+- [ ] T446 [US16] 更新前端初步设计阶段文件管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除、编辑按钮等），所有用户可查看内容 frontend/src/components/production/PreliminaryStageFileManagement.tsx
 
 ---
 
@@ -1032,18 +1060,33 @@
 
 ### Implementation Tasks
 
-- [ ] T200 [US17] 实现施工图设计阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
-- [ ] T201 [US17] 更新ProductionFileHandler支持施工图设计阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
-- [ ] T201.1 [US17] 实现施工图设计阶段文件下载功能 backend/internal/handlers/production_file_handler.go
-- [ ] T201.2 [US17] 实现施工图设计阶段文件删除功能 backend/internal/handlers/production_file_handler.go
-- [ ] T202 [US17] 创建前端施工图设计阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ConstructionFileUpload.tsx
-- [ ] T203 [US17] 实现施工图设计文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ConstructionFileList.tsx
-- [ ] T203.1 [US17] 实现施工图设计文件下载功能 frontend/src/components/production/ConstructionFileList.tsx
-- [ ] T203.2 [US17] 实现施工图设计文件删除功能 frontend/src/components/production/ConstructionFileList.tsx
-- [ ] T204 [US17] 更新前端项目生产信息页面集成施工图设计阶段文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
+- [ ] T206 [US17] 实现施工图设计阶段文件上传逻辑（包含校审单和评分验证，支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T207 [US17] 更新ProductionFileHandler支持施工图设计阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T207.1 [US17] 实现施工图设计阶段文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T207.2 [US17] 实现施工图设计阶段文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T208 [US17] 创建前端施工图设计阶段文件管理主组件（包含加载中、成功、空状态、错误状态）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T208.1 [US17] 实现加载中状态显示（显示"正在加载文件信息..."）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T208.2 [US17] 实现成功状态显示（有文件数据时显示文件列表和评分）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T208.3 [US17] 实现空状态显示（无文件时显示提示信息）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T208.4 [US17] 实现错误状态显示（显示错误提示信息）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T209 [US17] 创建上传文件弹窗组件（文件类型选择、文件上传区域、保存/取消按钮）frontend/src/components/production/ConstructionFileUploadModal.tsx
+- [ ] T209.1 [US17] 实现文件类型选择（施工图设计文件、校审单）frontend/src/components/production/ConstructionFileUploadModal.tsx
+- [ ] T209.2 [US17] 实现文件上传区域（支持点击和拖拽上传，显示文件格式和大小限制提示）frontend/src/components/production/ConstructionFileUploadModal.tsx
+- [ ] T209.3 [US17] 实现弹窗保存和取消功能（保存时触发文件上传，取消时关闭弹窗）frontend/src/components/production/ConstructionFileUploadModal.tsx
+- [ ] T210 [US17] 创建编辑评分弹窗组件（评分输入框、保存/取消按钮）frontend/src/components/production/ConstructionScoreEditModal.tsx
+- [ ] T210.1 [US17] 实现评分输入验证（0-100范围，必填项验证）frontend/src/components/production/ConstructionScoreEditModal.tsx
+- [ ] T210.2 [US17] 实现弹窗保存和取消功能（保存时更新评分，取消时关闭弹窗）frontend/src/components/production/ConstructionScoreEditModal.tsx
+- [ ] T211 [US17] 实现施工图设计文件列表显示（包含文件名、大小、上传时间、下载、删除按钮）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T211.1 [US17] 实现施工图设计文件下载功能 frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T211.2 [US17] 实现施工图设计文件删除功能（包含删除确认）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T212 [US17] 实现校审单文件显示（包含文件名、大小、上传时间、下载、删除按钮）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T212.1 [US17] 实现校审单文件下载功能 frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T212.2 [US17] 实现校审单文件删除功能（包含删除确认）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T213 [US17] 实现评分显示和编辑入口（显示当前评分，点击编辑按钮打开评分编辑弹窗）frontend/src/components/production/ConstructionStageFileManagement.tsx
+- [ ] T214 [US17] 更新前端项目生产信息页面集成施工图设计阶段文件管理（集成主组件，支持所有状态和弹窗交互）frontend/src/components/production/ProductionInfo.tsx
 - [ ] T447 [US17] 更新ProductionFileService使用权限服务：在管理施工图设计阶段文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T448 [US17] 更新ProductionFileHandler使用权限服务：在施工图设计阶段文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
-- [ ] T449 [US17] 更新前端施工图设计阶段文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/ConstructionFileUpload.tsx
+- [ ] T449 [US17] 更新前端施工图设计阶段文件管理组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除、编辑按钮等），所有用户可查看内容 frontend/src/components/production/ConstructionStageFileManagement.tsx
 
 ---
 
@@ -1059,15 +1102,15 @@
 
 ### Implementation Tasks
 
-- [ ] T205 [US18] 实现变更洽商阶段文件上传逻辑（支持创建、更新、删除）backend/internal/services/production_file_service.go
-- [ ] T206 [US18] 更新ProductionFileHandler支持变更洽商阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
-- [ ] T206.1 [US18] 实现变更洽商文件下载功能 backend/internal/handlers/production_file_handler.go
-- [ ] T206.2 [US18] 实现变更洽商文件删除功能 backend/internal/handlers/production_file_handler.go
-- [ ] T207 [US18] 创建前端变更洽商阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ChangeFileUpload.tsx
-- [ ] T208 [US18] 实现变更洽商文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ChangeFileList.tsx
-- [ ] T208.1 [US18] 实现变更洽商文件下载功能 frontend/src/components/production/ChangeFileList.tsx
-- [ ] T208.2 [US18] 实现变更洽商文件删除功能 frontend/src/components/production/ChangeFileList.tsx
-- [ ] T209 [US18] 更新前端项目生产信息页面集成变更洽商文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
+- [ ] T215 [US18] 实现变更洽商阶段文件上传逻辑（支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T216 [US18] 更新ProductionFileHandler支持变更洽商阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T216.1 [US18] 实现变更洽商文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T216.2 [US18] 实现变更洽商文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T217 [US18] 创建前端变更洽商阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ChangeFileUpload.tsx
+- [ ] T218 [US18] 实现变更洽商文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ChangeFileList.tsx
+- [ ] T218.1 [US18] 实现变更洽商文件下载功能 frontend/src/components/production/ChangeFileList.tsx
+- [ ] T218.2 [US18] 实现变更洽商文件删除功能 frontend/src/components/production/ChangeFileList.tsx
+- [ ] T219 [US18] 更新前端项目生产信息页面集成变更洽商文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T450 [US18] 更新ProductionFileService使用权限服务：在管理变更洽商文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T451 [US18] 更新ProductionFileHandler使用权限服务：在变更洽商文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T452 [US18] 更新前端变更洽商文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/ChangeFileUpload.tsx
@@ -1086,15 +1129,15 @@
 
 ### Implementation Tasks
 
-- [ ] T210 [US19] 实现竣工验收阶段文件上传逻辑（支持创建、更新、删除）backend/internal/services/production_file_service.go
-- [ ] T211 [US19] 更新ProductionFileHandler支持竣工验收阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
-- [ ] T211.1 [US19] 实现竣工验收文件下载功能 backend/internal/handlers/production_file_handler.go
-- [ ] T211.2 [US19] 实现竣工验收文件删除功能 backend/internal/handlers/production_file_handler.go
-- [ ] T212 [US19] 创建前端竣工验收阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/CompletionFileUpload.tsx
-- [ ] T213 [US19] 实现竣工验收文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/CompletionFileList.tsx
-- [ ] T213.1 [US19] 实现竣工验收文件下载功能 frontend/src/components/production/CompletionFileList.tsx
-- [ ] T213.2 [US19] 实现竣工验收文件删除功能 frontend/src/components/production/CompletionFileList.tsx
-- [ ] T214 [US19] 更新前端项目生产信息页面集成竣工验收文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
+- [ ] T220 [US19] 实现竣工验收阶段文件上传逻辑（支持创建、更新、删除）backend/internal/services/production_file_service.go
+- [ ] T221 [US19] 更新ProductionFileHandler支持竣工验收阶段文件管理（包含创建、读取、更新、删除接口）backend/internal/handlers/production_file_handler.go
+- [ ] T221.1 [US19] 实现竣工验收文件下载功能 backend/internal/handlers/production_file_handler.go
+- [ ] T221.2 [US19] 实现竣工验收文件删除功能 backend/internal/handlers/production_file_handler.go
+- [ ] T222 [US19] 创建前端竣工验收阶段文件上传组件（支持创建和编辑模式，文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/CompletionFileUpload.tsx
+- [ ] T223 [US19] 实现竣工验收文件列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/CompletionFileList.tsx
+- [ ] T223.1 [US19] 实现竣工验收文件下载功能 frontend/src/components/production/CompletionFileList.tsx
+- [ ] T223.2 [US19] 实现竣工验收文件删除功能 frontend/src/components/production/CompletionFileList.tsx
+- [ ] T224 [US19] 更新前端项目生产信息页面集成竣工验收文件管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
 - [ ] T453 [US19] 更新ProductionFileService使用权限服务：在管理竣工验收文件时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/production_file_service.go
 - [ ] T454 [US19] 更新ProductionFileHandler使用权限服务：在竣工验收文件管理Handler中调用权限服务 backend/internal/handlers/production_file_handler.go
 - [ ] T455 [US19] 更新前端竣工验收文件上传组件：使用权限服务检查权限，无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看内容 frontend/src/components/production/CompletionFileUpload.tsx
