@@ -4,16 +4,13 @@ import {
   Form,
   Upload,
   Button,
-  Input,
   message,
   Space,
 } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { productionService } from '@/services/production'
 import type { UploadFile } from 'antd'
-
-const { TextArea } = Input
 
 interface ChangeFileUploadProps {
   projectId: string | number
@@ -30,25 +27,8 @@ export const ChangeFileUpload = ({
 }: ChangeFileUploadProps) => {
   const [form] = Form.useForm()
   const [fileList, setFileList] = useState<UploadFile[]>([])
+  const [uploading, setUploading] = useState(false)
   const queryClient = useQueryClient()
-
-  const uploadMutation = useMutation({
-    mutationFn: async (formData: FormData): Promise<any> => {
-      return productionService.uploadProductionFile(projectId, formData)
-    },
-    onSuccess: () => {
-      message.success('变更洽商文件上传成功')
-      form.resetFields()
-      setFileList([])
-      queryClient.invalidateQueries({
-        queryKey: ['productionFilesByStage', projectId, 'change'],
-      })
-      onSuccess?.()
-    },
-    onError: (error: any) => {
-      message.error(error?.message || '文件上传失败')
-    },
-  })
 
   const handleFileChange = (info: any) => {
     let newFileList = [...info.fileList]
@@ -66,12 +46,13 @@ export const ChangeFileUpload = ({
   }
 
   const handleFormFinish = async (values: any) => {
-    try {
-      if (fileList.length === 0) {
-        message.warning('请选择要上传的文件')
-        return
-      }
+    if (fileList.length === 0) {
+      message.warning('请选择要上传的文件')
+      return
+    }
 
+    setUploading(true)
+    try {
       // 支持多文件上传，逐个上传
       const uploadPromises = fileList.map(async (fileItem) => {
         const file = fileItem.originFileObj
@@ -83,9 +64,6 @@ export const ChangeFileUpload = ({
         formData.append('file', file)
         formData.append('file_type', 'variation_order')
         formData.append('stage', 'change')
-        if (values.description) {
-          formData.append('description', values.description)
-        }
 
         return productionService.uploadProductionFile(projectId, formData)
       })
@@ -100,6 +78,8 @@ export const ChangeFileUpload = ({
       onSuccess?.()
     } catch (error: any) {
       message.error(error?.message || '文件上传失败')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -167,21 +147,12 @@ export const ChangeFileUpload = ({
           </Form.Item>
         )}
 
-        <Form.Item name="description" label="文件描述">
-          <TextArea
-            rows={3}
-            placeholder="请输入文件描述（可选）"
-            maxLength={500}
-            showCount
-          />
-        </Form.Item>
-
         <Form.Item>
           <Space>
             <Button
               type="primary"
               htmlType="submit"
-              loading={uploadMutation.isPending}
+              loading={uploading}
             >
               确认上传
             </Button>
