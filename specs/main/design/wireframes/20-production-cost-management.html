@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生产成本管理 - 线框图</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .wireframe { max-width: 1400px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
+        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
+        .container { border: 2px dashed #999; padding: 20px; margin: 20px 0; }
+        .section { margin: 30px 0; border: 1px solid #ccc; padding: 20px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .form-row { display: flex; margin-bottom: 15px; gap: 20px; }
+        .form-group { flex: 1; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .input, .select, .textarea { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 4px; }
+        .textarea { min-height: 80px; resize: vertical; }
+        .button { padding: 8px 16px; border: 2px solid #333; background: #fff; cursor: pointer; margin-right: 10px; }
+        .button-primary { background: #333; color: white; }
+        .button-small { padding: 6px 12px; font-size: 12px; }
+        .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+        .table th { background: #f0f0f0; font-weight: bold; }
+        .link { color: blue; text-decoration: underline; cursor: pointer; }
+        .required { color: red; }
+        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
+        .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: white; padding: 30px; border-radius: 4px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
+        .modal-header { font-size: 20px; font-weight: bold; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #ccc; }
+        .modal-footer { margin-top: 20px; text-align: right; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state-icon { font-size: 48px; margin-bottom: 20px; }
+        .loading { text-align: center; padding: 40px; color: #999; }
+        .loading-spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #333; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .summary { background: #f9f9f9; padding: 15px; margin-bottom: 20px; border: 1px solid #ddd; border-radius: 4px; }
+        .summary-item { display: inline-block; margin-right: 30px; }
+        .summary-label { color: #666; margin-right: 8px; }
+        .summary-value { font-weight: bold; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <div class="wireframe">
+        <div class="header">
+            <h1>生产成本管理 - 线框图</h1>
+        </div>
+
+        <!-- 状态1: 正常状态 - 有数据列表 -->
+        <div class="container">
+            <h2>状态1: 正常状态（有数据）</h2>
+            
+            <div class="section">
+                <div class="section-title">
+                    生产成本管理
+                    <button class="button button-primary button-small" style="float: right;">+ 添加成本</button>
+                </div>
+
+                <!-- 汇总信息 -->
+                <div class="summary">
+                    <div class="summary-item">
+                        <span class="summary-label">总成本:</span>
+                        <span class="summary-value">¥1,500.00</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">记录数:</span>
+                        <span class="summary-value">3</span>
+                    </div>
+                </div>
+
+                <!-- 成本列表表格 -->
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>成本类型</th>
+                            <th>发生时间</th>
+                            <th>金额</th>
+                            <th>描述</th>
+                            <th>发票</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>用车</td>
+                            <td>2024-02-15</td>
+                            <td>¥150.00</td>
+                            <td>项目现场调研用车</td>
+                            <td><span class="link">发票.pdf</span> (1.2MB)</td>
+                            <td>
+                                <span class="link">编辑</span> | 
+                                <span class="link">删除</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>住宿</td>
+                            <td>2024-02-15</td>
+                            <td>¥300.00</td>
+                            <td>出差住宿费用</td>
+                            <td><span class="link">发票.pdf</span> (0.8MB)</td>
+                            <td>
+                                <span class="link">编辑</span> | 
+                                <span class="link">删除</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>交通</td>
+                            <td>2024-02-16</td>
+                            <td>¥50.00</td>
+                            <td>公共交通费用</td>
+                            <td>-</td>
+                            <td>
+                                <span class="link">编辑</span> | 
+                                <span class="link">删除</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>其他</td>
+                            <td>2024-02-20</td>
+                            <td>¥1,000.00</td>
+                            <td>材料采购费用</td>
+                            <td><span class="link">发票.pdf</span> (2.1MB)</td>
+                            <td>
+                                <span class="link">编辑</span> | 
+                                <span class="link">删除</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 状态2: 空状态 - 无数据 -->
+        <div class="container">
+            <h2>状态2: 空状态（无数据）</h2>
+            
+            <div class="section">
+                <div class="section-title">
+                    生产成本管理
+                    <button class="button button-primary button-small" style="float: right;">+ 添加成本</button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-state-icon">📋</div>
+                    <div style="font-size: 18px; margin-bottom: 10px;">暂无生产成本记录</div>
+                    <div style="color: #999; margin-bottom: 20px;">点击"添加成本"按钮开始记录生产成本</div>
+                    <button class="button button-primary">+ 添加成本</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态3: 添加成本表单（弹窗） -->
+        <div class="container">
+            <h2>状态3: 添加成本表单（弹窗示意图）</h2>
+            
+            <div class="section">
+                <div class="modal-content" style="max-width: 600px; margin: 0 auto; border: 2px dashed #999; background: #fafafa;">
+                    <div class="modal-header">
+                        添加生产成本
+                        <span style="float: right; cursor: pointer; font-size: 24px; line-height: 1;">×</span>
+                    </div>
+                    
+                    <form>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">
+                                成本类型 <span class="required">*</span>
+                            </label>
+                            <select class="select">
+                                <option value="">请选择成本类型</option>
+                                <option value="vehicle">用车</option>
+                                <option value="accommodation">住宿</option>
+                                <option value="transport">交通</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">
+                                金额 <span class="required">*</span>
+                            </label>
+                            <input type="number" class="input" placeholder="请输入金额" step="0.01" min="0" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">描述</label>
+                            <textarea class="textarea" placeholder="请输入描述信息（可选）"></textarea>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">发生时间</label>
+                            <input type="date" class="input" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">上传发票（可选）</label>
+                            <div style="padding: 10px; border: 2px dashed #ccc; text-align: center; background: #f9f9f9;">
+                                <span class="link">点击上传</span> 或拖拽文件到此处
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="button" style="margin-right: 10px;">取消</button>
+                            <button type="submit" class="button button-primary">提交</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态4: 编辑成本表单（弹窗） -->
+        <div class="container">
+            <h2>状态4: 编辑成本表单（弹窗示意图）</h2>
+            
+            <div class="section">
+                <div class="modal-content" style="max-width: 600px; margin: 0 auto; border: 2px dashed #999; background: #fafafa;">
+                    <div class="modal-header">
+                        编辑生产成本
+                        <span style="float: right; cursor: pointer; font-size: 24px; line-height: 1;">×</span>
+                    </div>
+                    
+                    <form>
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">
+                                成本类型 <span class="required">*</span>
+                            </label>
+                            <select class="select">
+                                <option value="vehicle" selected>用车</option>
+                                <option value="accommodation">住宿</option>
+                                <option value="transport">交通</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">
+                                金额 <span class="required">*</span>
+                            </label>
+                            <input type="number" class="input" value="150.00" step="0.01" min="0" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">描述</label>
+                            <textarea class="textarea">项目现场调研用车</textarea>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">发生时间</label>
+                            <input type="date" class="input" value="2024-02-15" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label class="label">发票</label>
+                            <div style="padding: 10px; border: 2px solid #e0e0e0; background: #f9f9f9; margin-bottom: 10px;">
+                                <span class="link">发票.pdf</span> (1.2MB) - 2024-02-15
+                                <span class="link" style="float: right; margin-left: 10px;">删除</span>
+                            </div>
+                            <div style="padding: 10px; border: 2px dashed #ccc; text-align: center; background: #f9f9f9;">
+                                <span class="link">点击上传新发票</span> 或拖拽文件到此处
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="button" style="margin-right: 10px;">取消</button>
+                            <button type="submit" class="button button-primary">保存</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态5: 加载状态 -->
+        <div class="container">
+            <h2>状态5: 加载状态</h2>
+            
+            <div class="section">
+                <div class="section-title">
+                    生产成本管理
+                    <button class="button button-primary button-small" style="float: right;">+ 添加成本</button>
+                </div>
+
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <div style="margin-top: 20px;">正在加载生产成本数据...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态6: 删除确认对话框 -->
+        <div class="container">
+            <h2>状态6: 删除确认对话框（弹窗示意图）</h2>
+            
+            <div class="section">
+                <div class="modal-content" style="max-width: 400px; margin: 0 auto; border: 2px dashed #999; background: #fafafa;">
+                    <div class="modal-header">
+                        确认删除
+                    </div>
+                    
+                    <div style="padding: 20px 0;">
+                        <p style="margin-bottom: 15px;">确定要删除这条生产成本记录吗？</p>
+                        <div style="background: #f9f9f9; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                            <div><strong>成本类型:</strong> 用车</div>
+                            <div><strong>金额:</strong> ¥150.00</div>
+                            <div><strong>发生时间:</strong> 2024-02-15</div>
+                        </div>
+                        <p style="color: #999; font-size: 14px;">此操作不可恢复，请谨慎操作。</p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="button" style="margin-right: 10px;">取消</button>
+                        <button type="button" class="button" style="background: #d32f2f; color: white; border-color: #d32f2f;">确认删除</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态7: 错误状态 -->
+        <div class="container">
+            <h2>状态7: 错误状态</h2>
+            
+            <div class="section">
+                <div class="section-title">
+                    生产成本管理
+                    <button class="button button-primary button-small" style="float: right;">+ 添加成本</button>
+                </div>
+
+                <div class="empty-state">
+                    <div class="empty-state-icon" style="color: #d32f2f;">⚠️</div>
+                    <div style="font-size: 18px; margin-bottom: 10px; color: #d32f2f;">加载失败</div>
+                    <div style="color: #999; margin-bottom: 20px;">无法加载生产成本数据，请稍后重试</div>
+                    <button class="button button-primary">重新加载</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>设计说明：</strong><br>
+            - 生产成本管理支持四种成本类型：用车、住宿、交通、其他<br>
+            - 列表显示总成本和记录数汇总信息<br>
+            - 支持添加、编辑、删除成本记录<br>
+            - 成本记录可上传发票附件<br>
+            - 表单验证：成本类型和金额为必填项<br>
+            - 删除操作需要二次确认，防止误操作<br>
+            - 空状态提供引导，鼓励用户添加第一条记录<br>
+            - 加载状态和错误状态提供清晰的用户反馈<br>
+            - 仅生产负责人和项目管理员可以管理生产成本
+        </div>
+    </div>
+</body>
+</html>
+

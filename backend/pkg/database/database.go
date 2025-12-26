@@ -147,7 +147,6 @@ func Migrate() error {
 		&models.ProductionApprovalRecord{}, // 保留旧模型以保持向后兼容
 		&models.AuditResolution{},
 		&models.ExternalCommission{},
-		&models.ProductionCost{},
 		&models.CompanyConfig{},
 		&models.BiddingInfo{}, // 招投标信息实体（如果表不存在，会创建数组字段）
 	)

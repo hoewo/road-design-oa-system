@@ -311,22 +311,9 @@ export const ProductionInfo = ({
       <CompletionFileList projectId={projectId} />
 
       {/* 生产成本 */}
-      <Card
-        title="生产成本"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => message.info('请使用下方的生产成本列表添加成本')}
-          >
-            添加成本
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
+      <div style={{ marginBottom: 24 }}>
         <ProductionCostList projectId={projectId} />
-      </Card>
+      </div>
 
       {/* 对外委托 */}
       <Card

@@ -39,12 +39,21 @@
 - **目录**: `wireframes/`
 - **内容**: 用户界面线框图，包含各个页面的不同状态
 - **线框图列表**:
+  - `01-login.html` - 登录页面
+  - `02-register.html` - 注册页面
+  - `03-project-list.html` - 项目列表
+  - `04-project-detail-basic.html` - 项目详情-基本信息
+  - `05-project-detail-business.html` - 项目详情-经营信息
+  - `06-project-detail-production.html` - 项目详情-生产信息
+  - `07-company-revenue.html` - 公司营收管理
+  - `08-file-management.html` - 文件管理
   - `14-approval-audit-management.html` - 批复审计阶段管理
   - `15-scheme-stage-file-management.html` - 方案阶段文件管理
   - `16-preliminary-design-stage-file-management.html` - 初步设计阶段文件管理
   - `17-construction-drawing-stage-file-management.html` - 施工图设计阶段文件管理
   - `18-change-negotiation-file-management.html` - 变更洽商文件管理
   - `19-completion-acceptance-file-management.html` - 竣工验收文件管理
+  - `20-production-cost-management.html` - 生产成本管理
 
 ### 5. 状态定义 (State Definitions)
 - **文件**: `states.md`

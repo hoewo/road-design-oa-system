@@ -109,6 +109,18 @@ func (s *FinancialService) CreateFinancialRecord(projectID string, createdByID s
 		}
 	}
 
+	// Check permission for production-related financial records
+	if req.FinancialType == models.FinancialTypeCost ||
+		(req.FinancialType == models.FinancialTypeBonus && req.BonusCategory != nil && *req.BonusCategory == models.BonusCategoryProduction) {
+		canManage, err := s.permissionService.CanManageProductionInfo(createdByID, projectID)
+		if err != nil {
+			return nil, err
+		}
+		if !canManage {
+			return nil, errors.New("permission denied: you do not have permission to manage production information")
+		}
+	}
+
 	// Validate amount
 	if req.Amount <= 0 {
 		return nil, errors.New("amount must be greater than 0")
@@ -303,6 +315,51 @@ func (s *FinancialService) ListFinancialRecordsByProject(projectID string) ([]mo
 	return records, nil
 }
 
+// GetProductionCosts retrieves all production cost records for a project (UUID string)
+func (s *FinancialService) GetProductionCosts(projectID string) ([]models.FinancialRecord, error) {
+	var records []models.FinancialRecord
+	if err := s.db.Where("project_id = ? AND financial_type = ?", projectID, models.FinancialTypeCost).
+		Preload("CreatedBy").Preload("InvoiceFile").
+		Order("occurred_at DESC, created_at DESC").
+		Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+// ProductionCostStatistics represents production cost statistics
+type ProductionCostStatistics struct {
+	TotalCost  float64 `json:"total_cost"`  // 总成本
+	RecordCount int    `json:"record_count"` // 记录数
+}
+
+// GetProductionCostStatistics calculates production cost statistics for a project (UUID string)
+func (s *FinancialService) GetProductionCostStatistics(projectID string) (*ProductionCostStatistics, error) {
+	var totalCost float64
+	var recordCount int64
+
+	// Get total cost
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ?", projectID, models.FinancialTypeCost).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalCost).Error; err != nil {
+		return nil, err
+	}
+
+	// Get record count
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ?", projectID, models.FinancialTypeCost).
+		Count(&recordCount).Error; err != nil {
+		return nil, err
+	}
+
+	return &ProductionCostStatistics{
+		TotalCost:   totalCost,
+		RecordCount: int(recordCount),
+	}, nil
+}
+
 // UpdateFinancialRecordRequest represents the request to update a financial record
 // 根据新的统一财务记录模型设计
 type UpdateFinancialRecordRequest struct {
@@ -361,6 +418,18 @@ func (s *FinancialService) UpdateFinancialRecord(recordID string, userID string,
 		}
 		if !canManage {
 			return nil, errors.New("permission denied: you do not have permission to manage business information")
+		}
+	}
+
+	// Check permission for production-related financial records
+	if record.FinancialType == models.FinancialTypeCost ||
+		(record.FinancialType == models.FinancialTypeBonus && record.BonusCategory != nil && *record.BonusCategory == models.BonusCategoryProduction) {
+		canManage, err := s.permissionService.CanManageProductionInfo(userID, record.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+		if !canManage {
+			return nil, errors.New("permission denied: you do not have permission to manage production information")
 		}
 	}
 
@@ -475,6 +544,18 @@ func (s *FinancialService) DeleteFinancialRecord(recordID string, userID string)
 		}
 		if !canManage {
 			return errors.New("permission denied: you do not have permission to manage business information")
+		}
+	}
+
+	// Check permission for production-related financial records
+	if record.FinancialType == models.FinancialTypeCost ||
+		(record.FinancialType == models.FinancialTypeBonus && record.BonusCategory != nil && *record.BonusCategory == models.BonusCategoryProduction) {
+		canManage, err := s.permissionService.CanManageProductionInfo(userID, record.ProjectID)
+		if err != nil {
+			return err
+		}
+		if !canManage {
+			return errors.New("permission denied: you do not have permission to manage production information")
 		}
 	}
 

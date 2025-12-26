@@ -37,9 +37,10 @@ const (
 type CostCategory string
 
 const (
-	CostCategoryTaxi            CostCategory = "taxi"             // 打车
-	CostCategoryAccommodation   CostCategory = "accommodation"    // 住宿
-	CostCategoryPublicTransport CostCategory = "public_transport" // 公共交通
+	CostCategoryVehicle       CostCategory = "vehicle"       // 用车
+	CostCategoryAccommodation CostCategory = "accommodation" // 住宿
+	CostCategoryTransport     CostCategory = "transport"     // 交通
+	CostCategoryOther         CostCategory = "other"         // 其他
 )
 
 type FinancialRecord struct {

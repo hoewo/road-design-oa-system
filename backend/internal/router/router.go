@@ -36,7 +36,6 @@ func (r *Router) SetupRoutes(
 	productionFileHandler *handlers.ProductionFileHandler,
 	productionApprovalHandler *handlers.ProductionApprovalHandler,
 	externalCommissionHandler *handlers.ExternalCommissionHandler,
-	productionCostHandler *handlers.ProductionCostHandler,
 	contractHandler *handlers.ContractHandler,
 	contractAmendmentHandler *handlers.ContractAmendmentHandler,
 	financialHandler *handlers.FinancialHandler,
@@ -163,10 +162,6 @@ func (r *Router) SetupRoutes(
 			projects.GET("/:id/production/external-commissions", externalCommissionHandler.ListCommissions)
 			projects.POST("/:id/production/external-commissions", externalCommissionHandler.CreateCommission)
 
-			// Production costs
-			projects.GET("/:id/production/costs", productionCostHandler.ListCosts)
-			projects.POST("/:id/production/costs", productionCostHandler.CreateCost)
-
 			// Contract file search route (project-level)
 			projects.GET("/:id/contracts/files", contractHandler.SearchContractFiles)
 
@@ -177,6 +172,10 @@ func (r *Router) SetupRoutes(
 			// Financial routes
 			projects.GET("/:id/financial", financialHandler.GetProjectFinancial)
 			projects.POST("/:id/financial", financialHandler.CreateFinancialRecord)
+
+			// Production cost routes
+			projects.GET("/:id/production-costs", financialHandler.GetProductionCosts)
+			projects.GET("/:id/production-costs/statistics", financialHandler.GetProductionCostStatistics)
 
 			// Bonus routes
 			projects.GET("/:id/bonuses", bonusHandler.GetBonuses)

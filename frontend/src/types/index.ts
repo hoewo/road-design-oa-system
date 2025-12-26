@@ -424,7 +424,7 @@ export interface FinancialRecord {
   recipient_id?: string // UUID string
   recipient?: User
   // 成本类型字段
-  cost_category?: 'taxi' | 'accommodation' | 'public_transport'
+  cost_category?: 'vehicle' | 'accommodation' | 'transport' | 'other'
   mileage?: number
   // 甲方支付/我方开票类型字段
   client_id?: string // UUID string
@@ -470,7 +470,7 @@ export interface CreateFinancialRecordRequest {
   bonus_category?: 'business' | 'production'
   recipient_id?: string // UUID string
   // 成本类型字段
-  cost_category?: 'taxi' | 'accommodation' | 'public_transport'
+  cost_category?: 'vehicle' | 'accommodation' | 'transport' | 'other'
   mileage?: number
   // 甲方支付/我方开票类型字段
   client_id?: string // UUID string
@@ -853,16 +853,17 @@ export type ProductionCostType =
   | 'transport'
   | 'other'
 
+// ProductionCost 基于 FinancialRecord，用于生产成本记录
 export interface ProductionCost {
-  id: number
-  project_id: number
-  cost_type: ProductionCostType
+  id: string // UUID string
+  project_id: string // UUID string
+  cost_type: ProductionCostType // 对应 cost_category
   amount: number
   description?: string
-  incurred_at?: string
-  commission_id?: number
-  commission?: ExternalCommission
-  created_by_id: number
+  incurred_at?: string // 对应 occurred_at
+  invoice_file_id?: string // UUID string
+  invoice_file?: File
+  created_by_id: string // UUID string
   created_by?: User
   created_at: string
   updated_at: string
@@ -873,5 +874,10 @@ export interface CreateProductionCostRequest {
   amount: number
   description?: string
   incurred_at?: string
-  commission_id?: number
+  invoice_file_id?: string // UUID string
+}
+
+export interface ProductionCostStatistics {
+  total_cost: number
+  record_count: number
 }

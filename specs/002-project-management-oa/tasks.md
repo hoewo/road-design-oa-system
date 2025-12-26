@@ -4,7 +4,7 @@
 **Date**: 2025-01-28  
 **Last Updated**: 2025-01-29  
 **Status**: In Progress  
-**Total Tasks**: 621 (已完成: 596, 待完成: 25)
+**Total Tasks**: 621 (已完成: 620, 待完成: 1)
 
 ## Summary
 
@@ -145,7 +145,7 @@
 - [X] T057 更新FinancialHandler支持新财务记录类型 backend/internal/handlers/financial_handler.go
 - [ ] T058 移除旧的Bonus模型 backend/internal/models/bonus.go（注意：当前BonusService和BonusHandler仍在路由中使用，需要先完成路由重构，将所有Bonus相关功能迁移到FinancialHandler后再删除）
 - [ ] T059 移除旧的ExpertFeePayment模型 backend/internal/models/expert_fee_payment.go（注意：当前ExpertFeePaymentService和ExpertFeePaymentHandler仍在路由中使用，需要先完成路由重构，将所有ExpertFeePayment相关功能迁移到FinancialHandler后再删除）
-- [ ] T060 移除旧的ProductionCost模型 backend/internal/models/production_cost.go（注意：当前ProductionCostService和ProductionCostHandler仍在路由中使用，需要先完成路由重构，将所有ProductionCost相关功能迁移到FinancialHandler后再删除）
+- [X] T060 移除旧的ProductionCost模型 backend/internal/models/production_cost.go（已完成：已删除production_cost.go、production_cost_handler.go、production_cost_service.go，并从database.go中移除AutoMigrate注册）
 
 #### 2.6 专业字典实体
 
@@ -1150,40 +1150,43 @@
 ## Phase 22: User Story 20 - 记录生产成本 (P2)
 
 ### Story Goal
-生产负责人能够记录项目的生产成本信息，包括打车（时间、里程、金额）、住宿（时间、金额）、公共交通（时间、金额）等，并上传相关发票。支持添加、编辑、删除生产成本记录，发票文件在保存时上传，支持发票文件下载和删除。
+生产负责人能够记录项目的生产成本信息，包括用车、住宿、交通、其他等成本类型，记录发生时间、金额、描述等信息，并上传相关发票。支持添加、编辑、删除生产成本记录，发票文件在保存时上传，支持发票文件下载和删除。参考线框图：`specs/main/design/wireframes/20-production-cost-management.html`
 
 ### Independent Test Criteria
-- 生产负责人可以记录不同类型的生产成本
-- 成本记录保存成功并更新成本统计
+- 生产负责人可以记录不同类型的生产成本（用车、住宿、交通、其他）
+- 成本记录保存成功并更新成本统计（总成本和记录数）
 - 发票文件可以上传和关联
 - 生产成本记录可以编辑和删除
 - 发票文件可以下载和删除
+- 列表显示总成本和记录数汇总信息
 
 ### Implementation Tasks
 
-- [ ] T215 [US20] 实现生产成本记录创建（使用FinancialRecord，financial_type=cost）backend/internal/services/financial_service.go
-- [ ] T215.1 [US20] 实现生产成本记录更新 backend/internal/services/financial_service.go
-- [ ] T215.2 [US20] 实现生产成本记录删除 backend/internal/services/financial_service.go
-- [ ] T216 [US20] 实现成本类别区分（打车、住宿、公共交通）backend/internal/services/financial_service.go
-- [ ] T217 [US20] 实现打车成本记录（包含里程字段）backend/internal/services/financial_service.go
-- [ ] T218 [US20] 实现成本发票文件上传和关联（在保存时触发上传）backend/internal/services/financial_service.go
-- [ ] T218.1 [US20] 实现成本发票文件下载功能 backend/internal/handlers/financial_handler.go
-- [ ] T218.2 [US20] 实现成本发票文件删除功能 backend/internal/handlers/financial_handler.go
-- [ ] T219 [US20] 实现生产成本统计计算 backend/internal/services/financial_service.go
-- [ ] T220 [US20] 更新FinancialHandler支持生产成本记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
-- [ ] T221 [US20] 创建前端生产成本表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ProductionCostForm.tsx
-- [ ] T222 [US20] 实现成本类型选择（打车、住宿、公共交通）frontend/src/components/production/ProductionCostForm.tsx
-- [ ] T223 [US20] 实现打车成本表单（时间、里程、金额）frontend/src/components/production/TaxiCostForm.tsx
-- [ ] T224 [US20] 实现住宿和公共交通成本表单 frontend/src/components/production/AccommodationCostForm.tsx
-- [ ] T225 [US20] 实现成本发票上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ProductionCostForm.tsx
-- [ ] T225.1 [US20] 实现成本发票文件下载功能 frontend/src/components/production/ProductionCostList.tsx
-- [ ] T225.2 [US20] 实现成本发票文件删除功能 frontend/src/components/production/ProductionCostList.tsx
-- [ ] T226 [US20] 实现生产成本列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ProductionCostList.tsx
-- [ ] T227 [US20] 实现成本统计展示 frontend/src/components/production/ProductionCostStatistics.tsx
-- [ ] T228 [US20] 更新前端项目生产信息页面集成成本管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
-- [ ] T456 [US20] 更新FinancialService使用权限服务：在记录生产成本时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
-- [ ] T457 [US20] 更新FinancialHandler使用权限服务：在生产成本记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T458 [US20] 更新前端生产成本表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionCostForm.tsx
+- [X] T215 [US20] 实现生产成本记录创建（使用FinancialRecord，financial_type=cost，cost_category区分：vehicle/accommodation/transport/other）backend/internal/services/financial_service.go
+- [X] T215.1 [US20] 实现生产成本记录更新 backend/internal/services/financial_service.go
+- [X] T215.2 [US20] 实现生产成本记录删除 backend/internal/services/financial_service.go
+- [X] T216 [US20] 实现成本类别区分（用车、住宿、交通、其他）backend/internal/services/financial_service.go
+- [X] T217 [US20] 实现成本发票文件上传和关联（在保存时触发上传）backend/internal/services/financial_service.go
+- [X] T217.1 [US20] 实现成本发票文件下载功能 backend/internal/handlers/financial_handler.go（通过fileService实现）
+- [X] T217.2 [US20] 实现成本发票文件删除功能 backend/internal/handlers/financial_handler.go（通过更新FinancialRecord的invoice_file_id为null实现）
+- [X] T218 [US20] 实现生产成本统计计算（总成本和记录数）backend/internal/services/financial_service.go
+- [X] T219 [US20] 更新FinancialHandler支持生产成本记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [X] T220 [US20] 创建前端生产成本表单组件（支持创建和编辑模式，弹窗形式，参考线框图状态3和状态4）frontend/src/components/production/ProductionCostForm.tsx
+- [X] T221 [US20] 实现成本类型选择（用车、住宿、交通、其他）frontend/src/components/production/ProductionCostForm.tsx
+- [X] T222 [US20] 实现成本表单字段（成本类型、金额、描述、发生时间，必填项：成本类型和金额）frontend/src/components/production/ProductionCostForm.tsx
+- [X] T223 [US20] 实现成本发票上传UI（文件选择后不立即上传，在表单保存时触发上传，支持删除已上传发票）frontend/src/components/production/ProductionCostForm.tsx
+- [X] T224 [US20] 实现生产成本列表显示（包含成本类型、发生时间、金额、描述、发票、操作列，参考线框图状态1）frontend/src/components/production/ProductionCostList.tsx
+- [X] T225 [US20] 实现总成本和记录数汇总显示（参考线框图状态1的汇总信息区域）frontend/src/components/production/ProductionCostList.tsx
+- [X] T226 [US20] 实现成本发票文件下载功能 frontend/src/components/production/ProductionCostList.tsx
+- [X] T227 [US20] 实现成本发票文件删除功能 frontend/src/components/production/ProductionCostList.tsx
+- [X] T228 [US20] 实现空状态显示（无数据时显示提示信息和添加按钮，参考线框图状态2）frontend/src/components/production/ProductionCostList.tsx
+- [X] T229 [US20] 实现加载状态显示（参考线框图状态5）frontend/src/components/production/ProductionCostList.tsx
+- [X] T230 [US20] 实现错误状态显示（参考线框图状态7）frontend/src/components/production/ProductionCostList.tsx
+- [X] T231 [US20] 实现删除确认对话框（参考线框图状态6）frontend/src/components/production/ProductionCostList.tsx
+- [X] T232 [US20] 更新前端项目生产信息页面集成成本管理（包含列表、创建、编辑、删除功能，参考线框图）frontend/src/components/production/ProductionInfo.tsx
+- [X] T456 [US20] 更新FinancialService使用权限服务：在记录生产成本时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
+- [X] T457 [US20] 更新FinancialHandler使用权限服务：在生产成本记录Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [X] T458 [US20] 更新前端生产成本列表组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionCostList.tsx
 
 ---
 

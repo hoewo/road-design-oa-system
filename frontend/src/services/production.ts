@@ -12,7 +12,11 @@ import type {
   ExternalCommission,
   CreateExternalCommissionRequest,
   ProductionCost,
+  ProductionCostType,
   CreateProductionCostRequest,
+  ProductionCostStatistics,
+  FinancialRecord,
+  CreateFinancialRecordRequest,
   PaginatedResponse,
   File as FileType,
 } from '@/types'
@@ -291,15 +295,112 @@ export const productionService = {
     )
   },
 
-  // Production Cost operations
+  // Production Cost operations (使用FinancialRecord API)
   listCosts: async (projectId: string | number): Promise<ProductionCost[]> => {
-    return get<ProductionCost[]>(`/user/projects/${projectId}/production/costs`)
+    // get函数已经返回了response.data.data，直接使用即可
+    const records = await get<FinancialRecord[]>(
+      `/user/projects/${projectId}/production-costs`
+    )
+    // 转换FinancialRecord为ProductionCost格式
+    const costs = (records || []).map((record) => ({
+      id: record.id,
+      project_id: record.project_id,
+      cost_type: (record.cost_category || 'other') as ProductionCostType,
+      amount: record.amount,
+      description: record.description,
+      incurred_at: record.occurred_at,
+      invoice_file_id: record.invoice_file_id,
+      invoice_file: record.invoice_file,
+      created_by_id: record.created_by_id,
+      created_by: record.created_by,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+    }))
+    return costs
+  },
+
+  getCostStatistics: async (
+    projectId: string | number
+  ): Promise<ProductionCostStatistics> => {
+    // get函数已经返回了response.data.data，直接使用即可
+    const stats = await get<ProductionCostStatistics>(
+      `/user/projects/${projectId}/production-costs/statistics`
+    )
+    return stats || { total_cost: 0, record_count: 0 }
   },
 
   createCost: async (
     projectId: string | number,
     data: CreateProductionCostRequest
   ): Promise<ProductionCost> => {
-    return post<ProductionCost>(`/user/projects/${projectId}/production/costs`, data)
+    // 转换为FinancialRecord格式
+    const financialRecordData: CreateFinancialRecordRequest = {
+      financial_type: 'cost',
+      direction: 'expense',
+      amount: data.amount,
+      occurred_at: data.incurred_at || new Date().toISOString(),
+      cost_category: data.cost_type,
+      description: data.description,
+      invoice_file_id: data.invoice_file_id,
+    }
+    // post函数已经返回了response.data.data，直接使用即可
+    const record = await post<FinancialRecord>(
+      `/user/projects/${projectId}/financial`,
+      financialRecordData
+    )
+    // 转换FinancialRecord为ProductionCost格式
+    return {
+      id: record.id,
+      project_id: record.project_id,
+      cost_type: (record.cost_category || 'other') as ProductionCostType,
+      amount: record.amount,
+      description: record.description,
+      incurred_at: record.occurred_at,
+      invoice_file_id: record.invoice_file_id,
+      invoice_file: record.invoice_file,
+      created_by_id: record.created_by_id,
+      created_by: record.created_by,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+    }
+  },
+
+  updateCost: async (
+    projectId: string | number,
+    costId: string,
+    data: Partial<CreateProductionCostRequest>
+  ): Promise<ProductionCost> => {
+    // 转换为FinancialRecord更新格式
+    const updateData: Partial<CreateFinancialRecordRequest> = {}
+    if (data.amount !== undefined) updateData.amount = data.amount
+    if (data.cost_type !== undefined) updateData.cost_category = data.cost_type
+    if (data.description !== undefined) updateData.description = data.description
+    if (data.incurred_at !== undefined) updateData.occurred_at = data.incurred_at
+    if (data.invoice_file_id !== undefined) updateData.invoice_file_id = data.invoice_file_id
+
+    // put函数已经返回了response.data.data，直接使用即可
+    const record = await put<FinancialRecord>(
+      `/user/financial-records/${costId}`,
+      updateData
+    )
+    // 转换FinancialRecord为ProductionCost格式
+    return {
+      id: record.id,
+      project_id: record.project_id,
+      cost_type: (record.cost_category || 'other') as ProductionCostType,
+      amount: record.amount,
+      description: record.description,
+      incurred_at: record.occurred_at,
+      invoice_file_id: record.invoice_file_id,
+      invoice_file: record.invoice_file,
+      created_by_id: record.created_by_id,
+      created_by: record.created_by,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+    }
+  },
+
+  deleteCost: async (projectId: string | number, costId: string): Promise<void> => {
+    return del<void>(`/user/financial-records/${costId}`)
   },
 }

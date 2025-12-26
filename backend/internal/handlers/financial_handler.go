@@ -455,3 +455,73 @@ func (h *FinancialHandler) GetCompanyRevenueStatistics(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
+
+// GetProductionCosts handles retrieving production cost records for a project
+// @Summary Get production cost records
+// @Description Get all production cost records for a specific project
+// @Tags 生产成本
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Success 200 {object} map[string]interface{}
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/production-costs [get]
+func (h *FinancialHandler) GetProductionCosts(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	costs, err := h.financialService.GetProductionCosts(projectID)
+	if err != nil {
+		h.logger.Error("Failed to get production costs",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+		)
+		if err.Error() == "project not found" {
+			utils.HandleError(c, http.StatusNotFound, "Project not found", err)
+		} else {
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to get production costs", err)
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    costs,
+	})
+}
+
+// GetProductionCostStatistics handles retrieving production cost statistics for a project
+// @Summary Get production cost statistics
+// @Description Get production cost statistics (total cost and record count) for a specific project
+// @Tags 生产成本
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Success 200 {object} services.ProductionCostStatistics
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/production-costs/statistics [get]
+func (h *FinancialHandler) GetProductionCostStatistics(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	stats, err := h.financialService.GetProductionCostStatistics(projectID)
+	if err != nil {
+		h.logger.Error("Failed to get production cost statistics",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get production cost statistics", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
+}
