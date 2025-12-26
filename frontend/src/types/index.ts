@@ -818,19 +818,15 @@ export interface AuditResolution {
 export type ExternalVendorType = 'company' | 'person'
 
 export interface ExternalCommission {
-  id: number
-  project_id: number
+  id: string
+  project_id: string
   vendor_name: string
   vendor_type: ExternalVendorType
   score?: number
-  contract_file_id?: number
-  contract_file?: File
-  invoice_file_id?: number
-  invoice_file?: File
-  payment_amount: number
-  payment_date?: string
+  contract_file_id?: string
+  contract_file?: FileType
   notes?: string
-  created_by_id: number
+  created_by_id: string
   created_by?: User
   created_at: string
   updated_at: string
@@ -840,11 +836,14 @@ export interface CreateExternalCommissionRequest {
   vendor_name: string
   vendor_type: ExternalVendorType
   score?: number
-  contract_file_id?: number
-  invoice_file_id?: number
-  payment_amount: number
-  payment_date?: string
+  contract_file_id?: string
   notes?: string
+}
+
+export interface ExternalCommissionSummary {
+  total_count: number
+  total_amount: number
+  average_score: number | null
 }
 
 export type ProductionCostType =

@@ -295,6 +295,93 @@ export const productionService = {
     )
   },
 
+  getCommission: async (
+    projectId: string | number,
+    commissionId: string
+  ): Promise<ExternalCommission> => {
+    return get<ExternalCommission>(
+      `/user/projects/${projectId}/production/external-commissions/${commissionId}`
+    )
+  },
+
+  updateCommission: async (
+    projectId: string | number,
+    commissionId: string,
+    data: Partial<CreateExternalCommissionRequest>
+  ): Promise<ExternalCommission> => {
+    return put<ExternalCommission>(
+      `/user/projects/${projectId}/production/external-commissions/${commissionId}`,
+      data
+    )
+  },
+
+  deleteCommission: async (
+    projectId: string | number,
+    commissionId: string
+  ): Promise<void> => {
+    return del(
+      `/user/projects/${projectId}/production/external-commissions/${commissionId}`
+    )
+  },
+
+  getCommissionSummary: async (
+    projectId: string | number
+  ): Promise<{
+    total_count: number
+    total_amount: number
+    average_score: number | null
+  }> => {
+    return get<{
+      total_count: number
+      total_amount: number
+      average_score: number | null
+    }>(`/user/projects/${projectId}/production/external-commissions/summary`)
+  },
+
+  downloadContractFile: async (
+    projectId: string | number,
+    commissionId: string
+  ): Promise<void> => {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/project-oa/v1'}/user/projects/${projectId}/production/external-commissions/${commissionId}/contract/download`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+    if (!response.ok) {
+      throw new Error('下载失败')
+    }
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let fileName = `contract-${commissionId}`
+    if (contentDisposition) {
+      const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (fileNameMatch && fileNameMatch[1]) {
+        fileName = fileNameMatch[1].replace(/['"]/g, '')
+      }
+    }
+    a.download = fileName
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+  },
+
+  deleteContractFile: async (
+    projectId: string | number,
+    commissionId: string
+  ): Promise<void> => {
+    return del(
+      `/user/projects/${projectId}/production/external-commissions/${commissionId}/contract`
+    )
+  },
+
   // Production Cost operations (使用FinancialRecord API)
   listCosts: async (projectId: string | number): Promise<ProductionCost[]> => {
     // get函数已经返回了response.data.data，直接使用即可

@@ -2,9 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
-**Last Updated**: 2025-01-29  
+**Last Updated**: 2025-01-30  
 **Status**: In Progress  
-**Total Tasks**: 621 (已完成: 620, 待完成: 1)
+**Total Tasks**: 628 (已完成: 635, 待完成: 0)
 
 ## Summary
 
@@ -27,6 +27,8 @@
 - **招投标文件多文件支持**（T648-T653）：修改BiddingInfo模型为数组字段，支持每种类型（招标文件、投标文件、中标通知书）多个文件上传
 - **专家费支付编辑和删除功能**（T654-T660）：实现专家费支付记录的编辑和删除功能，支持修改所有字段（专家姓名、金额、支付方式、支付日期、备注）
 - **Phase 17-19 完成**（2025-01-29）：方案阶段、初步设计阶段、施工图设计阶段文件管理功能全部完成（86个任务），包括文件上传、校审单管理、评分管理、文件下载和删除等功能，已集成到项目生产信息页面
+- **对外委托功能任务更新**（2025-01-30）：基于线框图 `21-external-commission-management.html` 更新 Phase 23 任务，新增7个任务（T462-T468），包括汇总信息显示、空状态、加载状态、错误状态、删除确认对话框等功能，确保UI完整覆盖线框图设计
+- **对外委托功能实现完成**（2025-01-30）：Phase 23 所有任务已完成，包括后端CRUD、支付/开票记录、汇总统计、文件操作、权限检查，以及前端表单、列表、汇总、各种状态显示等完整功能，已集成到项目生产信息页面
 
 **关键改造点**:
 1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
@@ -1283,36 +1285,52 @@
 ### Story Goal
 生产负责人能够管理项目的对外委托及支付信息，包括记录委托类型（个人或单位）、对委托方的评分、委托合同、给委托方支付（金额、时间、索要发票）等信息。支持添加、编辑、删除对外委托记录，委托合同文件在保存时上传，支持委托合同文件下载和删除。
 
+**参考线框图**: `specs/main/design/wireframes/21-external-commission-management.html`
+
 ### Independent Test Criteria
 - 生产负责人可以创建对外委托记录
 - 委托支付信息通过FinancialRecord管理
 - 委托信息保存成功并更新成本统计
 - 对外委托记录可以编辑和删除
 - 委托合同文件可以下载和删除
+- 汇总信息正确显示（委托总数、总金额、平均评分）
+- 所有UI状态正确显示（加载、空状态、错误状态）
 
 ### Implementation Tasks
 
-- [ ] T229 [US21] 更新ExternalCommission模型符合002规范（ID为UUID，支付信息通过FinancialRecord关联）backend/internal/models/external_commission.go
-- [ ] T230 [US21] 更新ExternalCommissionService支持对外委托管理（包含创建、读取、更新、删除）backend/internal/services/external_commission_service.go
-- [ ] T231 [US21] 实现委托支付记录创建（使用FinancialRecord，financial_type=commission_payment）backend/internal/services/external_commission_service.go
-- [ ] T232 [US21] 实现对方开票记录创建（使用FinancialRecord，financial_type=vendor_invoice）backend/internal/services/external_commission_service.go
-- [ ] T233 [US21] 实现委托支付和开票关联逻辑 backend/internal/services/external_commission_service.go
-- [ ] T234 [US21] 更新ExternalCommissionHandler支持对外委托CRUD（包含创建、读取、更新、删除接口）backend/internal/handlers/external_commission_handler.go
-- [ ] T235 [US21] 实现委托合同文件上传功能（在保存时触发上传）backend/internal/handlers/external_commission_handler.go
-- [ ] T235.1 [US21] 实现委托合同文件下载功能 backend/internal/handlers/external_commission_handler.go
-- [ ] T235.2 [US21] 实现委托合同文件删除功能 backend/internal/handlers/external_commission_handler.go
-- [ ] T236 [US21] 创建前端对外委托表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ExternalCommissionForm.tsx
-- [ ] T237 [US21] 实现委托类型选择（个人/单位）frontend/src/components/production/ExternalCommissionForm.tsx
-- [ ] T238 [US21] 实现委托方评分录入组件 frontend/src/components/production/VendorScoreInput.tsx
-- [ ] T239 [US21] 实现委托支付和开票记录管理 frontend/src/components/production/CommissionPaymentManager.tsx
-- [ ] T240 [US21] 实现委托合同文件上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ExternalCommissionForm.tsx
-- [ ] T240.1 [US21] 实现委托合同文件下载功能 frontend/src/components/production/ExternalCommissionList.tsx
-- [ ] T240.2 [US21] 实现委托合同文件删除功能 frontend/src/components/production/ExternalCommissionList.tsx
-- [ ] T241 [US21] 实现对外委托列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ExternalCommissionList.tsx
-- [ ] T242 [US21] 更新前端项目生产信息页面集成对外委托管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
-- [ ] T459 [US21] 更新ExternalCommissionService使用权限服务：在管理对外委托时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/external_commission_service.go
-- [ ] T460 [US21] 更新ExternalCommissionHandler使用权限服务：在对外委托管理Handler中调用权限服务 backend/internal/handlers/external_commission_handler.go
-- [ ] T461 [US21] 更新前端对外委托表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ExternalCommissionForm.tsx
+#### 后端任务
+
+- [X] T229 [US21] 更新ExternalCommission模型符合002规范（ID为UUID，支付信息通过FinancialRecord关联）backend/internal/models/external_commission.go
+- [X] T230 [US21] 更新ExternalCommissionService支持对外委托管理（包含创建、读取、更新、删除）backend/internal/services/external_commission_service.go
+- [X] T231 [US21] 实现委托支付记录创建（使用FinancialRecord，financial_type=commission_payment）backend/internal/services/external_commission_service.go
+- [X] T232 [US21] 实现对方开票记录创建（使用FinancialRecord，financial_type=vendor_invoice）backend/internal/services/external_commission_service.go
+- [X] T233 [US21] 实现委托支付和开票关联逻辑 backend/internal/services/external_commission_service.go
+- [X] T462 [US21] 实现对外委托汇总统计接口（委托总数、总金额、平均评分）backend/internal/services/external_commission_service.go
+- [X] T234 [US21] 更新ExternalCommissionHandler支持对外委托CRUD（包含创建、读取、更新、删除接口）backend/internal/handlers/external_commission_handler.go
+- [X] T463 [US21] 实现对外委托汇总统计Handler接口 backend/internal/handlers/external_commission_handler.go
+- [X] T235 [US21] 实现委托合同文件上传功能（在保存时触发上传）backend/internal/handlers/external_commission_handler.go
+- [X] T235.1 [US21] 实现委托合同文件下载功能 backend/internal/handlers/external_commission_handler.go
+- [X] T235.2 [US21] 实现委托合同文件删除功能 backend/internal/handlers/external_commission_handler.go
+- [X] T459 [US21] 更新ExternalCommissionService使用权限服务：在管理对外委托时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/external_commission_service.go
+- [X] T460 [US21] 更新ExternalCommissionHandler使用权限服务：在对外委托管理Handler中调用权限服务 backend/internal/handlers/external_commission_handler.go
+
+#### 前端任务
+
+- [X] T236 [US21] 创建前端对外委托表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ExternalCommissionForm.tsx
+- [X] T237 [US21] 实现委托类型选择（个人/单位）frontend/src/components/production/ExternalCommissionForm.tsx
+- [X] T238 [US21] 实现委托方评分录入组件（1-5分评分选择）frontend/src/components/production/ExternalCommissionForm.tsx
+- [X] T239 [US21] 实现委托支付和开票记录管理（支付金额、支付时间）frontend/src/components/production/ExternalCommissionForm.tsx
+- [X] T240 [US21] 实现委托合同文件上传UI（文件选择后不立即上传，在表单保存时触发上传）frontend/src/components/production/ExternalCommissionForm.tsx
+- [X] T464 [US21] 实现对外委托汇总信息显示组件（委托总数、总金额、平均评分）frontend/src/components/production/ExternalCommissionSummary.tsx
+- [X] T241 [US21] 实现对外委托列表显示（包含编辑、删除、下载按钮）frontend/src/components/production/ExternalCommissionList.tsx
+- [X] T240.1 [US21] 实现委托合同文件下载功能 frontend/src/components/production/ExternalCommissionList.tsx
+- [X] T240.2 [US21] 实现委托合同文件删除功能 frontend/src/components/production/ExternalCommissionList.tsx
+- [X] T465 [US21] 实现对外委托空状态显示（无数据时的提示和引导）frontend/src/components/production/ExternalCommissionList.tsx
+- [X] T466 [US21] 实现对外委托加载状态显示（数据加载中的提示）frontend/src/components/production/ExternalCommissionList.tsx
+- [X] T467 [US21] 实现对外委托错误状态显示（加载失败时的错误提示和重试按钮）frontend/src/components/production/ExternalCommissionList.tsx
+- [X] T468 [US21] 实现删除确认对话框组件（显示委托信息，确认删除操作）frontend/src/components/production/ExternalCommissionDeleteConfirm.tsx
+- [X] T242 [US21] 更新前端项目生产信息页面集成对外委托管理（包含列表、创建、编辑、删除功能，汇总信息显示）frontend/src/components/production/ProductionInfo.tsx
+- [X] T461 [US21] 更新前端对外委托表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ExternalCommissionList.tsx
 
 ---
 
@@ -1563,12 +1581,12 @@
   - Phase 18: 28个任务（US16 - 初步设计阶段文件管理，已完成）
   - Phase 19: 28个任务（US17 - 施工图设计阶段文件管理，已完成）
 - Phase 20-22: 待完成（US18-US20）
-- Phase 23-24: 22个任务（US21-US22，优化后新增约15个任务：补充编辑删除功能、文件上传在保存时触发、文件下载和删除功能）+ 6个权限集成任务（T459-T464）
+- Phase 23: 29个任务（US21，优化后新增约15个任务：补充编辑删除功能、文件上传在保存时触发、文件下载和删除功能、汇总信息显示、UI状态管理）+ 3个权限集成任务（T459-T461）+ 7个基于线框图的新任务（T462-T468）
 - Phase 25: 18个任务（US23）+ 5个权限集成任务（T465-T469，替换T258和T267）
 - Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 621个任务
+**总计**: 628个任务
 
 **最新完成情况**（2025-01-29更新）:
 - Phase 17-19（US15-US17）已完成：86个任务

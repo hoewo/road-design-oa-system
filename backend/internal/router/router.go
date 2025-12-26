@@ -158,9 +158,15 @@ func (r *Router) SetupRoutes(
 			projects.POST("/:id/approval-audit/upload-report", productionApprovalHandler.UploadReportFile)
 			projects.GET("/:id/contract-amounts", productionApprovalHandler.GetContractAmounts)
 
-			// External commissions
-			projects.GET("/:id/production/external-commissions", externalCommissionHandler.ListCommissions)
-			projects.POST("/:id/production/external-commissions", externalCommissionHandler.CreateCommission)
+		// External commissions
+		projects.GET("/:id/production/external-commissions", externalCommissionHandler.ListCommissions)
+		projects.GET("/:id/production/external-commissions/summary", externalCommissionHandler.GetSummary)
+		projects.POST("/:id/production/external-commissions", externalCommissionHandler.CreateCommission)
+		projects.GET("/:id/production/external-commissions/:commissionId", externalCommissionHandler.GetCommission)
+		projects.PUT("/:id/production/external-commissions/:commissionId", externalCommissionHandler.UpdateCommission)
+		projects.DELETE("/:id/production/external-commissions/:commissionId", externalCommissionHandler.DeleteCommission)
+		projects.GET("/:id/production/external-commissions/:commissionId/contract/download", externalCommissionHandler.DownloadContractFile)
+		projects.DELETE("/:id/production/external-commissions/:commissionId/contract", externalCommissionHandler.DeleteContractFile)
 
 			// Contract file search route (project-level)
 			projects.GET("/:id/contracts/files", contractHandler.SearchContractFiles)

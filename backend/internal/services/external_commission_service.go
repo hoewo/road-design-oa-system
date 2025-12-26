@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -10,11 +11,22 @@ import (
 )
 
 type ExternalCommissionService struct {
-	db *gorm.DB
+	db                *gorm.DB
+	permissionService *PermissionService
+	financialService  *FinancialService
 }
 
 func NewExternalCommissionService() *ExternalCommissionService {
-	return &ExternalCommissionService{db: database.DB}
+	return &ExternalCommissionService{
+		db:                database.DB,
+		permissionService: NewPermissionService(),
+		financialService:  NewFinancialService(),
+	}
+}
+
+// GetPermissionService 获取权限服务（供Handler使用）
+func (s *ExternalCommissionService) GetPermissionService() *PermissionService {
+	return s.permissionService
 }
 
 type CreateExternalCommissionRequest struct {
@@ -34,6 +46,15 @@ func (s *ExternalCommissionService) CreateCommission(req *CreateExternalCommissi
 	}
 	if req.ProjectID == "" || req.VendorName == "" {
 		return nil, errors.New("project_id and vendor_name are required")
+	}
+
+	// 权限检查
+	canManage, err := s.permissionService.CanManageProductionInfo(req.CreatedByID, req.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: cannot manage production info")
 	}
 
 	if err := s.ensureProjectExists(req.ProjectID); err != nil {
@@ -107,6 +128,211 @@ func (s *ExternalCommissionService) ListByProject(projectID string, params *List
 	return items, total, nil
 }
 
+// UpdateExternalCommissionRequest 更新对外委托请求
+type UpdateExternalCommissionRequest struct {
+	VendorName     string
+	VendorType     models.ExternalVendorType
+	Score          *float64
+	ContractFileID *string
+	Notes          string
+	UpdatedByID    string
+}
+
+// GetByID 根据ID获取对外委托记录
+func (s *ExternalCommissionService) GetByID(id string) (*models.ExternalCommission, error) {
+	var commission models.ExternalCommission
+	if err := s.db.
+		Preload("ContractFile").
+		Preload("CreatedBy").
+		First(&commission, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("external commission not found")
+		}
+		return nil, err
+	}
+	return &commission, nil
+}
+
+// UpdateCommission 更新对外委托记录
+func (s *ExternalCommissionService) UpdateCommission(id string, req *UpdateExternalCommissionRequest) (*models.ExternalCommission, error) {
+	if req == nil {
+		return nil, errors.New("request cannot be nil")
+	}
+
+	var commission models.ExternalCommission
+	if err := s.db.First(&commission, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("external commission not found")
+		}
+		return nil, err
+	}
+
+	// 权限检查
+	canManage, err := s.permissionService.CanManageProductionInfo(req.UpdatedByID, commission.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: cannot manage production info")
+	}
+
+	// 更新字段
+	if req.VendorName != "" {
+		commission.VendorName = req.VendorName
+	}
+	if req.VendorType != "" {
+		commission.VendorType = req.VendorType
+	}
+	commission.Score = req.Score
+	commission.ContractFileID = req.ContractFileID
+	if req.Notes != "" {
+		commission.Notes = req.Notes
+	}
+
+	if err := s.db.Save(&commission).Error; err != nil {
+		return nil, err
+	}
+
+	s.db.Preload("ContractFile").Preload("CreatedBy").First(&commission, "id = ?", id)
+	return &commission, nil
+}
+
+// DeleteCommission 删除对外委托记录
+func (s *ExternalCommissionService) DeleteCommission(id string, userID string) error {
+	var commission models.ExternalCommission
+	if err := s.db.First(&commission, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("external commission not found")
+		}
+		return err
+	}
+
+	// 权限检查
+	canManage, err := s.permissionService.CanManageProductionInfo(userID, commission.ProjectID)
+	if err != nil {
+		return err
+	}
+	if !canManage {
+		return errors.New("permission denied: cannot manage production info")
+	}
+
+	// 删除关联的财务记录（委托支付和对方开票）
+	if err := s.db.Where("project_id = ? AND financial_type IN ?", commission.ProjectID, []models.FinancialType{
+		models.FinancialTypeCommissionPayment,
+		models.FinancialTypeVendorInvoice,
+	}).Where("vendor_name = ?", commission.VendorName).Delete(&models.FinancialRecord{}).Error; err != nil {
+		return err
+	}
+
+	// 删除对外委托记录
+	if err := s.db.Delete(&commission).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CreateCommissionPayment 创建委托支付记录
+func (s *ExternalCommissionService) CreateCommissionPayment(commissionID string, amount float64, occurredAt time.Time, createdByID string) (*models.FinancialRecord, error) {
+	commission, err := s.GetByID(commissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换VendorType为FinancialRecord需要的格式
+	var commissionType string
+	if commission.VendorType == models.ExternalVendorCompany {
+		commissionType = "company"
+	} else {
+		commissionType = "person"
+	}
+
+	req := &CreateFinancialRecordRequest{
+		FinancialType: models.FinancialTypeCommissionPayment,
+		Direction:     models.FinancialDirectionExpense,
+		Amount:        amount,
+		OccurredAt:    occurredAt,
+		CommissionType: &commissionType,
+		VendorName:    commission.VendorName,
+		VendorScore:   commission.Score,
+	}
+
+	return s.financialService.CreateFinancialRecord(commission.ProjectID, req, createdByID)
+}
+
+// CreateVendorInvoice 创建对方开票记录
+func (s *ExternalCommissionService) CreateVendorInvoice(commissionID string, relatedPaymentID string, amount float64, occurredAt time.Time, createdByID string) (*models.FinancialRecord, error) {
+	commission, err := s.GetByID(commissionID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 转换VendorType为FinancialRecord需要的格式
+	var commissionType string
+	if commission.VendorType == models.ExternalVendorCompany {
+		commissionType = "company"
+	} else {
+		commissionType = "person"
+	}
+
+	req := &CreateFinancialRecordRequest{
+		FinancialType:       models.FinancialTypeVendorInvoice,
+		Direction:           models.FinancialDirectionIncome,
+		Amount:              amount,
+		OccurredAt:          occurredAt,
+		CommissionType:      &commissionType,
+		VendorName:          commission.VendorName,
+		VendorScore:         commission.Score,
+		RelatedCommissionID: &relatedPaymentID,
+	}
+
+	return s.financialService.CreateFinancialRecord(commission.ProjectID, req, createdByID)
+}
+
+// GetSummary 获取对外委托汇总统计
+func (s *ExternalCommissionService) GetSummary(projectID string) (*ExternalCommissionSummary, error) {
+	var totalCount int64
+	if err := s.db.Model(&models.ExternalCommission{}).Where("project_id = ?", projectID).Count(&totalCount).Error; err != nil {
+		return nil, err
+	}
+
+	// 获取所有委托支付记录的总金额
+	var totalAmount float64
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ?", projectID, models.FinancialTypeCommissionPayment).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalAmount).Error; err != nil {
+		return nil, err
+	}
+
+	// 计算平均评分
+	var avgScore *float64
+	var scoreSum float64
+	var scoreCount int64
+	if err := s.db.Model(&models.ExternalCommission{}).
+		Where("project_id = ? AND score IS NOT NULL", projectID).
+		Select("COALESCE(SUM(score), 0), COUNT(*)").Scan(&scoreSum, &scoreCount).Error; err != nil {
+		return nil, err
+	}
+	if scoreCount > 0 {
+		avg := scoreSum / float64(scoreCount)
+		avgScore = &avg
+	}
+
+	return &ExternalCommissionSummary{
+		TotalCount: totalCount,
+		TotalAmount: totalAmount,
+		AverageScore: avgScore,
+	}, nil
+}
+
+// ExternalCommissionSummary 对外委托汇总统计
+type ExternalCommissionSummary struct {
+	TotalCount   int64    `json:"total_count"`
+	TotalAmount  float64  `json:"total_amount"`
+	AverageScore *float64 `json:"average_score"`
+}
+
 func (s *ExternalCommissionService) ensureProjectExists(projectID string) error {
 	var project models.Project
 	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
@@ -117,3 +343,4 @@ func (s *ExternalCommissionService) ensureProjectExists(projectID string) error 
 	}
 	return nil
 }
+

@@ -316,22 +316,11 @@ export const ProductionInfo = ({
       </div>
 
       {/* 对外委托 */}
-      <Card
-        title="对外委托"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => message.info('请使用下方的对外委托列表添加委托')}
-          >
-            添加委托
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
-        <ExternalCommissionList projectId={projectId} />
-      </Card>
+      <div style={{ marginBottom: 24 }}>
+        <Card title="对外委托" style={{ marginBottom: 0 }}>
+          <ExternalCommissionList projectId={projectId} />
+        </Card>
+      </div>
 
       {/* 生产奖金分配 */}
       <Card
