@@ -257,7 +257,7 @@ func (s *ExternalCommissionService) CreateCommissionPayment(commissionID string,
 		VendorScore:   commission.Score,
 	}
 
-	return s.financialService.CreateFinancialRecord(commission.ProjectID, req, createdByID)
+	return s.financialService.CreateFinancialRecord(commission.ProjectID, createdByID, req)
 }
 
 // CreateVendorInvoice 创建对方开票记录
@@ -286,7 +286,7 @@ func (s *ExternalCommissionService) CreateVendorInvoice(commissionID string, rel
 		RelatedCommissionID: &relatedPaymentID,
 	}
 
-	return s.financialService.CreateFinancialRecord(commission.ProjectID, req, createdByID)
+	return s.financialService.CreateFinancialRecord(commission.ProjectID, createdByID, req)
 }
 
 // GetSummary 获取对外委托汇总统计
@@ -311,7 +311,12 @@ func (s *ExternalCommissionService) GetSummary(projectID string) (*ExternalCommi
 	var scoreCount int64
 	if err := s.db.Model(&models.ExternalCommission{}).
 		Where("project_id = ? AND score IS NOT NULL", projectID).
-		Select("COALESCE(SUM(score), 0), COUNT(*)").Scan(&scoreSum, &scoreCount).Error; err != nil {
+		Select("COALESCE(SUM(score), 0)").Scan(&scoreSum).Error; err != nil {
+		return nil, err
+	}
+	if err := s.db.Model(&models.ExternalCommission{}).
+		Where("project_id = ? AND score IS NOT NULL", projectID).
+		Count(&scoreCount).Error; err != nil {
 		return nil, err
 	}
 	if scoreCount > 0 {

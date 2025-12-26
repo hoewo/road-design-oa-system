@@ -824,7 +824,7 @@ export interface ExternalCommission {
   vendor_type: ExternalVendorType
   score?: number
   contract_file_id?: string
-  contract_file?: FileType
+  contract_file?: File
   notes?: string
   created_by_id: string
   created_by?: User
