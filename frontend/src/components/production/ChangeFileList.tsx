@@ -112,13 +112,27 @@ export const ChangeFileList = ({ projectId }: ChangeFileListProps) => {
             <div
               key={file.id}
               style={{
-                margin: '10px 0',
-                padding: '10px',
-                border: '1px solid #ccc',
-                background: 'white',
+                margin: '8px 0',
+                padding: '12px 16px',
+                border: '1px solid #e8e8e8',
+                background: '#fff',
+                borderRadius: '6px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                transition: 'all 0.2s ease-in-out',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fafafa'
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)'
+                e.currentTarget.style.borderColor = '#d9d9d9'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#fff'
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'
+                e.currentTarget.style.borderColor = '#e8e8e8'
               }}
             >
               <div>

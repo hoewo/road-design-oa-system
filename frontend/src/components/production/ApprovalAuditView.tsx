@@ -122,14 +122,14 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
   const renderAmountDetails = (approval: ProductionApproval | null, title: string) => {
     if (!approval) {
       return (
-        <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px', minHeight: '100px' }}>
+        <div style={{ padding: '12px 16px', border: '1px solid #e8e8e8', background: '#fafafa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', minHeight: '100px' }}>
           <Empty description="暂无数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       )
     }
 
     return (
-      <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px' }}>
+      <div style={{ padding: '12px 16px', border: '1px solid #e8e8e8', background: '#fafafa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
         <div style={{ marginBottom: '8px' }}>设计费: {formatAmount(approval.amount_design)}</div>
         <div style={{ marginBottom: '8px' }}>勘察费: {formatAmount(approval.amount_survey)}</div>
         <div style={{ marginBottom: '8px' }}>咨询费: {formatAmount(approval.amount_consulting)}</div>
@@ -144,7 +144,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
   const renderReportFile = (approval: ProductionApproval | null, type: 'approval' | 'audit') => {
     if (!approval || !approval.report_file) {
       return (
-        <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px', minHeight: '60px' }}>
+        <div style={{ padding: '12px 16px', border: '1px solid #e8e8e8', background: '#fafafa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', minHeight: '60px' }}>
           <Empty description="暂无文件" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       )
@@ -155,7 +155,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
     const uploadTime = dayjs(file.created_at).format('YYYY-MM-DD')
 
     return (
-      <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', borderRadius: '4px' }}>
+      <div style={{ padding: '12px 16px', border: '1px solid #e8e8e8', background: '#fafafa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <a
@@ -238,7 +238,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
               <Card
                 size="small"
                 title="批复"
-                style={{ background: '#fafafa' }}
+                style={{ background: '#fafafa', border: '1px solid #e8e8e8', borderRadius: '6px' }}
               >
                 {/* 批复报告 */}
                 <div style={{ marginBottom: '24px' }}>
@@ -263,7 +263,7 @@ export const ApprovalAuditView = ({ projectId }: ApprovalAuditViewProps) => {
               <Card
                 size="small"
                 title="审计"
-                style={{ background: '#fafafa' }}
+                style={{ background: '#fafafa', border: '1px solid #e8e8e8', borderRadius: '6px' }}
               >
                 {/* 审计报告 */}
                 <div style={{ marginBottom: '24px' }}>

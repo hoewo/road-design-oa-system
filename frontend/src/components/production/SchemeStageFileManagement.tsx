@@ -111,7 +111,7 @@ export const SchemeStageFileManagement = ({
   const renderFileList = (files: ProductionFile[], title: string) => {
     if (files.length === 0) {
       return (
-        <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', minHeight: '60px' }}>
+        <div style={{ padding: '12px 16px', border: '1px solid #e8e8e8', background: '#fafafa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', minHeight: '60px' }}>
           <Empty description={`暂无${title}，请上传${title}`} image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </div>
       )
@@ -130,13 +130,27 @@ export const SchemeStageFileManagement = ({
             <div
               key={file.id}
               style={{
-                margin: '10px 0',
-                padding: '10px',
-                border: '1px solid #ccc',
-                background: 'white',
+                margin: '8px 0',
+                padding: '12px 16px',
+                border: '1px solid #e8e8e8',
+                background: '#fff',
+                borderRadius: '6px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                transition: 'all 0.2s ease-in-out',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#fafafa'
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06)'
+                e.currentTarget.style.borderColor = '#d9d9d9'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#fff'
+                e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.04)'
+                e.currentTarget.style.borderColor = '#e8e8e8'
               }}
             >
               <div>
@@ -257,7 +271,7 @@ export const SchemeStageFileManagement = ({
         ) : (
           <>
             {/* 方案文件 */}
-            <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', background: '#f9f9f9' }}>
+            <div style={{ margin: '16px 0', padding: '16px', border: '1px solid #f0f0f0', background: '#fafafa', borderRadius: '8px' }}>
               <Text strong style={{ display: 'block', marginBottom: '10px' }}>
                 方案文件
               </Text>
@@ -265,29 +279,31 @@ export const SchemeStageFileManagement = ({
             </div>
 
             {/* 校审单 */}
-            <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', background: '#f9f9f9' }}>
+            <div style={{ margin: '16px 0', padding: '16px', border: '1px solid #f0f0f0', background: '#fafafa', borderRadius: '8px' }}>
               <Text strong style={{ display: 'block', marginBottom: '10px' }}>
                 校审单 <Text type="danger">*</Text>
               </Text>
               {reviewSheet ? (
                 renderFileList([reviewSheet], '校审单')
               ) : (
-                <div style={{ padding: '10px', border: '2px solid #e0e0e0', background: '#f9f9f9', minHeight: '60px' }}>
+                <div style={{ padding: '12px 16px', border: '1px solid #e8e8e8', background: '#fafafa', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', minHeight: '60px' }}>
                   <Empty description="暂无文件，请上传校审单" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                 </div>
               )}
             </div>
 
             {/* 评分 */}
-            <div style={{ margin: '20px 0', padding: '15px', border: '1px solid #ddd', background: '#f9f9f9' }}>
+            <div style={{ margin: '16px 0', padding: '16px', border: '1px solid #f0f0f0', background: '#fafafa', borderRadius: '8px' }}>
               <Text strong style={{ display: 'block', marginBottom: '10px' }}>
                 评分 <Text type="danger">*</Text>
               </Text>
                 <div
                   style={{
-                    padding: '10px',
-                    border: '2px solid #e0e0e0',
-                    background: '#f9f9f9',
+                    padding: '12px 16px',
+                    border: '1px solid #e8e8e8',
+                    background: '#fafafa',
+                    borderRadius: '6px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                     display: 'inline-block',
                     minWidth: '150px',
                   }}

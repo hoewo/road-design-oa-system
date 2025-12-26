@@ -60,9 +60,11 @@
 
 **背景色 (Background)**
 - **主背景**: `#fff` - 页面主背景、卡片背景
-- **次要背景**: `#f9f9f9` - 信息展示区域背景、输入框背景
-- **三级背景**: `#fafafa` - 嵌套内容背景
+- **次要背景**: `#fafafa` - 信息展示区域背景（推荐，更柔和）
+- **三级背景**: `#f5f5f5` - 嵌套内容背景、轻量级信息展示
+- **四级背景**: `#f9f9f9` - 输入框背景、强调型信息展示（较深，谨慎使用）
 - **页面背景**: `#f0f2f5` - 登录页面背景
+- **悬停背景**: `#fafafa` - 列表项悬停背景
 
 **文本色 (Text)**
 - **主要文本**: `#262626` - 标题、重要文本
@@ -71,10 +73,11 @@
 - **禁用文本**: `#ccc` - 禁用状态的文本
 
 **边框色 (Border)**
-- **主要边框**: `#e0e0e0` - 卡片边框、输入框边框（2px solid）
+- **主要边框**: `#e8e8e8` - 卡片边框、输入框边框（1px solid，推荐用于现代风格）
 - **次要边框**: `#d9d9d9` - 分割线、虚线边框
-- **三级边框**: `#ccc` - 弱化边框
-- **分割线**: `#e8e8e8` - 内容分割线（1px solid）
+- **三级边框**: `#e0e0e0` - 弱化边框（2px solid，仅用于需要强调的线框图风格，不推荐）
+- **分割线**: `#f0f0f0` - 内容分割线（1px solid）
+- **柔和边框**: `#f5f5f5` - 极轻边框，用于内容区域分隔
 
 ## 2. 字体系统 (Typography)
 
@@ -141,7 +144,16 @@
 
 | 层级 | 参数 | 用途 |
 |------|------|------|
-| 标准 | `0 2px 8px rgba(0,0,0,0.1)` | Header 阴影、卡片阴影（如需要） |
+| 无阴影 | `none` | 默认状态，不添加阴影 |
+| 轻量级 | `0 1px 2px rgba(0,0,0,0.04)` | 列表项、文件项、轻量级卡片 |
+| 标准 | `0 2px 8px rgba(0,0,0,0.08)` | 卡片、模态框、标准层级 |
+| 强调 | `0 4px 12px rgba(0,0,0,0.12)` | 重要卡片、浮层、强调层级 |
+| Header | `0 2px 8px rgba(0,0,0,0.1)` | Header 阴影（保持现有样式） |
+
+### 阴影使用规范
+- **信息展示区域**: 推荐使用轻量级阴影或无阴影 + 柔和边框
+- **文件列表项**: 使用轻量级阴影，提升层次感
+- **卡片嵌套**: 外层使用标准阴影，内层使用轻量级阴影或无阴影
 
 ## 6. 图标系统 (Icons)
 
@@ -168,12 +180,72 @@
 
 ## 8. 特殊样式模式
 
-### 信息展示区域
+### 信息展示区域（推荐：现代风格）
+
+**轻量级信息展示**（推荐用于：批复金额、审计金额、评分等）
+- **边框**: `1px solid #e8e8e8`
+- **背景**: `#fafafa`
+- **内边距**: `12px 16px`
+- **圆角**: `6px`
+- **阴影**: `0 1px 2px rgba(0,0,0,0.04)` 或 `none`
+- **用途**: 金额展示、评分展示、轻量级信息展示
+- **视觉特点**: 柔和、现代、不突兀
+
+**标准信息展示**（推荐用于：文件列表项、内容区块）
+- **边框**: `1px solid #e8e8e8`
+- **背景**: `#fff`
+- **内边距**: `12px 16px`
+- **圆角**: `6px`
+- **阴影**: `0 1px 2px rgba(0,0,0,0.04)`
+- **悬停效果**: `background: #fafafa`, `box-shadow: 0 2px 4px rgba(0,0,0,0.06)`
+- **用途**: 文件列表项、可交互内容区块
+- **视觉特点**: 清晰、有层次、可交互
+
+**强调型信息展示**（用于：重要信息、需要突出的内容）
+- **边框**: `1px solid #d9d9d9`
+- **背景**: `#f9f9f9`
+- **内边距**: `12px 16px`
+- **圆角**: `6px`
+- **阴影**: `0 2px 4px rgba(0,0,0,0.06)`
+- **用途**: 重要信息展示、需要强调的内容
+- **视觉特点**: 突出、有存在感
+
+**传统线框图风格**（不推荐，仅用于向后兼容）
 - **边框**: `2px solid #e0e0e0`
 - **背景**: `#f9f9f9`
 - **内边距**: `10px`
 - **圆角**: `4px`
-- **用途**: 甲方信息、联系人信息、联系电话等只读信息展示
+- **阴影**: `none`
+- **用途**: 仅用于需要保持旧版视觉风格的场景
+- **视觉特点**: 粗边框、高对比、线框图感
+
+### 文件列表项样式（推荐）
+
+**现代文件列表项**
+- **边框**: `1px solid #e8e8e8`
+- **背景**: `#fff`
+- **内边距**: `12px 16px`
+- **圆角**: `6px`
+- **阴影**: `0 1px 2px rgba(0,0,0,0.04)`
+- **间距**: `margin: 8px 0`
+- **悬停效果**: 
+  - `background: #fafafa`
+  - `box-shadow: 0 2px 4px rgba(0,0,0,0.06)`
+  - `border-color: #d9d9d9`
+- **过渡动画**: `transition: all 0.2s ease-in-out`
+- **用途**: 文件列表、文档列表、可交互列表项
+
+### 内容区块样式（推荐）
+
+**嵌套内容区块**（用于：方案阶段、批复审计等模块的内容区域）
+- **边框**: `1px solid #f0f0f0`
+- **背景**: `#fafafa`
+- **内边距**: `16px`
+- **圆角**: `8px`
+- **阴影**: `none` 或 `0 1px 2px rgba(0,0,0,0.04)`
+- **间距**: `margin: 16px 0`
+- **用途**: 方案文件区域、批复金额区域、审计金额区域等
+- **视觉特点**: 柔和、有层次、不抢夺注意力
 
 ### 统计数值样式
 - **总应收金额**: `color: #1890ff`（蓝色）
@@ -189,37 +261,7 @@
 - **宽度**: 800px（表单模态框）、500px（简单模态框）、600px（中等模态框）
 - **内边距**: 默认 Ant Design 样式
 
-## 实现示例
-
-### React + Ant Design 实现
-```tsx
-// ✅ 正确：使用提取的视觉规范
-<div style={{
-  padding: '10px',
-  border: '2px solid #e0e0e0',
-  background: '#f9f9f9',
-  borderRadius: '4px',
-}}>
-  信息内容
-</div>
-
-<Statistic
-  value={amount}
-  valueStyle={{ color: '#1890ff' }}
-/>
-
-// ✅ 正确：使用语义颜色
-<div style={{ color: '#52c41a' }}>
-  已收金额
-</div>
-
-// ❌ 错误：硬编码不存在的颜色
-<div style={{ color: '#123456' }}>
-  内容
-</div>
-```
-
-## 设计 Token 映射（未来实现）
+## 9. 设计 Token 映射（未来实现）
 
 当前系统使用硬编码颜色值，未来应迁移到 DesignTokens：
 
@@ -231,12 +273,17 @@ DesignTokens.Colors.error = '#ff4d4f'
 DesignTokens.Colors.text.primary = '#262626'
 DesignTokens.Colors.text.secondary = '#666'
 DesignTokens.Colors.text.tertiary = '#999'
-DesignTokens.Colors.border.primary = '#e0e0e0'
-DesignTokens.Colors.background.secondary = '#f9f9f9'
+DesignTokens.Colors.border.primary = '#e8e8e8'  // 更新：使用更柔和的边框色
+DesignTokens.Colors.border.secondary = '#f0f0f0'  // 新增：柔和边框
+DesignTokens.Colors.background.secondary = '#fafafa'  // 更新：使用更柔和的背景
+DesignTokens.Colors.background.tertiary = '#f5f5f5'  // 新增：三级背景
 DesignTokens.Spacing.md = '24px'
 DesignTokens.Spacing.sm = '16px'
 DesignTokens.Spacing.xs = '8px'
-DesignTokens.CornerRadius.small = '4px'
+DesignTokens.CornerRadius.small = '6px'  // 更新：从 4px 到 6px
+DesignTokens.CornerRadius.medium = '8px'  // 新增：中等圆角
+DesignTokens.Shadows.light = '0 1px 2px rgba(0,0,0,0.04)'  // 新增：轻量级阴影
+DesignTokens.Shadows.standard = '0 2px 8px rgba(0,0,0,0.08)'  // 更新：标准阴影
 DesignTokens.Typography.title1 = '20px'
 DesignTokens.Typography.caption = '12px'
 ```

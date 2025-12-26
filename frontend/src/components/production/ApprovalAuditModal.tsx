@@ -396,7 +396,7 @@ export const ApprovalAuditModal = ({
         <Row gutter={16}>
           {/* 批复列 */}
           <Col span={12}>
-            <div style={{ border: '1px solid #d9d9d9', padding: '16px', borderRadius: '4px', background: '#fafafa' }}>
+            <div style={{ border: '1px solid #e8e8e8', padding: '16px', borderRadius: '6px', background: '#fafafa' }}>
               <Text strong style={{ fontSize: '16px', marginBottom: '16px', display: 'block' }}>
                 批复
               </Text>
@@ -477,7 +477,7 @@ export const ApprovalAuditModal = ({
                   />
                 </Form.Item>
 
-                <div style={{ marginTop: '8px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                <div style={{ marginTop: '8px', padding: '12px 16px', background: '#fafafa', borderRadius: '6px', border: '1px solid #e8e8e8', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
                   <Text strong>合计: {formatAmount(calculateTotal('approval'))}</Text>
                 </div>
 
@@ -508,7 +508,7 @@ export const ApprovalAuditModal = ({
 
           {/* 审计列 */}
           <Col span={12}>
-            <div style={{ border: '1px solid #d9d9d9', padding: '16px', borderRadius: '4px', background: '#fafafa' }}>
+            <div style={{ border: '1px solid #e8e8e8', padding: '16px', borderRadius: '6px', background: '#fafafa' }}>
               <Text strong style={{ fontSize: '16px', marginBottom: '16px', display: 'block' }}>
                 审计
               </Text>
@@ -589,7 +589,7 @@ export const ApprovalAuditModal = ({
                   />
                 </Form.Item>
 
-                <div style={{ marginTop: '8px', padding: '10px', background: '#f9f9f9', borderRadius: '4px' }}>
+                <div style={{ marginTop: '8px', padding: '12px 16px', background: '#fafafa', borderRadius: '6px', border: '1px solid #e8e8e8', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
                   <Text strong>合计: {formatAmount(calculateTotal('audit'))}</Text>
                 </div>
 
