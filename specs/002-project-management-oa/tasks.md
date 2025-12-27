@@ -2,9 +2,9 @@
 
 **Feature**: 002-project-management-oa  
 **Date**: 2025-01-28  
-**Last Updated**: 2025-01-30  
+**Last Updated**: 2025-12-27  
 **Status**: In Progress  
-**Total Tasks**: 628 (已完成: 635, 待完成: 0)
+**Total Tasks**: 630 (已完成: 635, 待完成: 0)
 
 ## Summary
 
@@ -29,6 +29,7 @@
 - **Phase 17-19 完成**（2025-01-29）：方案阶段、初步设计阶段、施工图设计阶段文件管理功能全部完成（86个任务），包括文件上传、校审单管理、评分管理、文件下载和删除等功能，已集成到项目生产信息页面
 - **对外委托功能任务更新**（2025-01-30）：基于线框图 `21-external-commission-management.html` 更新 Phase 23 任务，新增7个任务（T462-T468），包括汇总信息显示、空状态、加载状态、错误状态、删除确认对话框等功能，确保UI完整覆盖线框图设计
 - **对外委托功能实现完成**（2025-01-30）：Phase 23 所有任务已完成，包括后端CRUD、支付/开票记录、汇总统计、文件操作、权限检查，以及前端表单、列表、汇总、各种状态显示等完整功能，已集成到项目生产信息页面
+- **生产奖金分配任务更新**（2025-12-27）：Phase 24 任务已更新，新增组件建设和复用任务（T469-T477），创建可复用的BonusAllocation组件，统一经营奖金和生产奖金分配的交互模式，支持统计信息横排显示
 
 **关键改造点**:
 1. 路由格式：`/api/v1` → `/{service}/v1/{auth_level}/{path}`（支持public/user/admin三种级别）
@@ -1337,28 +1338,43 @@
 ## Phase 24: User Story 22 - 分配生产奖金 (P2)
 
 ### Story Goal
-生产负责人能够为项目生产相关人员分配生产奖金，包括选择发放人员、录入发放金额、发放时间等信息。支持添加、编辑、删除生产奖金记录。
+生产负责人能够为项目生产相关人员分配生产奖金，包括选择发放人员、录入发放金额、发放时间等信息。支持添加、编辑、删除生产奖金记录。使用可复用的奖金分配组件，与经营奖金分配保持统一的交互模式。
 
 ### Independent Test Criteria
 - 生产负责人可以选择发放人员并录入奖金信息
 - 奖金记录保存成功并更新奖金统计
 - 奖金记录可以编辑和删除
+- 统计信息正确显示（总发放金额、发放次数、发放人数）
+- 与经营奖金分配使用相同的交互模式
 
 ### Implementation Tasks
 
-- [ ] T243 [US22] 实现生产奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=production）backend/internal/services/financial_service.go
-- [ ] T243.1 [US22] 实现生产奖金记录更新 backend/internal/services/financial_service.go
-- [ ] T243.2 [US22] 实现生产奖金记录删除 backend/internal/services/financial_service.go
-- [ ] T244 [US22] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
-- [ ] T245 [US22] 实现生产奖金统计计算 backend/internal/services/financial_service.go
-- [ ] T246 [US22] 更新FinancialHandler支持生产奖金记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
-- [ ] T247 [US22] 创建前端生产奖金表单组件（支持创建和编辑模式，包含添加、编辑、删除按钮）frontend/src/components/production/ProductionBonusForm.tsx
-- [ ] T248 [US22] 实现发放人员选择组件（从项目生产人员中选择）frontend/src/components/production/ProductionBonusRecipientSelector.tsx
-- [ ] T249 [US22] 实现奖金记录列表显示（包含编辑、删除按钮）frontend/src/components/production/ProductionBonusList.tsx
-- [ ] T250 [US22] 更新前端项目生产信息页面集成生产奖金管理（包含列表、创建、编辑、删除功能）frontend/src/pages/ProjectProduction.tsx
-- [ ] T462 [US22] 更新FinancialService使用权限服务：在分配生产奖金时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
-- [ ] T463 [US22] 更新FinancialHandler使用权限服务：在生产奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T464 [US22] 更新前端生产奖金表单组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/production/ProductionBonusForm.tsx
+#### 后端任务
+
+- [X] T243 [US22] 实现生产奖金记录创建（使用FinancialRecord，financial_type=bonus，bonus_category=production）backend/internal/services/financial_service.go
+- [X] T243.1 [US22] 实现生产奖金记录更新 backend/internal/services/financial_service.go
+- [X] T243.2 [US22] 实现生产奖金记录删除 backend/internal/services/financial_service.go
+- [X] T244 [US22] 实现奖金发放人员关联（RecipientID）backend/internal/services/financial_service.go
+- [X] T245 [US22] 实现生产奖金统计计算（总发放金额、发放次数、发放人数）backend/internal/services/financial_service.go
+- [X] T246 [US22] 更新FinancialHandler支持生产奖金记录（包含创建、读取、更新、删除接口）backend/internal/handlers/financial_handler.go
+- [X] T462 [US22] 更新FinancialService使用权限服务：在分配生产奖金时调用权限服务检查权限（CanManageProductionInfo）backend/internal/services/financial_service.go
+- [X] T463 [US22] 更新FinancialHandler使用权限服务：在生产奖金分配Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+
+#### 前端组件建设和复用任务
+
+- [X] T496 [US22] [P] 创建可复用的奖金分配表单组件（BonusAllocationForm，支持创建和编辑模式，统一经营奖金和生产奖金交互）frontend/src/components/shared/BonusAllocationForm.tsx
+- [X] T497 [US22] [P] 创建可复用的奖金分配统计组件（BonusAllocationStatistics，横排显示总发放金额、发放次数、发放人数）frontend/src/components/shared/BonusAllocationStatistics.tsx
+- [X] T498 [US22] [P] 创建可复用的奖金分配列表组件（BonusAllocationList，包含表格、加载状态、空状态、错误状态）frontend/src/components/shared/BonusAllocationList.tsx
+- [X] T499 [US22] 创建可复用的奖金分配主组件（BonusAllocation，整合表单、统计、列表，支持bonusType参数：business/production）frontend/src/components/shared/BonusAllocation.tsx
+
+#### 前端集成任务
+
+- [X] T500 [US22] 更新经营奖金分配使用可复用组件（替换BusinessBonusList和BusinessBonusForm为BonusAllocation组件）frontend/src/components/project/BusinessInfoTab.tsx
+- [X] T501 [US22] 更新生产奖金分配使用可复用组件（使用BonusAllocation组件，bonusType=production，showStatistics=true）frontend/src/components/production/ProductionInfo.tsx
+- [X] T502 [US22] 实现生产奖金发放人员选择逻辑（从项目生产人员列表中选择，包括设计人、参与人、复核人等）frontend/src/components/shared/BonusAllocationForm.tsx
+- [X] T503 [US22] 更新前端项目生产信息页面集成生产奖金管理（使用BonusAllocation组件，包含统计信息显示）frontend/src/components/production/ProductionInfo.tsx
+- [X] T504 [US22] 更新前端项目经营信息页面集成经营奖金管理（使用BonusAllocation组件，不显示统计信息）frontend/src/components/project/BusinessInfoTab.tsx
+- [X] T464 [US22] 更新可复用奖金分配组件：使用权限服务检查权限，无权限时隐藏编辑入口（添加、编辑、删除按钮等），所有用户可查看内容 frontend/src/components/shared/BonusAllocation.tsx
 
 ---
 
@@ -1582,11 +1598,12 @@
   - Phase 19: 28个任务（US17 - 施工图设计阶段文件管理，已完成）
 - Phase 20-22: 待完成（US18-US20）
 - Phase 23: 29个任务（US21，优化后新增约15个任务：补充编辑删除功能、文件上传在保存时触发、文件下载和删除功能、汇总信息显示、UI状态管理）+ 3个权限集成任务（T459-T461）+ 7个基于线框图的新任务（T462-T468）
+- Phase 24: 18个任务（US22，包含组件建设和复用任务：创建可复用的BonusAllocation组件，统一经营奖金和生产奖金交互）+ 8个后端任务 + 4个组件建设任务（T496-T499）+ 6个集成任务（T500-T504, T464）
 - Phase 25: 18个任务（US23）+ 5个权限集成任务（T465-T469，替换T258和T267）
 - Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
 - Final Phase: 26个任务（完善和优化）
 
-**总计**: 628个任务
+**总计**: 630个任务（新增2个任务：组件建设和复用相关）
 
 **最新完成情况**（2025-01-29更新）:
 - Phase 17-19（US15-US17）已完成：86个任务

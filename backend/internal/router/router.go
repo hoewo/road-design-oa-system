@@ -182,6 +182,10 @@ func (r *Router) SetupRoutes(
 			// Production cost routes
 			projects.GET("/:id/production-costs", financialHandler.GetProductionCosts)
 			projects.GET("/:id/production-costs/statistics", financialHandler.GetProductionCostStatistics)
+			// Production bonus statistics
+			projects.GET("/:id/production-bonus/statistics", financialHandler.GetProductionBonusStatistics)
+			// Business bonus statistics
+			projects.GET("/:id/business-bonus/statistics", financialHandler.GetBusinessBonusStatistics)
 
 			// Bonus routes
 			projects.GET("/:id/bonuses", bonusHandler.GetBonuses)

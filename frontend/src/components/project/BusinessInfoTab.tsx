@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Card, Button, Row, Col, Statistic, message } from 'antd'
 import { ContractAndAmendments } from '@/components/business/ContractAndAmendments'
-import { BusinessBonusList } from '@/components/business/BusinessBonusList'
+import { BonusAllocation } from '@/components/shared/BonusAllocation'
 import { BusinessStatistics } from '@/components/business/BusinessStatistics'
 import { BiddingFileList } from '@/components/business/BiddingFileList'
 import { BusinessPersonnelList } from '@/components/business/BusinessPersonnelList'
@@ -151,7 +151,11 @@ export const BusinessInfoTab = ({
 
       {/* 经营奖金分配 */}
       <div style={{ marginBottom: 24 }}>
-        <BusinessBonusList projectId={projectId} />
+        <BonusAllocation
+          projectId={projectId}
+          bonusType="business"
+          showStatistics={true}
+        />
       </div>
 
       {/* 甲方选择模态框（包含联系人管理功能） */}

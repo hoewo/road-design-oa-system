@@ -27,8 +27,7 @@ import { ProductionPersonnelManager } from './ProductionPersonnelManager'
 import { ProductionFileUpload } from './ProductionFileUpload'
 import { ProductionCostList } from './ProductionCostList'
 import { ExternalCommissionList } from './ExternalCommissionList'
-import { BonusList } from '@/components/financial/BonusList'
-import { BonusForm } from '@/components/financial/BonusForm'
+import { BonusAllocation } from '@/components/shared/BonusAllocation'
 import { ApprovalAuditView } from './ApprovalAuditView'
 import { SchemeStageFileManagement } from './SchemeStageFileManagement'
 import { PreliminaryStageFileManagement } from './PreliminaryStageFileManagement'
@@ -77,7 +76,6 @@ export const ProductionInfo = ({
   const queryClient = useQueryClient()
   const [uploadModalVisible, setUploadModalVisible] = useState(false)
   const [uploadStage, setUploadStage] = useState<string | null>(null)
-  const [bonusModalVisible, setBonusModalVisible] = useState(false)
 
   // 获取用户列表
   const { data: usersData } = useQuery({
@@ -287,7 +285,9 @@ export const ProductionInfo = ({
       <ProductionPersonnelManager projectId={String(projectId)} />
 
       {/* 批复审计信息 */}
-      <ApprovalAuditView projectId={projectId} />
+      <div style={{ marginBottom: 24 }}>
+        <ApprovalAuditView projectId={projectId} />
+      </div>
 
       {/* 方案阶段文件管理 */}
       <div style={{ marginBottom: 24 }}>
@@ -323,22 +323,13 @@ export const ProductionInfo = ({
       </div>
 
       {/* 生产奖金分配 */}
-      <Card
-        title="生产奖金分配"
-        extra={
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={() => setBonusModalVisible(true)}
-          >
-            分配奖金
-          </Button>
-        }
-        style={{ marginBottom: 24 }}
-      >
-        <BonusList projectId={projectId} bonusType="production" />
-      </Card>
+      <div style={{ marginBottom: 24 }}>
+        <BonusAllocation
+          projectId={String(projectId)}
+          bonusType="production"
+          showStatistics={true}
+        />
+      </div>
 
       {/* 上传文件模态框 */}
       <Modal
@@ -359,24 +350,6 @@ export const ProductionInfo = ({
         />
       </Modal>
 
-      {/* 生产奖金模态框 */}
-      <Modal
-        title="新建生产奖金"
-        open={bonusModalVisible}
-        onCancel={() => setBonusModalVisible(false)}
-        footer={null}
-        width={600}
-        destroyOnHidden
-      >
-        <BonusForm
-          projectId={projectId}
-          defaultBonusType="production"
-          onSuccess={() => {
-            setBonusModalVisible(false)
-            message.success('生产奖金创建成功')
-          }}
-        />
-      </Modal>
     </div>
   )
 }

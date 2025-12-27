@@ -34,6 +34,7 @@
   - `table.md` - 表格组件
   - `modal.md` - 模态框组件
   - `file-list.md` - 文件列表组件
+  - `bonus-allocation.md` - 奖金分配组件（可复用，用于经营奖金和生产奖金）
 
 ### 4. 线框图 (Wireframes)
 - **目录**: `wireframes/`
@@ -54,6 +55,8 @@
   - `18-change-negotiation-file-management.html` - 变更洽商文件管理
   - `19-completion-acceptance-file-management.html` - 竣工验收文件管理
   - `20-production-cost-management.html` - 生产成本管理
+  - `21-external-commission-management.html` - 对外委托管理
+  - `22-production-bonus-allocation.html` - 生产奖金分配
 
 ### 5. 状态定义 (State Definitions)
 - **文件**: `states.md`

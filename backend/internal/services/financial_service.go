@@ -360,6 +360,105 @@ func (s *FinancialService) GetProductionCostStatistics(projectID string) (*Produ
 	}, nil
 }
 
+// ProductionBonusStatistics represents production bonus statistics
+type ProductionBonusStatistics struct {
+	TotalAmount   float64 `json:"total_amount"`   // 总发放金额
+	RecordCount   int     `json:"record_count"`   // 发放次数
+	RecipientCount int    `json:"recipient_count"` // 发放人数（去重后的发放人员数量）
+}
+
+// GetProductionBonusStatistics calculates production bonus statistics for a project (UUID string)
+// T245: 实现生产奖金统计计算（总发放金额、发放次数、发放人数）
+func (s *FinancialService) GetProductionBonusStatistics(projectID string) (*ProductionBonusStatistics, error) {
+	var totalAmount float64
+	var recordCount int64
+	var recipientCount int64
+
+	// Get total amount
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ?", 
+			projectID, models.FinancialTypeBonus, models.BonusCategoryProduction).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalAmount).Error; err != nil {
+		return nil, err
+	}
+
+	// Get record count
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ?", 
+			projectID, models.FinancialTypeBonus, models.BonusCategoryProduction).
+		Count(&recordCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Get unique recipient count (发放人数)
+	// Use subquery to count distinct recipient_id
+	var distinctRecipients []string
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ? AND recipient_id IS NOT NULL", 
+			projectID, models.FinancialTypeBonus, models.BonusCategoryProduction).
+		Distinct("recipient_id").
+		Pluck("recipient_id", &distinctRecipients).Error; err != nil {
+		return nil, err
+	}
+	recipientCount = int64(len(distinctRecipients))
+
+	return &ProductionBonusStatistics{
+		TotalAmount:    totalAmount,
+		RecordCount:    int(recordCount),
+		RecipientCount: int(recipientCount),
+	}, nil
+}
+
+// BusinessBonusStatistics represents business bonus statistics
+type BusinessBonusStatistics struct {
+	TotalAmount   float64 `json:"total_amount"`   // 总发放金额
+	RecordCount   int     `json:"record_count"`   // 发放次数
+	RecipientCount int    `json:"recipient_count"` // 发放人数（去重后的发放人员数量）
+}
+
+// GetBusinessBonusStatistics calculates business bonus statistics for a project (UUID string)
+func (s *FinancialService) GetBusinessBonusStatistics(projectID string) (*BusinessBonusStatistics, error) {
+	var totalAmount float64
+	var recordCount int64
+	var recipientCount int64
+
+	// Get total amount
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ?", 
+			projectID, models.FinancialTypeBonus, models.BonusCategoryBusiness).
+		Select("COALESCE(SUM(amount), 0)").
+		Scan(&totalAmount).Error; err != nil {
+		return nil, err
+	}
+
+	// Get record count
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ?", 
+			projectID, models.FinancialTypeBonus, models.BonusCategoryBusiness).
+		Count(&recordCount).Error; err != nil {
+		return nil, err
+	}
+
+	// Get unique recipient count (发放人数)
+	// Use subquery to count distinct recipient_id
+	var distinctRecipients []string
+	if err := s.db.Model(&models.FinancialRecord{}).
+		Where("project_id = ? AND financial_type = ? AND bonus_category = ? AND recipient_id IS NOT NULL", 
+			projectID, models.FinancialTypeBonus, models.BonusCategoryBusiness).
+		Distinct("recipient_id").
+		Pluck("recipient_id", &distinctRecipients).Error; err != nil {
+		return nil, err
+	}
+	recipientCount = int64(len(distinctRecipients))
+
+	return &BusinessBonusStatistics{
+		TotalAmount:    totalAmount,
+		RecordCount:    int(recordCount),
+		RecipientCount: int(recipientCount),
+	}, nil
+}
+
 // UpdateFinancialRecordRequest represents the request to update a financial record
 // 根据新的统一财务记录模型设计
 type UpdateFinancialRecordRequest struct {

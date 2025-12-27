@@ -258,6 +258,26 @@ export const businessService = {
     await del(`/user/financial-records/${recordId}`)
   },
 
+  // Production bonus statistics
+  getProductionBonusStatistics: async (
+    projectId: string | number
+  ): Promise<{ total_amount: number; record_count: number; recipient_count: number }> => {
+    const response = await get<{ total_amount: number; record_count: number; recipient_count: number }>(
+      `/user/projects/${projectId}/production-bonus/statistics`
+    )
+    return response || { total_amount: 0, record_count: 0, recipient_count: 0 }
+  },
+
+  // Business bonus statistics
+  getBusinessBonusStatistics: async (
+    projectId: string | number
+  ): Promise<{ total_amount: number; record_count: number; recipient_count: number }> => {
+    const response = await get<{ total_amount: number; record_count: number; recipient_count: number }>(
+      `/user/projects/${projectId}/business-bonus/statistics`
+    )
+    return response || { total_amount: 0, record_count: 0, recipient_count: 0 }
+  },
+
   // Bonuses
   getBonuses: async (projectId: string | number): Promise<Bonus[]> => {
     const response = await get<Bonus[]>(`/user/projects/${projectId}/bonuses`)

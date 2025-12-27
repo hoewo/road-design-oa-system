@@ -525,3 +525,69 @@ func (h *FinancialHandler) GetProductionCostStatistics(c *gin.Context) {
 		"data":    stats,
 	})
 }
+
+// GetProductionBonusStatistics handles retrieving production bonus statistics for a project
+// @Summary Get production bonus statistics
+// @Description Get production bonus statistics (total amount, record count, recipient count) for a specific project
+// @Tags 生产奖金
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Success 200 {object} services.ProductionBonusStatistics
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/production-bonus/statistics [get]
+func (h *FinancialHandler) GetProductionBonusStatistics(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	stats, err := h.financialService.GetProductionBonusStatistics(projectID)
+	if err != nil {
+		h.logger.Error("Failed to get production bonus statistics",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get production bonus statistics", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
+}
+
+// GetBusinessBonusStatistics handles retrieving business bonus statistics for a project
+// @Summary Get business bonus statistics
+// @Description Get business bonus statistics (total amount, record count, recipient count) for a specific project
+// @Tags 经营奖金
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Project ID (UUID)"
+// @Success 200 {object} services.BusinessBonusStatistics
+// @Failure 404 {object} utils.ErrorResponse
+// @Router /projects/{id}/business-bonus/statistics [get]
+func (h *FinancialHandler) GetBusinessBonusStatistics(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	stats, err := h.financialService.GetBusinessBonusStatistics(projectID)
+	if err != nil {
+		h.logger.Error("Failed to get business bonus statistics",
+			zap.Error(err),
+			zap.String("project_id", projectID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get business bonus statistics", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
+}
