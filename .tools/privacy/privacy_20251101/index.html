@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="PhotoRanker Flow - Mac照片评分应用隐私政策 | Mac Photo Rating App Privacy Policy">
+    <title>Privacy Policy - PhotoRanker Flow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 60px 80px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        
+        h1 {
+            color: #1a1a1a;
+            font-size: 36px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        h2 {
+            color: #1a1a1a;
+            font-size: 24px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        h3 {
+            color: #333;
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        p {
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 16px;
+        }
+        
+        li {
+            margin-bottom: 10px;
+        }
+        
+        .highlight-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007aff;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        
+        .important {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        
+        .contact-info {
+            background-color: #e8f4f8;
+            border-left: 4px solid #0d6efd;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        
+        .footer {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .update-date {
+            color: #999;
+            font-size: 13px;
+        }
+        
+        .lang-switcher {
+            text-align: right;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .lang-switcher a {
+            color: #007aff;
+            text-decoration: none;
+            margin-left: 15px;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .lang-switcher a:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .lang-switcher a.active {
+            background-color: #007aff;
+            color: white;
+        }
+        
+        [data-lang] {
+            display: none;
+        }
+        
+        /* 默认显示英文 */
+        [data-lang="en"] {
+            display: block;
+        }
+        
+        li[data-lang="en"] {
+            display: list-item;
+        }
+        
+        /* 当语言激活时显示 */
+        [data-lang].active {
+            display: block;
+        }
+        
+        /* 列表项激活时显示 */
+        li[data-lang].active {
+            display: list-item;
+        }
+        
+        /* 当中文激活时，隐藏所有英文元素 */
+        [data-lang="zh"].active {
+            display: block;
+        }
+        
+        li[data-lang="zh"].active {
+            display: list-item;
+        }
+        
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        table th, table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 30px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="lang-switcher">
+            <a href="?lang=zh" id="lang-zh">中文</a>
+            <a href="?lang=en" id="lang-en">English</a>
+        </div>
+        
+        <h1 data-lang="zh">隐私政策</h1>
+        <h1 data-lang="en">Privacy Policy</h1>
+        
+        <div class="subtitle">
+            <strong>PhotoRanker Flow</strong> <span data-lang="zh">- Mac照片评分应用</span><span data-lang="en">- Mac Photo Rating App</span><br>
+            <span class="update-date">
+                <span data-lang="zh">最后更新日期：2025年11月1日</span>
+                <span data-lang="en">Last Updated: November 1, 2025</span>
+            </span>
+        </div>
+        
+        <section>
+            <h2 data-lang="zh">1. 简介</h2>
+            <h2 data-lang="en">1. Introduction</h2>
+            <p data-lang="zh">
+                感谢您使用 <strong>PhotoRanker Flow</strong>（以下简称"本应用"）。我们非常重视您的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的信息。
+            </p>
+            <p data-lang="en">
+                Thank you for using <strong>PhotoRanker Flow</strong> (hereinafter referred to as "this app"). We highly value your privacy protection. This privacy policy aims to inform you about how we collect, use, store, and protect your information.
+            </p>
+            <div class="highlight-box">
+                <strong data-lang="zh">重要提示：</strong><strong data-lang="en">Important Notice:</strong>
+                <span data-lang="zh">本应用是一款完全本地化的Mac桌面应用程序。我们<strong>不收集、不传输、不共享</strong>任何用户个人信息或照片内容。所有数据处理均在您的设备本地完成。</span>
+                <span data-lang="en">This app is a fully localized Mac desktop application. We <strong>do not collect, transmit, or share</strong> any user personal information or photo content. All data processing is completed locally on your device.</span>
+            </div>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">2. 我们收集的信息</h2>
+            <h2 data-lang="en">2. Information We Collect</h2>
+            <h3 data-lang="zh">2.1 不收集任何个人信息</h3>
+            <h3 data-lang="en">2.1 No Personal Information Collection</h3>
+            <p data-lang="zh">
+                本应用<strong>不收集、不存储、不上传</strong>以下任何信息：
+            </p>
+            <p data-lang="en">
+                This app <strong>does not collect, store, or upload</strong> any of the following information:
+            </p>
+            <ul>
+                <li data-lang="zh">个人身份信息（姓名、邮箱、电话号码等）</li>
+                <li data-lang="en">Personal identification information (name, email, phone number, etc.)</li>
+                <li data-lang="zh">设备标识符（设备ID、MAC地址等）</li>
+                <li data-lang="en">Device identifiers (device ID, MAC address, etc.)</li>
+                <li data-lang="zh">位置信息</li>
+                <li data-lang="en">Location information</li>
+                <li data-lang="zh">使用统计数据或分析数据</li>
+                <li data-lang="en">Usage statistics or analytics data</li>
+                <li data-lang="zh">照片内容或缩略图</li>
+                <li data-lang="en">Photo content or thumbnails</li>
+                <li data-lang="zh">照片元数据（除了您主动设置的评分信息）</li>
+                <li data-lang="en">Photo metadata (except for rating information you actively set)</li>
+                <li data-lang="zh">任何其他个人信息</li>
+                <li data-lang="en">Any other personal information</li>
+            </ul>
+            
+            <h3 data-lang="zh">2.2 本地数据存储</h3>
+            <h3 data-lang="en">2.2 Local Data Storage</h3>
+            <p data-lang="zh">
+                本应用仅在您的设备本地存储以下信息：
+            </p>
+            <p data-lang="en">
+                This app only stores the following information locally on your device:
+            </p>
+            <ul>
+                <li data-lang="zh"><strong>照片评分数据：</strong>当您为照片设置评分（0-5星）时，评分信息会同时以<strong>XMP（可扩展元数据平台）</strong>和<strong>EXIF</strong>两种标准格式写入到照片文件的元数据中。XMP格式用于专业照片管理软件的兼容性，EXIF格式提供更广泛的兼容性支持。此数据完全保存在您的本地设备上，不会离开您的设备。</li>
+                <li data-lang="en"><strong>Photo Rating Data:</strong> When you set a rating (0-5 stars) for a photo, the rating information is written to the photo file's metadata in both <strong>XMP (Extensible Metadata Platform)</strong> and <strong>EXIF</strong> standard formats. XMP format is used for compatibility with professional photo management software, while EXIF format provides broader compatibility. This data is completely stored on your local device and never leaves your device.</li>
+                <li data-lang="zh"><strong>用户偏好设置：</strong>包括排序方式、窗口大小等界面偏好设置，这些设置仅存储在您的Mac系统UserDefaults中，不会与任何第三方共享。</li>
+                <li data-lang="en"><strong>User Preferences:</strong> Including sorting methods, window sizes, and other interface preferences. These settings are only stored in your Mac's UserDefaults and are not shared with any third parties.</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">3. 文件访问权限</h2>
+            <h2 data-lang="en">3. File Access Permissions</h2>
+            <h3 data-lang="zh">3.1 权限范围</h3>
+            <h3 data-lang="en">3.1 Permission Scope</h3>
+            <p data-lang="zh">
+                本应用运行在macOS沙盒环境中，具有严格的文件访问限制：
+            </p>
+            <p data-lang="en">
+                This app runs in a macOS sandbox environment with strict file access restrictions:
+            </p>
+            <ul>
+                <li data-lang="zh">应用只能访问您<strong>明确授权选择</strong>的文件夹</li>
+                <li data-lang="en">The app can only access folders that you <strong>explicitly authorize and select</strong></li>
+                <li data-lang="zh">应用使用 <code>com.apple.security.files.bookmarks.app-scope</code> 权限，确保只能访问您指定的文件夹</li>
+                <li data-lang="en">The app uses the <code>com.apple.security.files.bookmarks.app-scope</code> permission to ensure it can only access folders you specify</li>
+                <li data-lang="zh">应用无法访问您未明确选择的任何其他文件夹或文件</li>
+                <li data-lang="en">The app cannot access any other folders or files you have not explicitly selected</li>
+                <li data-lang="zh">应用无法访问系统目录或其他应用的私有数据</li>
+                <li data-lang="en">The app cannot access system directories or private data of other applications</li>
+            </ul>
+            
+            <h3 data-lang="zh">3.2 文件操作</h3>
+            <h3 data-lang="en">3.2 File Operations</h3>
+            <p data-lang="zh">
+                本应用对您选择的文件夹中的图片文件进行以下操作：
+            </p>
+            <p data-lang="en">
+                This app performs the following operations on image files in the folder you select:
+            </p>
+            <ul>
+                <li data-lang="zh"><strong>读取操作：</strong>读取图片文件用于显示和预览</li>
+                <li data-lang="en"><strong>Read Operations:</strong> Reading image files for display and preview</li>
+                <li data-lang="zh"><strong>元数据读取：</strong>读取图片文件中的EXIF和XMP元数据，特别是评分信息</li>
+                <li data-lang="en"><strong>Metadata Reading:</strong> Reading EXIF and XMP metadata from image files, particularly rating information</li>
+                <li data-lang="zh"><strong>元数据写入：</strong>当您设置照片评分时，将评分信息写入到图片文件的XMP和EXIF元数据中</li>
+                <li data-lang="en"><strong>Metadata Writing:</strong> When you set a photo rating, writing the rating information to the image file's XMP and EXIF metadata</li>
+                <li data-lang="zh"><strong>删除操作：</strong>应用提供删除功能，但<strong>仅在您主动点击删除按钮时</strong>才会执行。删除操作会将照片文件移动到macOS系统垃圾桶（废纸篓），您可以从垃圾桶中恢复文件。应用<strong>不会自动删除</strong>您的照片文件。</li>
+                <li data-lang="en"><strong>Delete Operations:</strong> The app provides delete functionality, but it <strong>only executes when you actively click the delete button</strong>. Delete operations move photo files to the macOS system Trash, from which you can recover files. The app <strong>does not automatically delete</strong> your photo files.</li>
+                <li data-lang="zh">应用不会自动移动或复制您的照片文件</li>
+                <li data-lang="en">The app does not automatically move or copy your photo files</li>
+                <li data-lang="zh">应用不会修改照片的像素内容，仅修改元数据</li>
+                <li data-lang="en">The app does not modify the pixel content of photos, only metadata</li>
+            </ul>
+            
+            <div class="important">
+                <strong data-lang="zh">安全说明：</strong><strong data-lang="en">Security Note:</strong>
+                <span data-lang="zh">当您首次选择文件夹时，macOS会向您请求访问权限。您可以随时在"系统设置" > "隐私与安全性" > "文件和文件夹"中撤销此权限。</span>
+                <span data-lang="en">When you first select a folder, macOS will request access permission. You can revoke this permission at any time in "System Settings" > "Privacy & Security" > "Files and Folders".</span>
+            </div>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">4. 数据使用方式</h2>
+            <h2 data-lang="en">4. How We Use Data</h2>
+            <h3 data-lang="zh">4.1 本地处理</h3>
+            <h3 data-lang="en">4.1 Local Processing</h3>
+            <p data-lang="zh">
+                本应用的所有数据处理均在您的Mac设备本地完成：
+            </p>
+            <p data-lang="en">
+                All data processing of this app is completed locally on your Mac device:
+            </p>
+            <ul>
+                <li data-lang="zh">图片加载和显示在本地进行</li>
+                <li data-lang="en">Image loading and display are performed locally</li>
+                <li data-lang="zh">搜索、过滤和排序功能使用本地算法处理</li>
+                <li data-lang="en">Search, filter, and sort functions use local algorithms</li>
+                <li data-lang="zh">缩略图生成和缓存存储在本地</li>
+                <li data-lang="en">Thumbnail generation and caching are stored locally</li>
+                <li data-lang="zh">评分数据的读取和写入在本地文件系统中完成</li>
+                <li data-lang="en">Reading and writing of rating data is completed in the local file system</li>
+            </ul>
+            
+            <h3 data-lang="zh">4.2 功能说明</h3>
+            <h3 data-lang="en">4.2 Feature Description</h3>
+            <p data-lang="zh">本应用提供以下功能，所有功能均在本地执行：</p>
+            <p data-lang="en">This app provides the following features, all executed locally:</p>
+            <ul>
+                <li data-lang="zh"><strong>图片浏览：</strong>支持JPG、PNG、GIF、BMP、TIFF、WebP以及多种RAW格式（CR2、CR3、NEF、ARW、DNG、RAF、ORF等）</li>
+                <li data-lang="en"><strong>Image Browsing:</strong> Supports JPG, PNG, GIF, BMP, TIFF, WebP, and various RAW formats (CR2, CR3, NEF, ARW, DNG, RAF, ORF, etc.)</li>
+                <li data-lang="zh"><strong>图片预览：</strong>支持缩放、拖拽查看等交互功能</li>
+                <li data-lang="en"><strong>Image Preview:</strong> Supports interactive features such as zooming and dragging</li>
+                <li data-lang="zh"><strong>照片评分：</strong>为照片设置0-5星评分，评分数据同时存储在照片文件的XMP和EXIF元数据中，确保与其他照片管理软件的兼容性</li>
+                <li data-lang="en"><strong>Photo Rating:</strong> Set 0-5 star ratings for photos. Rating data is stored in both XMP and EXIF metadata of photo files, ensuring compatibility with other photo management software</li>
+                <li data-lang="zh"><strong>搜索过滤：</strong>按文件名搜索、按评分过滤、按名称/日期/评分排序</li>
+                <li data-lang="en"><strong>Search and Filter:</strong> Search by filename, filter by rating, sort by name/date/rating</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">5. 数据共享与传输</h2>
+            <h2 data-lang="en">5. Data Sharing and Transmission</h2>
+            <div class="highlight-box">
+                <strong data-lang="zh">重要承诺：</strong><strong data-lang="en">Important Commitment:</strong>
+                <span data-lang="zh">本应用<strong>不进行任何网络传输</strong>，不会将您的任何数据发送到任何服务器、第三方服务或云端存储。</span>
+                <span data-lang="en">This app <strong>does not perform any network transmission</strong> and will not send any of your data to any server, third-party service, or cloud storage.</span>
+            </div>
+            <ul>
+                <li data-lang="zh">应用不会连接互联网</li>
+                <li data-lang="en">The app does not connect to the internet</li>
+                <li data-lang="zh">应用不会使用任何第三方分析服务</li>
+                <li data-lang="en">The app does not use any third-party analytics services</li>
+                <li data-lang="zh">应用不会使用任何广告服务</li>
+                <li data-lang="en">The app does not use any advertising services</li>
+                <li data-lang="zh">应用不会向任何第三方共享、出售或披露您的信息</li>
+                <li data-lang="en">The app does not share, sell, or disclose your information to any third parties</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">6. 数据安全</h2>
+            <h2 data-lang="en">6. Data Security</h2>
+            <h3 data-lang="zh">6.1 本地安全</h3>
+            <h3 data-lang="en">6.1 Local Security</h3>
+            <p data-lang="zh">
+                我们采用以下措施保护您的数据安全：
+            </p>
+            <p data-lang="en">
+                We adopt the following measures to protect your data security:
+            </p>
+            <ul>
+                <li data-lang="zh"><strong>沙盒环境：</strong>应用运行在macOS沙盒中，具有严格的安全限制</li>
+                <li data-lang="en"><strong>Sandbox Environment:</strong> The app runs in a macOS sandbox with strict security restrictions</li>
+                <li data-lang="zh"><strong>原子文件操作：</strong>写入元数据时使用原子替换机制，确保数据完整性</li>
+                <li data-lang="en"><strong>Atomic File Operations:</strong> Uses atomic replacement mechanism when writing metadata to ensure data integrity</li>
+                <li data-lang="zh"><strong>权限最小化：</strong>仅请求必要的文件访问权限</li>
+                <li data-lang="en"><strong>Minimal Permissions:</strong> Only requests necessary file access permissions</li>
+                <li data-lang="zh"><strong>本地存储：</strong>所有数据存储在您的设备上，受macOS系统安全机制保护</li>
+                <li data-lang="en"><strong>Local Storage:</strong> All data is stored on your device and protected by macOS system security mechanisms</li>
+            </ul>
+            
+            <h3 data-lang="zh">6.2 数据备份</h3>
+            <h3 data-lang="en">6.2 Data Backup</h3>
+            <p data-lang="zh">
+                由于评分数据直接存储在您的照片文件中，当您使用Time Machine或其他备份工具备份您的照片时，评分数据会自动包含在备份中。
+            </p>
+            <p data-lang="en">
+                Since rating data is directly stored in your photo files, when you back up your photos using Time Machine or other backup tools, the rating data will automatically be included in the backup.
+            </p>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">7. 第三方服务</h2>
+            <h2 data-lang="en">7. Third-Party Services</h2>
+            <p data-lang="zh">
+                本应用<strong>不使用任何第三方服务</strong>，包括但不限于：
+            </p>
+            <p data-lang="en">
+                This app <strong>does not use any third-party services</strong>, including but not limited to:
+            </p>
+            <ul>
+                <li data-lang="zh">分析服务（如Google Analytics、Firebase等）</li>
+                <li data-lang="en">Analytics services (such as Google Analytics, Firebase, etc.)</li>
+                <li data-lang="zh">广告服务</li>
+                <li data-lang="en">Advertising services</li>
+                <li data-lang="zh">云端存储服务</li>
+                <li data-lang="en">Cloud storage services</li>
+                <li data-lang="zh">崩溃报告服务</li>
+                <li data-lang="en">Crash reporting services</li>
+                <li data-lang="zh">用户行为追踪服务</li>
+                <li data-lang="en">User behavior tracking services</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">8. 您的权利</h2>
+            <h2 data-lang="en">8. Your Rights</h2>
+            <p data-lang="zh">
+                作为本应用的用户，您拥有以下权利：
+            </p>
+            <p data-lang="en">
+                As a user of this app, you have the following rights:
+            </p>
+            <ul>
+                <li data-lang="zh"><strong>访问权：</strong>您可以随时查看和管理您设置的照片评分数据（评分存储在照片文件的元数据中）</li>
+                <li data-lang="en"><strong>Access Right:</strong> You can view and manage your photo rating data at any time (ratings are stored in the photo file's metadata)</li>
+                <li data-lang="zh"><strong>控制权：</strong>您可以完全控制应用访问哪些文件夹</li>
+                <li data-lang="en"><strong>Control Right:</strong> You have complete control over which folders the app can access</li>
+                <li data-lang="zh"><strong>删除权：</strong>您可以随时删除应用或撤销文件访问权限</li>
+                <li data-lang="en"><strong>Deletion Right:</strong> You can delete the app or revoke file access permissions at any time</li>
+                <li data-lang="zh"><strong>数据导出：</strong>由于评分数据存储在照片文件中（XMP和EXIF格式），您可以随时通过其他支持XMP或EXIF元数据标准的照片管理软件查看或修改这些数据</li>
+                <li data-lang="en"><strong>Data Export:</strong> Since rating data is stored in photo files (in XMP and EXIF formats), you can view or modify this data at any time through other photo management software that supports XMP or EXIF metadata standards</li>
+            </ul>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">9. 儿童隐私</h2>
+            <h2 data-lang="en">9. Children's Privacy</h2>
+            <p data-lang="zh">
+                本应用不收集任何个人信息，包括儿童的个人信息。由于应用完全在本地运行且不连接互联网，因此不存在收集儿童信息的情况。
+            </p>
+            <p data-lang="en">
+                This app does not collect any personal information, including children's personal information. Since the app runs entirely locally and does not connect to the internet, there is no situation where children's information would be collected.
+            </p>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">10. 隐私政策变更</h2>
+            <h2 data-lang="en">10. Privacy Policy Changes</h2>
+            <p data-lang="zh">
+                我们可能会不定期更新本隐私政策。任何重大变更都会在应用内或通过其他方式通知您。我们建议您定期查看本隐私政策以了解最新信息。
+            </p>
+            <p data-lang="en">
+                We may update this privacy policy from time to time. Any significant changes will be notified to you within the app or through other means. We recommend that you regularly review this privacy policy to stay informed.
+            </p>
+            <p data-lang="zh">
+                本隐私政策最后更新日期：<strong>2025年11月1日</strong>
+            </p>
+            <p data-lang="en">
+                Last updated date of this privacy policy: <strong>November 1, 2025</strong>
+            </p>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">11. 联系方式</h2>
+            <h2 data-lang="en">11. Contact Information</h2>
+            <div class="contact-info">
+                <p data-lang="zh">
+                    如果您对本隐私政策有任何疑问、意见或建议，请通过以下方式联系我们：
+                </p>
+                <p data-lang="en">
+                    If you have any questions, comments, or suggestions about this privacy policy, please contact us through the following:
+                </p>
+                <p>
+                    <strong data-lang="zh">应用名称：</strong><strong data-lang="en">App Name:</strong> PhotoRanker Flow<br>
+                    <strong data-lang="zh">平台：</strong><strong data-lang="en">Platform:</strong> macOS<br>
+                    <strong data-lang="zh">联系邮箱：</strong><strong data-lang="en">Contact Email:</strong> support-timejourney@feitianchengzi.com
+                </p>
+                <p data-lang="zh">
+                    我们会在合理的时间内回复您的询问。
+                </p>
+                <p data-lang="en">
+                    We will reply to your inquiries within a reasonable time.
+                </p>
+            </div>
+        </section>
+        
+        <section>
+            <h2 data-lang="zh">12. 法律声明</h2>
+            <h2 data-lang="en">12. Legal Statement</h2>
+            <p data-lang="zh">
+                本隐私政策受中华人民共和国法律管辖。如因本隐私政策引起的任何争议，双方应友好协商解决；协商不成的，任何一方均可向有管辖权的人民法院提起诉讼。
+            </p>
+            <p data-lang="en">
+                This privacy policy is governed by the laws of the People's Republic of China. Any disputes arising from this privacy policy shall be resolved through friendly negotiation; if negotiation fails, either party may file a lawsuit with a people's court with jurisdiction.
+            </p>
+        </section>
+        
+        <div class="footer">
+            <p data-lang="zh">© 2025 PhotoRanker Flow. 保留所有权利。</p>
+            <p data-lang="en">© 2025 PhotoRanker Flow. All rights reserved.</p>
+            <p data-lang="zh">本应用致力于保护用户隐私，所有数据处理均在本地完成。</p>
+            <p data-lang="en">This app is committed to protecting user privacy, and all data processing is completed locally.</p>
+        </div>
+    </div>
+    
+    <script>
+        // 获取URL参数
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+        
+        // 设置语言
+        function setLanguage(lang) {
+            // 默认为英文
+            if (!lang || (lang !== 'zh' && lang !== 'en')) {
+                lang = 'en';
+            }
+            
+            // 移除所有active类，先隐藏所有内容
+            document.querySelectorAll('[data-lang]').forEach(function(el) {
+                el.classList.remove('active');
+            });
+            
+            // 显示选中语言的内容
+            document.querySelectorAll('[data-lang="' + lang + '"]').forEach(function(el) {
+                el.classList.add('active');
+            });
+            
+            // 更新语言切换按钮状态
+            document.getElementById('lang-zh').classList.toggle('active', lang === 'zh');
+            document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+            
+            // 更新HTML lang属性
+            document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+            
+            // 更新页面标题
+            document.title = lang === 'zh' ? '隐私政策 - PhotoRanker Flow' : 'Privacy Policy - PhotoRanker Flow';
+        }
+        
+        // 页面加载时设置语言
+        window.addEventListener('DOMContentLoaded', function() {
+            var lang = getUrlParameter('lang');
+            // 如果没有指定语言参数，默认使用英文
+            if (!lang) {
+                lang = 'en';
+            }
+            setLanguage(lang);
+        });
+    </script>
+</body>
+</html>
+
