@@ -843,15 +843,19 @@ if [ "$DEPLOY_MODE" = "remote" ]; then
             # 排除 postgres 和 minio 等基础镜像（它们不需要保存，可以直接拉取）
             if [[ "$line" != *"postgres"* ]] && [[ "$line" != *"minio"* ]]; then
                 # 只保存选中的服务镜像
-                local should_include=false
+                should_include=false
                 for svc in "${SELECTED_SERVICES[@]}"; do
-                    if [ "$svc" = "backend" ] && [[ "$line" == *"backend"* ]] || \
-                       [ "$svc" = "frontend" ] && [[ "$line" == *"frontend"* ]]; then
+                    if ([ "$svc" = "backend" ] && [[ "$line" == *"backend"* ]]) || \
+                       ([ "$svc" = "frontend" ] && [[ "$line" == *"frontend"* ]]); then
                         should_include=true
                         break
                     fi
                 done
                 if [ "$should_include" = true ]; then
+                    # 如果镜像名称不包含标签，添加 :latest
+                    if [[ "$line" != *":"* ]]; then
+                        line="${line}:latest"
+                    fi
                     IMAGES+=("$line")
                 fi
             fi
@@ -1556,7 +1560,7 @@ DB_PASSWORD="${DB_PASSWORD:-project_oa_password}"
 if is_service_deployed "postgres"; then
     if ! docker compose ps postgres | grep -q "Up"; then
         echo -e "${BLUE}  启动 PostgreSQL...${NC}"
-        docker compose up -d postgres
+        docker compose up -d --no-build postgres
         sleep 5
     fi
     
@@ -1616,6 +1620,7 @@ EOF
             echo -e "${YELLOW}⚠ 数据库初始化可能不完整，请手动检查${NC}"
         fi
     fi
+    fi  # 关闭 if [ $wait_count -ge $max_wait ]
 else
     echo -e "${BLUE}  跳过数据库初始化（未选择 postgres 服务）${NC}"
     DB_INITIALIZED=true
@@ -1634,9 +1639,13 @@ if is_service_deployed "minio"; then
     INFRA_SERVICES+=("minio")
 fi
 
-if [ \${#INFRA_SERVICES[@]} -gt 0 ]; then
+INFRA_COUNT=${#INFRA_SERVICES[@]}
+if [ "$INFRA_COUNT" -gt 0 ]; then
     echo -e "${BLUE}  阶段1: 启动基础设施服务 (\${INFRA_SERVICES[*]})...${NC}"
-    docker compose up -d "\${INFRA_SERVICES[@]}"
+    # 使用循环来启动服务，避免数组展开问题
+    for svc in "${INFRA_SERVICES[@]}"; do
+        docker compose up -d --no-build "$svc"
+    done
     sleep 15
 else
     echo -e "${BLUE}  阶段1: 跳过基础设施服务启动${NC}"
@@ -1647,13 +1656,13 @@ if is_service_deployed "postgres"; then
     echo -e "${BLUE}  等待 PostgreSQL 就绪...${NC}"
     max_wait=30
     wait_count=0
-    while [ \$wait_count -lt \$max_wait ]; do
+    while [ "$wait_count" -lt "$max_wait" ]; do
         if docker compose exec -T postgres pg_isready -U postgres > /dev/null 2>&1; then
             echo -e "${GREEN}  ✓ PostgreSQL 就绪${NC}"
             break
         fi
         sleep 1
-        ((wait_count++))
+        wait_count=$((wait_count + 1))
     done
 fi
 
@@ -1662,14 +1671,14 @@ if is_service_deployed "minio"; then
     echo -e "${BLUE}  等待 MinIO 就绪...${NC}"
     max_wait=30
     wait_count=0
-    MINIO_PORT="\${MINIO_API_PORT:-9000}"
-    while [ \$wait_count -lt \$max_wait ]; do
-        if curl -s "http://localhost:\${MINIO_PORT}/minio/health/live" > /dev/null 2>&1; then
+    MINIO_PORT="${MINIO_API_PORT:-9000}"
+    while [ "$wait_count" -lt "$max_wait" ]; do
+        if curl -s "http://localhost:${MINIO_PORT}/minio/health/live" > /dev/null 2>&1; then
             echo -e "${GREEN}  ✓ MinIO 就绪${NC}"
             break
         fi
         sleep 1
-        ((wait_count++))
+        wait_count=$((wait_count + 1))
     done
 fi
 
@@ -1677,34 +1686,34 @@ fi
 if is_service_deployed "backend"; then
     echo ""
     echo -e "${BLUE}  阶段2: 启动应用服务 (backend)...${NC}"
-    docker compose up -d backend
+    docker compose up -d --no-build backend
     sleep 10
     
     # 阶段3: 健康检查循环（等待后端就绪）
     echo ""
     echo -e "${BLUE}  阶段3: 等待后端服务就绪...${NC}"
     # 使用环境变量中的 SERVICE_NAME，默认为 project-oa
-    SERVICE_NAME="\${SERVICE_NAME:-project-oa}"
-    SERVER_PORT="\${SERVER_PORT:-8082}"
-    BACKEND_HEALTH_URL="http://localhost:\${SERVER_PORT}/\${SERVICE_NAME}/health"
-    echo -e "${BLUE}  健康检查端点: \${BACKEND_HEALTH_URL}${NC}"
+    SERVICE_NAME="${SERVICE_NAME:-project-oa}"
+    SERVER_PORT="${SERVER_PORT:-8082}"
+    BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
+    echo -e "${BLUE}  健康检查端点: ${BACKEND_HEALTH_URL}${NC}"
     max_attempts=30
     attempt=1
     
-    while [ \$attempt -le \$max_attempts ]; do
-        if curl -sf "\${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
-            echo -e "${GREEN}  ✓ 后端服务就绪 (尝试 \${attempt}/\${max_attempts})${NC}"
+    while [ $attempt -le $max_attempts ]; do
+        if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
+            echo -e "${GREEN}  ✓ 后端服务就绪 (尝试 ${attempt}/${max_attempts})${NC}"
             break
         fi
         
-        if [ \$attempt -eq \$max_attempts ]; then
+        if [ $attempt -eq $max_attempts ]; then
             echo -e "${YELLOW}  ⚠ 后端服务健康检查超时，但继续部署${NC}"
         else
-            echo -e "${BLUE}    等待后端服务... (\${attempt}/\${max_attempts})${NC}"
+            echo -e "${BLUE}    等待后端服务... (${attempt}/${max_attempts})${NC}"
         fi
         
         sleep 2
-        ((attempt++))
+        attempt=$((attempt + 1))
     done
 else
     echo ""
@@ -1716,7 +1725,7 @@ fi
 if is_service_deployed "frontend"; then
     echo ""
     echo -e "${BLUE}  阶段4: 启动前端服务 (frontend)...${NC}"
-    docker compose up -d frontend
+    docker compose up -d --no-build frontend
     sleep 5
 else
     echo ""
@@ -1751,7 +1760,7 @@ fi
 all_running=true
 for container in "\${REQUIRED_CONTAINERS[@]}"; do
     if docker ps --format "{{.Names}}" | grep -q "^\${container}\$"; then
-        STATUS=\$(docker ps --format "{{.Status}}" --filter "name=^\${container}\$")
+        STATUS=$(docker ps --format "{{.Status}}" --filter "name=^${container}$")
         echo -e "${GREEN}  ✓ \${container}: \${STATUS}${NC}"
     else
         echo -e "${RED}  ✗ \${container}: 未运行${NC}"
@@ -1770,20 +1779,20 @@ echo -e "${CYAN}[8/8] 最终健康检查...${NC}"
 
 # 检查后端健康
 if is_service_deployed "backend"; then
-    SERVICE_NAME="\${SERVICE_NAME:-project-oa}"
-    SERVER_PORT="\${SERVER_PORT:-8082}"
-    BACKEND_HEALTH_URL="http://localhost:\${SERVER_PORT}/\${SERVICE_NAME}/health"
-    if curl -sf "\${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
+    SERVICE_NAME="${SERVICE_NAME:-project-oa}"
+    SERVER_PORT="${SERVER_PORT:-8082}"
+    BACKEND_HEALTH_URL="http://localhost:${SERVER_PORT}/${SERVICE_NAME}/health"
+    if curl -sf "${BACKEND_HEALTH_URL}" > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ 后端健康检查通过${NC}"
     else
-        echo -e "${YELLOW}  ⚠ 后端健康检查失败 (\${BACKEND_HEALTH_URL})${NC}"
+        echo -e "${YELLOW}  ⚠ 后端健康检查失败 (${BACKEND_HEALTH_URL})${NC}"
     fi
 fi
 
 # 检查前端（通过 nginx）
 if is_service_deployed "frontend"; then
-    FRONTEND_PORT="\${FRONTEND_PORT:-3000}"
-    if curl -sf "http://localhost:\${FRONTEND_PORT}" > /dev/null 2>&1; then
+    FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+    if curl -sf "http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1; then
         echo -e "${GREEN}  ✓ 前端服务可访问${NC}"
     else
         echo -e "${YELLOW}  ⚠ 前端服务检查失败${NC}"
