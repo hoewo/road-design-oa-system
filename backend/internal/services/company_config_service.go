@@ -12,13 +12,15 @@ import (
 
 // CompanyConfigService handles company configuration operations
 type CompanyConfigService struct {
-	db *gorm.DB
+	db               *gorm.DB
+	permissionService *PermissionService
 }
 
 // NewCompanyConfigService creates a new company config service
 func NewCompanyConfigService() *CompanyConfigService {
 	return &CompanyConfigService{
-		db: database.DB,
+		db:               database.DB,
+		permissionService: NewPermissionService(),
 	}
 }
 
@@ -120,7 +122,17 @@ func (s *CompanyConfigService) SetConfig(key, value, description string, created
 
 // SetDefaultManagementFeeRatio sets the default management fee ratio
 // ratio should be between 0 and 1 (e.g., 0.15 for 15%) (UUID string)
+// T465: 添加权限检查
 func (s *CompanyConfigService) SetDefaultManagementFeeRatio(ratio float64, description string, createdByID string) (*models.CompanyConfig, error) {
+	// Check permission (T465)
+	canManage, err := s.permissionService.CanManageCompanyRevenue(createdByID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage company revenue")
+	}
+	
 	// Validate ratio
 	if ratio < 0 || ratio > 1 {
 		return nil, errors.New("management fee ratio must be between 0 and 1")

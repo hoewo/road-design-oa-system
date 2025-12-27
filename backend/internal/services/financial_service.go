@@ -766,7 +766,17 @@ type ProjectRevenueSummary struct {
 
 // GetCompanyRevenueStatistics retrieves company-level revenue statistics
 // Aggregates financial data from all projects with management fee calculation
-func (s *FinancialService) GetCompanyRevenueStatistics() (*CompanyRevenueStatistics, error) {
+// T466: 添加权限检查
+func (s *FinancialService) GetCompanyRevenueStatistics(userID string) (*CompanyRevenueStatistics, error) {
+	// Check permission (T466)
+	canManage, err := s.permissionService.CanManageCompanyRevenue(userID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage company revenue")
+	}
+	
 	// Get all projects
 	var projects []models.Project
 	if err := s.db.Find(&projects).Error; err != nil {
@@ -822,4 +832,428 @@ func (s *FinancialService) GetCompanyRevenueStatistics() (*CompanyRevenueStatist
 	}
 
 	return stats, nil
+}
+
+// CompanyRevenueSummary represents company revenue summary for US23
+// 公司收入管理功能的数据结构
+type CompanyRevenueSummary struct {
+	// 总应收金额（按费用类型分类）
+	TotalReceivableByFeeType struct {
+		DesignFee       float64 `json:"design_fee"`       // 设计费
+		SurveyFee       float64 `json:"survey_fee"`       // 勘察费
+		ConsultationFee float64 `json:"consultation_fee"` // 咨询费
+		Total           float64 `json:"total"`            // 总计
+	} `json:"total_receivable_by_fee_type"`
+	
+	// 已收金额（所有甲方支付金额）
+	TotalPaid float64 `json:"total_paid"`
+	
+	// 未收金额
+	TotalOutstanding float64 `json:"total_outstanding"`
+}
+
+// GetCompanyRevenueSummary retrieves company revenue summary for US23 (T253)
+// 实现公司收入统计计算（聚合所有项目数据）
+func (s *FinancialService) GetCompanyRevenueSummary(userID string, startDate, endDate *time.Time) (*CompanyRevenueSummary, error) {
+	// Check permission
+	canManage, err := s.permissionService.CanManageCompanyRevenue(userID)
+	if err != nil {
+		return nil, err
+	}
+	if !canManage {
+		return nil, errors.New("permission denied: you do not have permission to manage company revenue")
+	}
+	
+	return s.GetTotalReceivableByFeeType(startDate, endDate)
+}
+
+// GetTotalReceivableByFeeType calculates total receivable amount by fee type (T254)
+// 实现总应收金额统计（所有项目的合同+补充协议），按设计费、勘察费、咨询费分别汇总
+func (s *FinancialService) GetTotalReceivableByFeeType(startDate, endDate *time.Time) (*CompanyRevenueSummary, error) {
+	summary := &CompanyRevenueSummary{}
+	
+	// 查询所有合同
+	contractQuery := s.db.Model(&models.Contract{})
+	if startDate != nil {
+		contractQuery = contractQuery.Where("sign_date >= ?", *startDate)
+	}
+	if endDate != nil {
+		contractQuery = contractQuery.Where("sign_date <= ?", *endDate)
+	}
+	
+	// 聚合合同金额
+	var contractTotals struct {
+		DesignFee       float64
+		SurveyFee       float64
+		ConsultationFee float64
+	}
+	if err := contractQuery.Select("COALESCE(SUM(design_fee), 0) as design_fee, COALESCE(SUM(survey_fee), 0) as survey_fee, COALESCE(SUM(consultation_fee), 0) as consultation_fee").
+		Scan(&contractTotals).Error; err != nil {
+		return nil, err
+	}
+	
+	// 查询所有补充协议
+	amendmentQuery := s.db.Model(&models.ContractAmendment{})
+	if startDate != nil {
+		amendmentQuery = amendmentQuery.Where("sign_date >= ?", *startDate)
+	}
+	if endDate != nil {
+		amendmentQuery = amendmentQuery.Where("sign_date <= ?", *endDate)
+	}
+	
+	// 聚合补充协议金额
+	var amendmentTotals struct {
+		DesignFee       float64
+		SurveyFee       float64
+		ConsultationFee float64
+	}
+	if err := amendmentQuery.Select("COALESCE(SUM(design_fee), 0) as design_fee, COALESCE(SUM(survey_fee), 0) as survey_fee, COALESCE(SUM(consultation_fee), 0) as consultation_fee").
+		Scan(&amendmentTotals).Error; err != nil {
+		return nil, err
+	}
+	
+	// 汇总
+	summary.TotalReceivableByFeeType.DesignFee = contractTotals.DesignFee + amendmentTotals.DesignFee
+	summary.TotalReceivableByFeeType.SurveyFee = contractTotals.SurveyFee + amendmentTotals.SurveyFee
+	summary.TotalReceivableByFeeType.ConsultationFee = contractTotals.ConsultationFee + amendmentTotals.ConsultationFee
+	summary.TotalReceivableByFeeType.Total = summary.TotalReceivableByFeeType.DesignFee + 
+		summary.TotalReceivableByFeeType.SurveyFee + 
+		summary.TotalReceivableByFeeType.ConsultationFee
+	
+	// 计算已收金额（所有甲方支付）
+	paidQuery := s.db.Model(&models.FinancialRecord{}).
+		Where("financial_type = ? AND direction = ?", models.FinancialTypeClientPayment, models.FinancialDirectionIncome)
+	if startDate != nil {
+		paidQuery = paidQuery.Where("occurred_at >= ?", *startDate)
+	}
+	if endDate != nil {
+		paidQuery = paidQuery.Where("occurred_at <= ?", *endDate)
+	}
+	if err := paidQuery.Select("COALESCE(SUM(amount), 0)").Scan(&summary.TotalPaid).Error; err != nil {
+		return nil, err
+	}
+	
+	// 计算未收金额
+	summary.TotalOutstanding = summary.TotalReceivableByFeeType.Total - summary.TotalPaid
+	
+	return summary, nil
+}
+
+// InvoiceInfo represents invoice information for company revenue
+type InvoiceInfo struct {
+	ID          string    `json:"id"`
+	ProjectID   string    `json:"project_id"`
+	ProjectName string    `json:"project_name"`
+	FeeType     string    `json:"fee_type"`     // 费用类型：design_fee, survey_fee, consultation_fee
+	InvoiceDate time.Time `json:"invoice_date"` // 开票时间
+	Amount      float64   `json:"amount"`       // 开票金额
+	InvoiceFile *models.File `json:"invoice_file,omitempty"` // 发票文件
+}
+
+// GetInvoiceInfoList retrieves all invoice information with filtering and pagination (T255, T505, T506)
+// 实现所有发票信息汇总，支持搜索过滤和分页
+func (s *FinancialService) GetInvoiceInfoList(userID string, filters *InvoiceFilterParams, page, pageSize int) ([]InvoiceInfo, int64, error) {
+	// Check permission
+	canManage, err := s.permissionService.CanManageCompanyRevenue(userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !canManage {
+		return nil, 0, errors.New("permission denied: you do not have permission to manage company revenue")
+	}
+	
+	// Build query
+	query := s.db.Model(&models.FinancialRecord{}).
+		Where("financial_type = ? AND direction = ?", models.FinancialTypeOurInvoice, models.FinancialDirectionIncome).
+		Joins("JOIN projects ON financial_records.project_id = projects.id").
+		Preload("Project").
+		Preload("InvoiceFile")
+	
+	// Apply filters
+	if filters != nil {
+		if filters.ProjectName != "" {
+			query = query.Where("projects.project_name ILIKE ?", "%"+filters.ProjectName+"%")
+		}
+		// Fee type filter is applied after fetching records (see below)
+		// because fee type needs to be calculated from contracts
+		if filters.StartDate != nil {
+			query = query.Where("financial_records.occurred_at >= ?", *filters.StartDate)
+		}
+		if filters.EndDate != nil {
+			query = query.Where("financial_records.occurred_at <= ?", *filters.EndDate)
+		}
+	}
+	
+	// Get total count (before fee type filter, as it requires contract lookup)
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// If fee type filter is specified, we need to fetch all records first,
+	// filter by fee type, then paginate. This is less efficient but necessary
+	// since fee type is calculated from contracts.
+	// For better performance with large datasets, consider adding fee_type field to FinancialRecord
+	var allRecords []models.FinancialRecord
+	if filters != nil && filters.FeeType != "" {
+		// Fetch all records (without pagination) to apply fee type filter
+		if err := query.Order("financial_records.occurred_at DESC").
+			Find(&allRecords).Error; err != nil {
+			return nil, 0, err
+		}
+		
+		// Filter by fee type
+		filteredRecords := make([]models.FinancialRecord, 0)
+		for _, record := range allRecords {
+			feeType := s.getFeeTypeForProject(record.ProjectID, record.Amount)
+			if feeType == filters.FeeType {
+				filteredRecords = append(filteredRecords, record)
+			}
+		}
+		
+		// Update total count
+		total = int64(len(filteredRecords))
+		
+		// Apply pagination to filtered records
+		offset := (page - 1) * pageSize
+		if offset >= len(filteredRecords) {
+			return []InvoiceInfo{}, total, nil
+		}
+		end := offset + pageSize
+		if end > len(filteredRecords) {
+			end = len(filteredRecords)
+		}
+		allRecords = filteredRecords[offset:end]
+	} else {
+		// No fee type filter, apply pagination directly
+		offset := (page - 1) * pageSize
+		if err := query.Order("financial_records.occurred_at DESC").
+			Offset(offset).
+			Limit(pageSize).
+			Find(&allRecords).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+	
+	// Convert to InvoiceInfo
+	invoices := make([]InvoiceInfo, 0, len(allRecords))
+	for _, record := range allRecords {
+		feeType := s.getFeeTypeForProject(record.ProjectID, record.Amount)
+		
+		invoices = append(invoices, InvoiceInfo{
+			ID:          record.ID,
+			ProjectID:   record.ProjectID,
+			ProjectName: record.Project.ProjectName,
+			FeeType:     feeType,
+			InvoiceDate: record.OccurredAt,
+			Amount:      record.Amount,
+			InvoiceFile: record.InvoiceFile,
+		})
+	}
+	
+	return invoices, total, nil
+}
+
+// PaymentInfo represents payment information for company revenue
+type PaymentInfo struct {
+	ID          string    `json:"id"`
+	ProjectID   string    `json:"project_id"`
+	ProjectName string    `json:"project_name"`
+	FeeType     string    `json:"fee_type"`     // 费用类型：design_fee, survey_fee, consultation_fee
+	PaymentDate time.Time `json:"payment_date"` // 支付时间
+	Amount      float64   `json:"amount"`       // 支付金额
+}
+
+// GetPaymentInfoList retrieves all payment information with filtering and pagination (T256, T507, T508)
+// 实现所有支付信息汇总，支持搜索过滤和分页
+func (s *FinancialService) GetPaymentInfoList(userID string, filters *PaymentFilterParams, page, pageSize int) ([]PaymentInfo, int64, error) {
+	// Check permission
+	canManage, err := s.permissionService.CanManageCompanyRevenue(userID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !canManage {
+		return nil, 0, errors.New("permission denied: you do not have permission to manage company revenue")
+	}
+	
+	// Build query
+	query := s.db.Model(&models.FinancialRecord{}).
+		Where("financial_type = ? AND direction = ?", models.FinancialTypeClientPayment, models.FinancialDirectionIncome).
+		Joins("JOIN projects ON financial_records.project_id = projects.id").
+		Preload("Project")
+	
+	// Apply filters
+	if filters != nil {
+		if filters.ProjectName != "" {
+			query = query.Where("projects.project_name ILIKE ?", "%"+filters.ProjectName+"%")
+		}
+		if filters.FeeType != "" {
+			// 注意：新的FinancialRecord模型没有FeeType字段，需要根据业务逻辑判断
+		}
+		if filters.StartDate != nil {
+			query = query.Where("financial_records.occurred_at >= ?", *filters.StartDate)
+		}
+		if filters.EndDate != nil {
+			query = query.Where("financial_records.occurred_at <= ?", *filters.EndDate)
+		}
+	}
+	
+	// Get total count (before fee type filter, as it requires contract lookup)
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	
+	// If fee type filter is specified, we need to fetch all records first,
+	// filter by fee type, then paginate. This is less efficient but necessary
+	// since fee type is calculated from contracts.
+	// For better performance with large datasets, consider adding fee_type field to FinancialRecord
+	var allRecords []models.FinancialRecord
+	if filters != nil && filters.FeeType != "" {
+		// Fetch all records (without pagination) to apply fee type filter
+		if err := query.Order("financial_records.occurred_at DESC").
+			Find(&allRecords).Error; err != nil {
+			return nil, 0, err
+		}
+		
+		// Filter by fee type
+		filteredRecords := make([]models.FinancialRecord, 0)
+		for _, record := range allRecords {
+			feeType := s.getFeeTypeForProject(record.ProjectID, record.Amount)
+			if feeType == filters.FeeType {
+				filteredRecords = append(filteredRecords, record)
+			}
+		}
+		
+		// Update total count
+		total = int64(len(filteredRecords))
+		
+		// Apply pagination to filtered records
+		offset := (page - 1) * pageSize
+		if offset >= len(filteredRecords) {
+			return []PaymentInfo{}, total, nil
+		}
+		end := offset + pageSize
+		if end > len(filteredRecords) {
+			end = len(filteredRecords)
+		}
+		allRecords = filteredRecords[offset:end]
+	} else {
+		// No fee type filter, apply pagination directly
+		offset := (page - 1) * pageSize
+		if err := query.Order("financial_records.occurred_at DESC").
+			Offset(offset).
+			Limit(pageSize).
+			Find(&allRecords).Error; err != nil {
+			return nil, 0, err
+		}
+	}
+	
+	// Convert to PaymentInfo
+	payments := make([]PaymentInfo, 0, len(allRecords))
+	for _, record := range allRecords {
+		feeType := s.getFeeTypeForProject(record.ProjectID, record.Amount)
+		
+		payments = append(payments, PaymentInfo{
+			ID:          record.ID,
+			ProjectID:   record.ProjectID,
+			ProjectName: record.Project.ProjectName,
+			FeeType:     feeType,
+			PaymentDate: record.OccurredAt,
+			Amount:      record.Amount,
+		})
+	}
+	
+	return payments, total, nil
+}
+
+// InvoiceFilterParams represents filter parameters for invoice search
+type InvoiceFilterParams struct {
+	ProjectName string     `json:"project_name"` // 项目名称（模糊搜索）
+	FeeType     string     `json:"fee_type"`     // 费用类型：design_fee, survey_fee, consultation_fee
+	StartDate   *time.Time `json:"start_date"`   // 开票时间（起）
+	EndDate     *time.Time `json:"end_date"`     // 开票时间（止）
+}
+
+// PaymentFilterParams represents filter parameters for payment search
+type PaymentFilterParams struct {
+	ProjectName string     `json:"project_name"` // 项目名称（模糊搜索）
+	FeeType     string     `json:"fee_type"`     // 费用类型：design_fee, survey_fee, consultation_fee
+	StartDate   *time.Time `json:"start_date"`   // 支付时间（起）
+	EndDate     *time.Time `json:"end_date"`     // 支付时间（止）
+}
+
+// getFeeTypeForProject determines the fee type for a financial record based on project contracts
+// Returns the most likely fee type (design_fee, survey_fee, consultation_fee) or empty string if cannot determine
+func (s *FinancialService) getFeeTypeForProject(projectID string, amount float64) string {
+	// Get all contracts for the project, ordered by sign date (newest first)
+	var contracts []models.Contract
+	if err := s.db.Where("project_id = ?", projectID).
+		Order("sign_date DESC").
+		Find(&contracts).Error; err != nil {
+		return ""
+	}
+	
+	if len(contracts) == 0 {
+		return ""
+	}
+	
+	// Use the most recent contract (or the one with the largest amount)
+	// For simplicity, we'll use the most recent contract
+	contract := contracts[0]
+	
+	// Calculate total fees from contract and amendments
+	totalDesignFee := contract.DesignFee
+	totalSurveyFee := contract.SurveyFee
+	totalConsultationFee := contract.ConsultationFee
+	
+	// Add amendment fees
+	var amendments []models.ContractAmendment
+	if err := s.db.Where("contract_id = ?", contract.ID).Find(&amendments).Error; err == nil {
+		for _, amendment := range amendments {
+			totalDesignFee += amendment.DesignFee
+			totalSurveyFee += amendment.SurveyFee
+			totalConsultationFee += amendment.ConsultationFee
+		}
+	}
+	
+	// Determine fee type based on which fee category the amount is closest to
+	// This is a heuristic approach - in a real scenario, you might need more sophisticated logic
+	totalContractAmount := totalDesignFee + totalSurveyFee + totalConsultationFee
+	if totalContractAmount == 0 {
+		return ""
+	}
+	
+	// Calculate proportions
+	designRatio := totalDesignFee / totalContractAmount
+	surveyRatio := totalSurveyFee / totalContractAmount
+	consultationRatio := totalConsultationFee / totalContractAmount
+	
+	// Find the fee type with the highest proportion
+	maxRatio := designRatio
+	feeType := "design_fee"
+	
+	if surveyRatio > maxRatio {
+		maxRatio = surveyRatio
+		feeType = "survey_fee"
+	}
+	if consultationRatio > maxRatio {
+		maxRatio = consultationRatio
+		feeType = "consultation_fee"
+	}
+	
+	// If the highest proportion is less than 50%, we can't confidently determine the fee type
+	// In this case, return empty string or the most likely one
+	if maxRatio < 0.5 {
+		// Return the fee type with the highest absolute amount
+		if totalDesignFee >= totalSurveyFee && totalDesignFee >= totalConsultationFee {
+			return "design_fee"
+		} else if totalSurveyFee >= totalConsultationFee {
+			return "survey_fee"
+		} else {
+			return "consultation_fee"
+		}
+	}
+	
+	return feeType
 }

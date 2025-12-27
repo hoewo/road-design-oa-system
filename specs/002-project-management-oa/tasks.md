@@ -1390,27 +1390,42 @@
 
 ### Implementation Tasks
 
-- [ ] T251 [US23] 更新CompanyConfig模型符合002规范（ID为UUID）backend/internal/models/company_config.go
-- [ ] T252 [US23] 更新CompanyConfigService支持管理费比例设置 backend/internal/services/company_config_service.go
-- [ ] T253 [US23] 实现公司收入统计计算（聚合所有项目数据）backend/internal/services/financial_service.go
-- [ ] T254 [US23] 实现总应收金额统计（所有项目的合同+补充协议）backend/internal/services/financial_service.go
-- [ ] T255 [US23] 实现所有发票信息汇总 backend/internal/services/financial_service.go
-- [ ] T256 [US23] 实现所有支付信息汇总 backend/internal/services/financial_service.go
-- [ ] T257 [US23] 实现未收金额统计（总应收-已收）backend/internal/services/financial_service.go
-- [ ] T465 [US23] 更新CompanyConfigService使用权限服务：在设置管理费比例时调用权限服务检查权限（CanManageCompanyRevenue）backend/internal/services/company_config_service.go
-- [ ] T466 [US23] 更新FinancialService使用权限服务：在查看公司收入统计时调用权限服务检查权限（CanManageCompanyRevenue）backend/internal/services/financial_service.go
-- [ ] T467 [US23] 更新CompanyConfigHandler使用权限服务：在管理费设置Handler中调用权限服务 backend/internal/handlers/company_config_handler.go
-- [ ] T468 [US23] 更新FinancialHandler使用权限服务：在公司收入统计Handler中调用权限服务 backend/internal/handlers/financial_handler.go
-- [ ] T259 [US23] 更新CompanyConfigHandler支持管理费设置 backend/internal/handlers/company_config_handler.go
-- [ ] T260 [US23] 更新FinancialHandler支持公司收入统计查询 backend/internal/handlers/financial_handler.go
-- [ ] T261 [US23] 创建前端管理费设置组件 frontend/src/components/financial/ManagementFeeSetting.tsx
-- [ ] T262 [US23] 创建前端公司收入统计组件 frontend/src/components/financial/CompanyRevenueStatistics.tsx
-- [ ] T263 [US23] 实现总应收金额展示（按设计费、勘察费、咨询费分类）frontend/src/components/financial/CompanyRevenueStatistics.tsx
-- [ ] T264 [US23] 实现发票信息列表展示 frontend/src/components/financial/InvoiceSummary.tsx
-- [ ] T265 [US23] 实现支付信息列表展示 frontend/src/components/financial/PaymentSummary.tsx
-- [ ] T266 [US23] 实现未收金额统计展示 frontend/src/components/financial/UnpaidAmountSummary.tsx
-- [ ] T469 [US23] 更新前端公司收入管理页面：使用权限服务检查权限（CanManageCompanyRevenue），无权限时拒绝访问并显示提示信息（完全不可访问模式）frontend/src/pages/CompanyRevenue.tsx
-- [ ] T268 [US23] 更新前端公司收入管理页面 frontend/src/pages/CompanyRevenue.tsx
+- [X] T251 [US23] 更新CompanyConfig模型符合002规范（ID为UUID）backend/internal/models/company_config.go
+- [X] T252 [US23] 更新CompanyConfigService支持管理费比例设置 backend/internal/services/company_config_service.go
+- [X] T253 [US23] 实现公司收入统计计算（聚合所有项目数据）backend/internal/services/financial_service.go
+- [X] T254 [US23] 实现总应收金额统计（所有项目的合同+补充协议）backend/internal/services/financial_service.go
+- [X] T255 [US23] 实现所有发票信息汇总 backend/internal/services/financial_service.go
+- [X] T256 [US23] 实现所有支付信息汇总 backend/internal/services/financial_service.go
+- [X] T257 [US23] 实现未收金额统计（总应收-已收）backend/internal/services/financial_service.go
+- [X] T505 [US23] 实现发票信息搜索过滤功能（支持按项目名称、费用类型、开票时间范围过滤）backend/internal/services/financial_service.go
+- [X] T506 [US23] 实现发票信息分页查询功能（支持页码、每页条数）backend/internal/services/financial_service.go
+- [X] T507 [US23] 实现支付信息搜索过滤功能（支持按项目名称、费用类型、支付时间范围过滤）backend/internal/services/financial_service.go
+- [X] T508 [US23] 实现支付信息分页查询功能（支持页码、每页条数）backend/internal/services/financial_service.go
+- [X] T465 [US23] 更新CompanyConfigService使用权限服务：在设置管理费比例时调用权限服务检查权限（CanManageCompanyRevenue）backend/internal/services/company_config_service.go
+- [X] T466 [US23] 更新FinancialService使用权限服务：在查看公司收入统计时调用权限服务检查权限（CanManageCompanyRevenue）backend/internal/services/financial_service.go
+- [X] T467 [US23] 更新CompanyConfigHandler使用权限服务：在管理费设置Handler中调用权限服务 backend/internal/handlers/company_config_handler.go
+- [X] T468 [US23] 更新FinancialHandler使用权限服务：在公司收入统计Handler中调用权限服务 backend/internal/handlers/financial_handler.go
+- [X] T259 [US23] 更新CompanyConfigHandler支持管理费设置 backend/internal/handlers/company_config_handler.go
+- [X] T260 [US23] 更新FinancialHandler支持公司收入统计查询 backend/internal/handlers/financial_handler.go
+- [X] T509 [US23] 更新FinancialHandler支持发票信息搜索过滤和分页查询接口 backend/internal/handlers/financial_handler.go
+- [X] T510 [US23] 更新FinancialHandler支持支付信息搜索过滤和分页查询接口 backend/internal/handlers/financial_handler.go
+- [X] T511 [US23] 实现发票信息导出接口（支持Excel/CSV格式）backend/internal/handlers/financial_handler.go
+- [X] T512 [US23] 实现支付信息导出接口（支持Excel/CSV格式）backend/internal/handlers/financial_handler.go
+- [X] T261 [US23] 创建前端管理费设置组件 frontend/src/components/financial/ManagementFeeSetting.tsx
+- [X] T262 [US23] 创建前端公司收入统计组件 frontend/src/components/financial/CompanyRevenueStatistics.tsx
+- [X] T263 [US23] 实现总应收金额展示（按设计费、勘察费、咨询费分类）frontend/src/components/financial/CompanyRevenueStatistics.tsx
+- [X] T264 [US23] 实现发票信息列表展示 frontend/src/components/financial/InvoiceSummary.tsx
+- [X] T513 [US23] 实现发票信息搜索过滤组件（项目名称、费用类型、开票时间范围）frontend/src/components/financial/InvoiceSummary.tsx
+- [X] T514 [US23] 实现发票信息分页组件（页码导航、每页条数选择、总记录数显示）frontend/src/components/financial/InvoiceSummary.tsx
+- [X] T265 [US23] 实现支付信息列表展示 frontend/src/components/financial/PaymentSummary.tsx
+- [X] T515 [US23] 实现支付信息搜索过滤组件（项目名称、费用类型、支付时间范围）frontend/src/components/financial/PaymentSummary.tsx
+- [X] T516 [US23] 实现支付信息分页组件（页码导航、每页条数选择、总记录数显示）frontend/src/components/financial/PaymentSummary.tsx
+- [X] T266 [US23] 实现未收金额统计展示 frontend/src/components/financial/CompanyRevenueStatistics.tsx（已集成在统计组件中）
+- [X] T469 [US23] 更新前端公司收入管理页面：使用权限服务检查权限（CanManageCompanyRevenue），无权限时拒绝访问并显示提示信息（完全不可访问模式）frontend/src/pages/CompanyRevenue.tsx
+- [X] T268 [US23] 更新前端公司收入管理页面 frontend/src/pages/CompanyRevenue.tsx
+- [X] T517 [US23] 实现发票信息导出功能（调用导出接口，支持Excel/CSV格式下载）frontend/src/components/financial/InvoiceSummary.tsx
+- [X] T518 [US23] 实现支付信息导出功能（调用导出接口，支持Excel/CSV格式下载）frontend/src/components/financial/PaymentSummary.tsx
+- [X] T519 [US23] 实现已收金额统计展示（在统计卡片中显示）frontend/src/components/financial/CompanyRevenueStatistics.tsx
 
 ---
 

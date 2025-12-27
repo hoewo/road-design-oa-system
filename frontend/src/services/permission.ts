@@ -82,6 +82,22 @@ export const permissionService = {
   },
 
   /**
+   * 检查用户是否可以管理公司收入
+   * 财务人员、系统管理员可以管理公司收入
+   */
+  canManageCompanyRevenue: async (): Promise<boolean> => {
+    try {
+      const response = await get<{ can_manage: boolean }>(
+        '/user/permissions/can-manage-company-revenue'
+      )
+      return response?.can_manage ?? false
+    } catch (error) {
+      console.error('Failed to check manage company revenue permission:', error)
+      return false
+    }
+  },
+
+  /**
    * 获取可用于配置项目负责人的用户列表
    * @param managerType 'business' 或 'production'
    */

@@ -33,6 +33,15 @@
         .filter-bar { margin: 20px 0; padding: 15px; background: #f9f9f9; border: 1px solid #ccc; }
         .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
         .warning { padding: 15px; background: #fff3cd; border: 2px dashed #ffc107; margin: 20px 0; }
+        .search-bar { margin: 15px 0; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; }
+        .select { width: 100%; padding: 10px; border: 2px solid #ccc; border-radius: 4px; background: white; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0; }
+        .pagination-info { color: #666; }
+        .pagination-controls { display: flex; gap: 10px; align-items: center; }
+        .pagination-btn { padding: 6px 12px; border: 1px solid #ccc; background: white; cursor: pointer; }
+        .pagination-btn:hover { background: #f0f0f0; }
+        .pagination-btn.active { background: #333; color: white; border-color: #333; }
+        .pagination-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -102,6 +111,10 @@
                     <div class="stat-value">¥1,000,000</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-label">已收金额</div>
+                    <div class="stat-value">¥12,000,000</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-label">未收金额</div>
                     <div class="stat-value">¥3,500,000</div>
                 </div>
@@ -109,11 +122,47 @@
 
             <!-- 所有发票信息 -->
             <div class="section">
-                <div class="section-title">所有发票信息</div>
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>所有发票信息</span>
+                    <button class="button">导出数据</button>
+                </div>
+                
+                <!-- 搜索过滤栏 -->
+                <div class="search-bar">
+                    <div class="form-row" style="flex-wrap: wrap;">
+                        <div class="form-group" style="max-width: 250px;">
+                            <label class="label">项目名称</label>
+                            <input type="text" class="input" placeholder="输入项目名称搜索" />
+                        </div>
+                        <div class="form-group" style="max-width: 200px;">
+                            <label class="label">费用类型</label>
+                            <select class="select">
+                                <option value="">全部</option>
+                                <option value="design_fee">设计费</option>
+                                <option value="survey_fee">勘察费</option>
+                                <option value="consultation_fee">咨询费</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="max-width: 200px;">
+                            <label class="label">开票时间（起）</label>
+                            <input type="date" class="input" />
+                        </div>
+                        <div class="form-group" style="max-width: 200px;">
+                            <label class="label">开票时间（止）</label>
+                            <input type="date" class="input" />
+                        </div>
+                        <div style="align-self: flex-end; margin-top: 8px;">
+                            <button class="button button-primary">搜索</button>
+                            <button class="button">重置</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <table class="table">
                     <thead>
                         <tr>
                             <th>项目名称</th>
+                            <th>费用类型</th>
                             <th>开票时间</th>
                             <th>开票金额</th>
                             <th>发票文件</th>
@@ -122,33 +171,148 @@
                     <tbody>
                         <tr>
                             <td>XX道路改造工程</td>
+                            <td>设计费</td>
                             <td>2024-02-18</td>
                             <td>¥500,000</td>
                             <td><span class="link">发票1.pdf</span></td>
                         </tr>
                         <tr>
                             <td>YY桥梁设计项目</td>
+                            <td>设计费</td>
                             <td>2024-03-15</td>
                             <td>¥300,000</td>
                             <td><span class="link">发票2.pdf</span></td>
                         </tr>
                         <tr>
                             <td>XX道路改造工程</td>
+                            <td>勘察费</td>
                             <td>2024-04-20</td>
                             <td>¥200,000</td>
                             <td><span class="link">发票3.pdf</span></td>
                         </tr>
+                        <tr>
+                            <td>ZZ隧道设计项目</td>
+                            <td>咨询费</td>
+                            <td>2024-05-10</td>
+                            <td>¥150,000</td>
+                            <td><span class="link">发票4.pdf</span></td>
+                        </tr>
+                        <tr>
+                            <td>AA道路扩建工程</td>
+                            <td>设计费</td>
+                            <td>2024-06-05</td>
+                            <td>¥800,000</td>
+                            <td><span class="link">发票5.pdf</span></td>
+                        </tr>
+                        <tr>
+                            <td>BB桥梁维修项目</td>
+                            <td>勘察费</td>
+                            <td>2024-07-12</td>
+                            <td>¥250,000</td>
+                            <td><span class="link">发票6.pdf</span></td>
+                        </tr>
+                        <tr>
+                            <td>CC道路改造工程</td>
+                            <td>设计费</td>
+                            <td>2024-08-20</td>
+                            <td>¥600,000</td>
+                            <td><span class="link">发票7.pdf</span></td>
+                        </tr>
+                        <tr>
+                            <td>DD桥梁设计项目</td>
+                            <td>咨询费</td>
+                            <td>2024-09-15</td>
+                            <td>¥180,000</td>
+                            <td><span class="link">发票8.pdf</span></td>
+                        </tr>
+                        <tr>
+                            <td>EE道路新建工程</td>
+                            <td>设计费</td>
+                            <td>2024-10-08</td>
+                            <td>¥950,000</td>
+                            <td><span class="link">发票9.pdf</span></td>
+                        </tr>
+                        <tr>
+                            <td>FF隧道设计项目</td>
+                            <td>勘察费</td>
+                            <td>2024-11-22</td>
+                            <td>¥320,000</td>
+                            <td><span class="link">发票10.pdf</span></td>
+                        </tr>
                     </tbody>
                 </table>
+                
+                <!-- 分页组件 -->
+                <div class="pagination">
+                    <div class="pagination-info">
+                        共 156 条记录，每页显示
+                        <select style="padding: 4px 8px; margin: 0 5px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        条，当前第 1/8 页
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" disabled>首页</button>
+                        <button class="pagination-btn" disabled>上一页</button>
+                        <button class="pagination-btn active">1</button>
+                        <button class="pagination-btn">2</button>
+                        <button class="pagination-btn">3</button>
+                        <button class="pagination-btn">4</button>
+                        <button class="pagination-btn">5</button>
+                        <span style="padding: 0 10px;">...</span>
+                        <button class="pagination-btn">8</button>
+                        <button class="pagination-btn">下一页</button>
+                        <button class="pagination-btn">末页</button>
+                    </div>
+                </div>
             </div>
 
             <!-- 所有支付信息 -->
             <div class="section">
-                <div class="section-title">所有支付信息</div>
+                <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>所有支付信息</span>
+                    <button class="button">导出数据</button>
+                </div>
+                
+                <!-- 搜索过滤栏 -->
+                <div class="search-bar">
+                    <div class="form-row" style="flex-wrap: wrap;">
+                        <div class="form-group" style="max-width: 250px;">
+                            <label class="label">项目名称</label>
+                            <input type="text" class="input" placeholder="输入项目名称搜索" />
+                        </div>
+                        <div class="form-group" style="max-width: 200px;">
+                            <label class="label">费用类型</label>
+                            <select class="select">
+                                <option value="">全部</option>
+                                <option value="design_fee">设计费</option>
+                                <option value="survey_fee">勘察费</option>
+                                <option value="consultation_fee">咨询费</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="max-width: 200px;">
+                            <label class="label">支付时间（起）</label>
+                            <input type="date" class="input" />
+                        </div>
+                        <div class="form-group" style="max-width: 200px;">
+                            <label class="label">支付时间（止）</label>
+                            <input type="date" class="input" />
+                        </div>
+                        <div style="align-self: flex-end; margin-top: 8px;">
+                            <button class="button button-primary">搜索</button>
+                            <button class="button">重置</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <table class="table">
                     <thead>
                         <tr>
                             <th>项目名称</th>
+                            <th>费用类型</th>
                             <th>支付时间</th>
                             <th>支付金额</th>
                         </tr>
@@ -156,21 +320,144 @@
                     <tbody>
                         <tr>
                             <td>XX道路改造工程</td>
+                            <td>设计费</td>
                             <td>2024-02-15</td>
                             <td>¥500,000</td>
                         </tr>
                         <tr>
                             <td>YY桥梁设计项目</td>
+                            <td>设计费</td>
                             <td>2024-03-10</td>
                             <td>¥300,000</td>
                         </tr>
                         <tr>
                             <td>XX道路改造工程</td>
+                            <td>勘察费</td>
                             <td>2024-03-20</td>
                             <td>¥300,000</td>
                         </tr>
+                        <tr>
+                            <td>ZZ隧道设计项目</td>
+                            <td>咨询费</td>
+                            <td>2024-05-08</td>
+                            <td>¥150,000</td>
+                        </tr>
+                        <tr>
+                            <td>AA道路扩建工程</td>
+                            <td>设计费</td>
+                            <td>2024-06-01</td>
+                            <td>¥800,000</td>
+                        </tr>
+                        <tr>
+                            <td>BB桥梁维修项目</td>
+                            <td>勘察费</td>
+                            <td>2024-07-08</td>
+                            <td>¥250,000</td>
+                        </tr>
+                        <tr>
+                            <td>CC道路改造工程</td>
+                            <td>设计费</td>
+                            <td>2024-08-15</td>
+                            <td>¥600,000</td>
+                        </tr>
+                        <tr>
+                            <td>DD桥梁设计项目</td>
+                            <td>咨询费</td>
+                            <td>2024-09-10</td>
+                            <td>¥180,000</td>
+                        </tr>
+                        <tr>
+                            <td>EE道路新建工程</td>
+                            <td>设计费</td>
+                            <td>2024-10-05</td>
+                            <td>¥950,000</td>
+                        </tr>
+                        <tr>
+                            <td>FF隧道设计项目</td>
+                            <td>勘察费</td>
+                            <td>2024-11-18</td>
+                            <td>¥320,000</td>
+                        </tr>
                     </tbody>
                 </table>
+                
+                <!-- 分页组件 -->
+                <div class="pagination">
+                    <div class="pagination-info">
+                        共 142 条记录，每页显示
+                        <select style="padding: 4px 8px; margin: 0 5px; border: 1px solid #ccc; border-radius: 4px;">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        条，当前第 1/8 页
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="pagination-btn" disabled>首页</button>
+                        <button class="pagination-btn" disabled>上一页</button>
+                        <button class="pagination-btn active">1</button>
+                        <button class="pagination-btn">2</button>
+                        <button class="pagination-btn">3</button>
+                        <button class="pagination-btn">4</button>
+                        <button class="pagination-btn">5</button>
+                        <span style="padding: 0 10px;">...</span>
+                        <button class="pagination-btn">8</button>
+                        <button class="pagination-btn">下一页</button>
+                        <button class="pagination-btn">末页</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载中状态 -->
+        <div class="container">
+            <h2>加载中状态</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item active">公司收入</div>
+                <div class="navbar-item">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">管理费设置</div>
+                <div class="form-row">
+                    <div class="form-group" style="max-width: 300px;">
+                        <label class="label">管理费比例</label>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="number" class="input input-small" value="10" step="0.1" min="0" max="100" disabled />
+                            <span>%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="button button-primary" disabled>保存设置</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div class="form-row">
+                    <div class="form-group" style="max-width: 200px;">
+                        <label class="label">开始日期</label>
+                        <input type="date" class="input" value="2024-01-01" disabled />
+                    </div>
+                    <div class="form-group" style="max-width: 200px;">
+                        <label class="label">结束日期</label>
+                        <input type="date" class="input" value="2024-12-31" disabled />
+                    </div>
+                    <div style="align-self: flex-end;">
+                        <button class="button button-primary" disabled>查询</button>
+                        <button class="button" disabled>重置</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; padding: 60px; color: #999;">
+                <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                <h3>正在加载数据...</h3>
+                <p style="margin-top: 10px;">请稍候</p>
             </div>
         </div>
 
@@ -228,12 +515,21 @@
         <div class="note">
             <strong>设计说明：</strong><br>
             - 需要权限控制，仅财务人员或配置了权限的用户可以访问<br>
-            - 支持按时间段筛选统计数据<br>
-            - 显示总应收金额（按设计费、勘察费、咨询费分类）和未收金额<br>
-            - 展示所有项目的发票信息和支付信息汇总<br>
+            - 支持按时间段筛选统计数据（默认显示当前年份或最近一年）<br>
+            - 显示总应收金额（按设计费、勘察费、咨询费分类）、已收金额和未收金额<br>
+            - 展示所有项目的发票信息和支付信息汇总，表格中显示费用类型（设计费、勘察费、咨询费）<br>
+            - 发票信息和支付信息表格支持分页或加载更多，支持导出数据功能<br>
             - 可以设置管理费比例<br>
             - 无权限时显示权限不足提示<br>
-            - 无数据时显示空状态提示
+            - 无数据时显示空状态提示<br>
+            <br>
+            <strong>优化说明：</strong><br>
+            - ✅ 增加了"已收金额"统计卡片，使财务数据更完整<br>
+            - ✅ 发票信息表格增加了"费用类型"列，符合需求中按费用类型分类的要求<br>
+            - ✅ 支付信息表格增加了"费用类型"列，保持数据一致性<br>
+            - ✅ 增加了完整的搜索过滤功能：支持按项目名称、费用类型、时间范围进行搜索和过滤<br>
+            - ✅ 增加了完整的分页展示功能：显示总记录数、每页条数选择、页码导航（首页、上一页、页码、下一页、末页）<br>
+            - ✅ 增加了导出数据功能按钮，满足财务数据导出需求
         </div>
     </div>
 </body>

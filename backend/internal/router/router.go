@@ -92,10 +92,11 @@ func (r *Router) SetupRoutes(
 		// 权限相关路由
 		permissions := user.Group("/permissions")
 		{
-		permissions.GET("/can-create-project", permissionHandler.CheckCreateProjectPermission)
-		permissions.GET("/can-manage-project-managers", permissionHandler.CheckManageProjectManagersPermission)
-		permissions.GET("/can-manage-business-info", permissionHandler.CheckManageBusinessInfoPermission)
+			permissions.GET("/can-create-project", permissionHandler.CheckCreateProjectPermission)
+			permissions.GET("/can-manage-project-managers", permissionHandler.CheckManageProjectManagersPermission)
+			permissions.GET("/can-manage-business-info", permissionHandler.CheckManageBusinessInfoPermission)
 			permissions.GET("/can-manage-production-info", permissionHandler.CheckManageProductionInfoPermission)
+			permissions.GET("/can-manage-company-revenue", permissionHandler.CheckManageCompanyRevenuePermission)
 			permissions.GET("/available-users-for-manager", permissionHandler.GetAvailableUsersForManagerRole)
 			permissions.GET("/available-users-for-member", permissionHandler.GetAvailableUsersForMemberRole)
 		}
@@ -323,6 +324,11 @@ func (r *Router) SetupRoutes(
 		{
 			revenue.GET("", financialHandler.GetCompanyRevenueStatistics)
 			revenue.GET("/statistics", financialHandler.GetCompanyRevenueStatistics)
+			revenue.GET("/summary", financialHandler.GetCompanyRevenueSummary)
+			revenue.GET("/invoices", financialHandler.GetInvoiceInfoList)
+			revenue.GET("/invoices/export", financialHandler.ExportInvoiceInfo)
+			revenue.GET("/payments", financialHandler.GetPaymentInfoList)
+			revenue.GET("/payments/export", financialHandler.ExportPaymentInfo)
 		}
 	}
 }

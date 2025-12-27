@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -444,16 +447,32 @@ func (h *FinancialHandler) DeleteFinancialRecord(c *gin.Context) {
 // @Security BearerAuth
 // @Produce json
 // @Success 200 {object} services.CompanyRevenueStatistics
+// @Failure 403 {object} utils.ErrorResponse
 // @Router /company-revenue-statistics [get]
+// T468: 添加权限检查
 func (h *FinancialHandler) GetCompanyRevenueStatistics(c *gin.Context) {
-	stats, err := h.financialService.GetCompanyRevenueStatistics()
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	stats, err := h.financialService.GetCompanyRevenueStatistics(userID)
 	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
 		h.logger.Error("Failed to get company revenue statistics", zap.Error(err))
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to get company revenue statistics", err)
 		return
 	}
 
-	c.JSON(http.StatusOK, stats)
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    stats,
+	})
 }
 
 // GetProductionCosts handles retrieving production cost records for a project
@@ -590,4 +609,415 @@ func (h *FinancialHandler) GetBusinessBonusStatistics(c *gin.Context) {
 		"success": true,
 		"data":    stats,
 	})
+}
+
+// GetCompanyRevenueSummary handles retrieving company revenue summary (T260, T468)
+// @Summary Get company revenue summary
+// @Description Get company-level revenue summary including total receivable by fee type, total paid, and outstanding
+// @Tags 公司收入管理
+// @Security BearerAuth
+// @Produce json
+// @Param start_date query string false "Start date (ISO 8601)"
+// @Param end_date query string false "End date (ISO 8601)"
+// @Success 200 {object} services.CompanyRevenueSummary
+// @Failure 403 {object} utils.ErrorResponse
+// @Router /company-revenue/summary [get]
+func (h *FinancialHandler) GetCompanyRevenueSummary(c *gin.Context) {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	// Parse date filters (support both RFC3339 and YYYY-MM-DD formats)
+	var startDate, endDate *time.Time
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		// Try RFC3339 first, then YYYY-MM-DD
+		if t, err := time.Parse(time.RFC3339, startDateStr); err == nil {
+			startDate = &t
+		} else if t, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			startDate = &t
+		}
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		// Try RFC3339 first, then YYYY-MM-DD
+		if t, err := time.Parse(time.RFC3339, endDateStr); err == nil {
+			endDate = &t
+		} else if t, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			endDate = &t
+		}
+	}
+
+	summary, err := h.financialService.GetCompanyRevenueSummary(userID, startDate, endDate)
+	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		h.logger.Error("Failed to get company revenue summary", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get company revenue summary", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    summary,
+	})
+}
+
+// GetInvoiceInfoList handles retrieving invoice information list with filtering and pagination (T509)
+// @Summary Get invoice information list
+// @Description Get all invoice information with filtering and pagination
+// @Tags 公司收入管理
+// @Security BearerAuth
+// @Produce json
+// @Param project_name query string false "Project name (fuzzy search)"
+// @Param fee_type query string false "Fee type: design_fee, survey_fee, consultation_fee"
+// @Param start_date query string false "Start date (ISO 8601)"
+// @Param end_date query string false "End date (ISO 8601)"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(20)
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} utils.ErrorResponse
+// @Router /company-revenue/invoices [get]
+func (h *FinancialHandler) GetInvoiceInfoList(c *gin.Context) {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	// Parse filters
+	filters := &services.InvoiceFilterParams{
+		ProjectName: c.Query("project_name"),
+		FeeType:     c.Query("fee_type"),
+	}
+
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		if t, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			filters.StartDate = &t
+		}
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		if t, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			filters.EndDate = &t
+		}
+	}
+
+	// Parse pagination
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	pageSize := 20
+	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+
+	invoices, total, err := h.financialService.GetInvoiceInfoList(userID, filters, page, pageSize)
+	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		h.logger.Error("Failed to get invoice information list", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get invoice information list", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"items":       invoices,
+			"total":       total,
+			"page":        page,
+			"page_size":   pageSize,
+			"total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
+		},
+	})
+}
+
+// GetPaymentInfoList handles retrieving payment information list with filtering and pagination (T510)
+// @Summary Get payment information list
+// @Description Get all payment information with filtering and pagination
+// @Tags 公司收入管理
+// @Security BearerAuth
+// @Produce json
+// @Param project_name query string false "Project name (fuzzy search)"
+// @Param fee_type query string false "Fee type: design_fee, survey_fee, consultation_fee"
+// @Param start_date query string false "Start date (ISO 8601)"
+// @Param end_date query string false "End date (ISO 8601)"
+// @Param page query int false "Page number" default(1)
+// @Param page_size query int false "Page size" default(20)
+// @Success 200 {object} map[string]interface{}
+// @Failure 403 {object} utils.ErrorResponse
+// @Router /company-revenue/payments [get]
+func (h *FinancialHandler) GetPaymentInfoList(c *gin.Context) {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	// Parse filters
+	filters := &services.PaymentFilterParams{
+		ProjectName: c.Query("project_name"),
+		FeeType:     c.Query("fee_type"),
+	}
+
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		if t, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			filters.StartDate = &t
+		}
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		if t, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			filters.EndDate = &t
+		}
+	}
+
+	// Parse pagination
+	page := 1
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+	pageSize := 20
+	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
+		if ps, err := strconv.Atoi(pageSizeStr); err == nil && ps > 0 && ps <= 100 {
+			pageSize = ps
+		}
+	}
+
+	payments, total, err := h.financialService.GetPaymentInfoList(userID, filters, page, pageSize)
+	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		h.logger.Error("Failed to get payment information list", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to get payment information list", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"items":       payments,
+			"total":       total,
+			"page":        page,
+			"page_size":   pageSize,
+			"total_pages": (total + int64(pageSize) - 1) / int64(pageSize),
+		},
+	})
+}
+
+// ExportInvoiceInfo handles exporting invoice information (T511)
+// @Summary Export invoice information
+// @Description Export invoice information to Excel or CSV format
+// @Tags 公司收入管理
+// @Security BearerAuth
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv
+// @Param project_name query string false "Project name (fuzzy search)"
+// @Param fee_type query string false "Fee type: design_fee, survey_fee, consultation_fee"
+// @Param start_date query string false "Start date (ISO 8601)"
+// @Param end_date query string false "End date (ISO 8601)"
+// @Param format query string false "Export format: excel, csv" default(csv)
+// @Success 200 {file} file
+// @Failure 403 {object} utils.ErrorResponse
+// @Router /company-revenue/invoices/export [get]
+func (h *FinancialHandler) ExportInvoiceInfo(c *gin.Context) {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	// Parse filters
+	filters := &services.InvoiceFilterParams{
+		ProjectName: c.Query("project_name"),
+		FeeType:     c.Query("fee_type"),
+	}
+
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		if t, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			filters.StartDate = &t
+		}
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		if t, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			filters.EndDate = &t
+		}
+	}
+
+	// Get format (excel or csv)
+	format := c.DefaultQuery("format", "csv")
+	if format != "excel" && format != "csv" {
+		format = "csv"
+	}
+
+	// Get all invoices (no pagination for export)
+	invoices, _, err := h.financialService.GetInvoiceInfoList(userID, filters, 1, 10000)
+	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		h.logger.Error("Failed to get invoice information for export", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to export invoice information", err)
+		return
+	}
+
+	// Generate CSV content
+	csvContent := "项目名称,费用类型,开票时间,开票金额,发票文件\n"
+	for _, invoice := range invoices {
+		feeTypeLabel := ""
+		switch invoice.FeeType {
+		case "design_fee":
+			feeTypeLabel = "设计费"
+		case "survey_fee":
+			feeTypeLabel = "勘察费"
+		case "consultation_fee":
+			feeTypeLabel = "咨询费"
+		default:
+			feeTypeLabel = invoice.FeeType
+		}
+		
+		invoiceDate := invoice.InvoiceDate.Format("2006-01-02")
+		fileName := ""
+		if invoice.InvoiceFile != nil {
+			fileName = invoice.InvoiceFile.OriginalName
+		}
+		
+		// Escape CSV fields (handle commas and quotes)
+		projectName := strings.ReplaceAll(invoice.ProjectName, "\"", "\"\"")
+		amount := fmt.Sprintf("%.2f", invoice.Amount)
+		
+		csvContent += fmt.Sprintf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n",
+			projectName, feeTypeLabel, invoiceDate, amount, fileName)
+	}
+
+	// Set response headers
+	filename := fmt.Sprintf("发票信息_%s.csv", time.Now().Format("20060102_150405"))
+	if format == "excel" {
+		// For Excel, we'll return CSV for now (can be enhanced with Excel library later)
+		filename = fmt.Sprintf("发票信息_%s.xlsx", time.Now().Format("20060102_150405"))
+		c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	} else {
+		c.Header("Content-Type", "text/csv; charset=utf-8")
+	}
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Header("Content-Transfer-Encoding", "binary")
+
+	// Write CSV content with BOM for Excel compatibility
+	csvBytes := []byte("\xEF\xBB\xBF" + csvContent) // UTF-8 BOM
+	c.Data(http.StatusOK, c.GetHeader("Content-Type"), csvBytes)
+}
+
+// ExportPaymentInfo handles exporting payment information (T512)
+// @Summary Export payment information
+// @Description Export payment information to Excel or CSV format
+// @Tags 公司收入管理
+// @Security BearerAuth
+// @Produce application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv
+// @Param project_name query string false "Project name (fuzzy search)"
+// @Param fee_type query string false "Fee type: design_fee, survey_fee, consultation_fee"
+// @Param start_date query string false "Start date (ISO 8601)"
+// @Param end_date query string false "End date (ISO 8601)"
+// @Param format query string false "Export format: excel, csv" default(csv)
+// @Success 200 {file} file
+// @Failure 403 {object} utils.ErrorResponse
+// @Router /company-revenue/payments/export [get]
+func (h *FinancialHandler) ExportPaymentInfo(c *gin.Context) {
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User ID not found in context", nil)
+		return
+	}
+
+	// Parse filters
+	filters := &services.PaymentFilterParams{
+		ProjectName: c.Query("project_name"),
+		FeeType:     c.Query("fee_type"),
+	}
+
+	if startDateStr := c.Query("start_date"); startDateStr != "" {
+		if t, err := time.Parse("2006-01-02", startDateStr); err == nil {
+			filters.StartDate = &t
+		}
+	}
+	if endDateStr := c.Query("end_date"); endDateStr != "" {
+		if t, err := time.Parse("2006-01-02", endDateStr); err == nil {
+			filters.EndDate = &t
+		}
+	}
+
+	// Get format (excel or csv)
+	format := c.DefaultQuery("format", "csv")
+	if format != "excel" && format != "csv" {
+		format = "csv"
+	}
+
+	// Get all payments (no pagination for export)
+	payments, _, err := h.financialService.GetPaymentInfoList(userID, filters, 1, 10000)
+	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
+		h.logger.Error("Failed to get payment information for export", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to export payment information", err)
+		return
+	}
+
+	// Generate CSV content
+	csvContent := "项目名称,费用类型,支付时间,支付金额\n"
+	for _, payment := range payments {
+		feeTypeLabel := ""
+		switch payment.FeeType {
+		case "design_fee":
+			feeTypeLabel = "设计费"
+		case "survey_fee":
+			feeTypeLabel = "勘察费"
+		case "consultation_fee":
+			feeTypeLabel = "咨询费"
+		default:
+			feeTypeLabel = payment.FeeType
+		}
+		
+		paymentDate := payment.PaymentDate.Format("2006-01-02")
+		
+		// Escape CSV fields (handle commas and quotes)
+		projectName := strings.ReplaceAll(payment.ProjectName, "\"", "\"\"")
+		amount := fmt.Sprintf("%.2f", payment.Amount)
+		
+		csvContent += fmt.Sprintf("\"%s\",\"%s\",\"%s\",\"%s\"\n",
+			projectName, feeTypeLabel, paymentDate, amount)
+	}
+
+	// Set response headers
+	filename := fmt.Sprintf("支付信息_%s.csv", time.Now().Format("20060102_150405"))
+	if format == "excel" {
+		// For Excel, we'll return CSV for now (can be enhanced with Excel library later)
+		filename = fmt.Sprintf("支付信息_%s.xlsx", time.Now().Format("20060102_150405"))
+		c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	} else {
+		c.Header("Content-Type", "text/csv; charset=utf-8")
+	}
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+	c.Header("Content-Transfer-Encoding", "binary")
+
+	// Write CSV content with BOM for Excel compatibility
+	csvBytes := []byte("\xEF\xBB\xBF" + csvContent) // UTF-8 BOM
+	c.Data(http.StatusOK, c.GetHeader("Content-Type"), csvBytes)
 }

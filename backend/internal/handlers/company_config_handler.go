@@ -183,25 +183,8 @@ type UpdateDefaultManagementFeeRatioRequest struct {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 403 {object} utils.ErrorResponse
 // @Router /company-config/default-management-fee-ratio [put]
+// T467: 使用权限服务检查权限
 func (h *CompanyConfigHandler) UpdateDefaultManagementFeeRatio(c *gin.Context) {
-	// Check if user has finance or admin role
-	role, exists := middleware.GetUserRole(c)
-	if !exists {
-		utils.HandleError(c, http.StatusUnauthorized, "Authentication required", nil)
-		return
-	}
-
-	if role != string(models.RoleFinance) && role != string(models.RoleAdmin) {
-		utils.HandleError(c, http.StatusForbidden, "Only finance and admin users can update management fee ratio", nil)
-		return
-	}
-
-	var req UpdateDefaultManagementFeeRatioRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
-		return
-	}
-
 	// Get user ID from context
 	userID, exists := middleware.GetUserID(c)
 	if !exists {
@@ -209,9 +192,22 @@ func (h *CompanyConfigHandler) UpdateDefaultManagementFeeRatio(c *gin.Context) {
 		return
 	}
 
+	// Permission check is now done in the service layer (T467)
+	// The service will check CanManageCompanyRevenue permission
+
+	var req UpdateDefaultManagementFeeRatioRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
 	// Update default management fee ratio
 	config, err := h.configService.SetDefaultManagementFeeRatio(req.Ratio, req.Description, userID)
 	if err != nil {
+		if err.Error() == "permission denied: you do not have permission to manage company revenue" {
+			utils.HandleError(c, http.StatusForbidden, err.Error(), nil)
+			return
+		}
 		h.logger.Error("Failed to update default management fee ratio", zap.Error(err))
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to update default management fee ratio", err)
 		return

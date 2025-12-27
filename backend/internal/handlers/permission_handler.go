@@ -243,3 +243,36 @@ func (h *PermissionHandler) CheckManageProductionInfoPermission(c *gin.Context) 
 	})
 }
 
+// CheckManageCompanyRevenuePermission 检查用户是否可以管理公司收入
+// @Summary 检查管理公司收入权限
+// @Description 检查当前用户是否可以管理公司收入（财务人员、系统管理员）
+// @Tags 权限管理
+// @Security BearerAuth
+// @Produce json
+// @Success 200 {object} map[string]bool
+// @Failure 401 {object} utils.ErrorResponse
+// @Router /permissions/can-manage-company-revenue [get]
+func (h *PermissionHandler) CheckManageCompanyRevenuePermission(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
+	canManage, err := h.permissionService.CanManageCompanyRevenue(userID)
+	if err != nil {
+		h.logger.Error("Failed to check manage company revenue permission",
+			zap.Error(err),
+			zap.String("user_id", userID),
+		)
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"can_manage": canManage,
+		},
+	})
+}

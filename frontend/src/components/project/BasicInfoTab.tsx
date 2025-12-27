@@ -47,14 +47,6 @@ export const BasicInfoTab = ({
   const [isEditingManagers, setIsEditingManagers] = useState(false)
   const { user: currentUser } = useAuth()
 
-  // 调试日志：Form 实例创建
-  useEffect(() => {
-    console.log('=== Form 实例创建 ===')
-    console.log('form 实例:', form)
-    console.log('managerForm 实例:', managerForm)
-    console.log('managerForm 是否已连接:', managerForm && typeof managerForm.getFieldsValue === 'function')
-  }, [])
-
   // Check if current user can manage project managers
   // Only project managers (role: 'project_manager') or admins (role: 'admin') can manage project managers
   // 使用权限服务工具函数进行权限检查
@@ -75,20 +67,6 @@ export const BasicInfoTab = ({
     queryFn: () => permissionService.getAvailableUsersForManager('production'),
     enabled: canManageManagers, // 只有有权限的用户才需要获取列表
   })
-
-  // 调试日志：检查用户权限和状态
-  useEffect(() => {
-    console.log('=== BasicInfoTab 调试信息 ===')
-    console.log('1. currentUser:', currentUser)
-    console.log('2. currentUser?.role:', currentUser?.role)
-    console.log('3. canManageManagers:', canManageManagers)
-    console.log('4. isEditing:', isEditing)
-    console.log('5. isEditingManagers:', isEditingManagers)
-    console.log('6. project:', project)
-    console.log('7. project?.business_manager_id:', project?.business_manager_id)
-    console.log('8. project?.production_manager_id:', project?.production_manager_id)
-    console.log('==========================')
-  }, [currentUser, canManageManagers, isEditing, isEditingManagers, project])
 
   // Get current managers from project model (preferred) or project members (fallback)
   const getCurrentBusinessManager = () => {
@@ -164,27 +142,20 @@ export const BasicInfoTab = ({
   }
 
   const handleEditManagers = () => {
-    console.log('=== handleEditManagers 调用 ===')
-    console.log('isEditingManagers (调用前):', isEditingManagers)
-    console.log('managerForm 实例:', managerForm)
-    
     // 先设置编辑状态，让 Form 元素渲染
     setIsEditingManagers(true)
     
     // 使用 setTimeout 确保 Form 已经渲染后再设置值
     setTimeout(() => {
-      console.log('setTimeout 回调执行，准备设置表单值')
       if (project) {
         const businessManagerId = getCurrentBusinessManager()
         const productionManagerId = getCurrentProductionManager()
-        console.log('准备设置的值:', { businessManagerId, productionManagerId })
         
         try {
           managerForm.setFieldsValue({
             business_manager_id: businessManagerId,
             production_manager_id: productionManagerId,
           })
-          console.log('表单值设置成功')
         } catch (error) {
           console.error('设置表单值失败:', error)
         }
@@ -193,22 +164,14 @@ export const BasicInfoTab = ({
   }
 
   const handleCancelManagers = () => {
-    console.log('=== handleCancelManagers 调用 ===')
     setIsEditingManagers(false)
     // 取消时不需要重置值，因为 Form 会被卸载
-    console.log('已退出负责人编辑模式')
   }
 
   const handleSaveManagers = async () => {
-    console.log('=== handleSaveManagers 调用 ===')
-    console.log('isEditingManagers:', isEditingManagers)
-    console.log('managerForm 实例:', managerForm)
-    
     try {
       // Get form values (only manager fields are needed)
-      console.log('准备获取表单值...')
       const values = managerForm.getFieldsValue(['business_manager_id', 'production_manager_id'])
-      console.log('获取到的表单值:', values)
       const updateData: UpdateProjectRequest = {}
 
       // Only update managers
@@ -219,12 +182,8 @@ export const BasicInfoTab = ({
         updateData.production_manager_id = values.production_manager_id || null
       }
 
-      console.log('准备更新的数据:', updateData)
-      console.log('projectId:', projectId)
-
       // Update project (only managers)
       await updateMutation.mutateAsync({ id: projectId, data: updateData })
-      console.log('更新成功')
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['projectMembers', projectId] })
@@ -542,9 +501,6 @@ export const BasicInfoTab = ({
               <Form 
                 form={managerForm} 
                 layout="vertical"
-                onValuesChange={(changedValues, allValues) => {
-                  console.log('负责人表单值变化:', { changedValues, allValues })
-                }}
               >
                 <Row gutter={16}>
                 <Col span={12}>
