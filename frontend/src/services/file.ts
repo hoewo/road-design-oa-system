@@ -67,7 +67,21 @@ export const fileService = {
     )
 
     if (!response.ok) {
-      throw new Error('Failed to download file')
+      // EC-015: If permission denied (403), try to parse error response with file info
+      if (response.status === 403) {
+        try {
+          const errorData = await response.json()
+          if (errorData.file) {
+            // Return file info but throw error to indicate permission denied
+            const error = new Error('您没有权限下载此文件')
+            ;(error as any).file = errorData.file
+            throw error
+          }
+        } catch (e) {
+          // If JSON parsing fails, continue with generic error
+        }
+      }
+      throw new Error('文件下载失败')
     }
 
     // Try to get filename from Content-Disposition header
@@ -103,12 +117,17 @@ export const fileService = {
     if (params?.page) queryParams.page = params.page.toString()
     if (params?.size) queryParams.size = params.size.toString()
 
-    const response = await get<ApiResponse<SearchFilesResponse>>('/user/files/search', queryParams)
+    // Backend returns: {success: true, data: {files: [...], total, page, size}}
+    // get() extracts response.data.data, so we get {files: [...], total, page, size}
+    const response = await get<{ files: File[]; total: number; page: number; size: number }>('/user/files/search', queryParams)
     
-    if (response.success !== undefined) {
-      return response.data
+    // Transform to SearchFilesResponse format: {data: [...], total, page, size}
+    return {
+      data: response.files || [],
+      total: response.total || 0,
+      page: response.page || 1,
+      size: response.size || 20,
     }
-    return response.data || { data: [], total: 0, page: 1, size: 20 }
   },
 
   // Delete file (soft delete)

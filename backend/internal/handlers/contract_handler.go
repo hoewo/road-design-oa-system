@@ -20,17 +20,19 @@ import (
 
 // ContractHandler handles contract-related HTTP requests
 type ContractHandler struct {
-	contractService *services.ContractService
-	fileService     *services.FileService
-	logger          *zap.Logger
+	contractService  *services.ContractService
+	fileService      *services.FileService
+	permissionService *services.PermissionService
+	logger           *zap.Logger
 }
 
 // NewContractHandler creates a new contract handler
 func NewContractHandler(cfg *config.Config, logger *zap.Logger) *ContractHandler {
 	return &ContractHandler{
-		contractService: services.NewContractService(),
-		fileService:     services.NewFileService(cfg),
-		logger:          logger,
+		contractService:  services.NewContractService(),
+		fileService:      services.NewFileService(cfg),
+		permissionService: services.NewPermissionService(),
+		logger:           logger,
 	}
 }
 
@@ -344,7 +346,7 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 	// Prepare upload request
 	uploadReq := &services.UploadFileRequest{
 		ProjectID:   contract.ProjectID,
-		Category:    models.FileCategoryContract,
+		Category:    models.FileCategoryContractMain,
 		Description: description,
 		FileName:    fileHeader.Filename,
 		FileSize:    fileHeader.Size,
@@ -355,7 +357,7 @@ func (h *ContractHandler) UploadContractFile(c *gin.Context) {
 
 	// Upload file
 	ctx := context.Background()
-	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID)
+	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID, h.permissionService)
 	if err != nil {
 		h.logger.Error("Failed to upload contract file",
 			zap.Error(err),
@@ -416,7 +418,7 @@ func (h *ContractHandler) DownloadContractFile(c *gin.Context) {
 	}
 
 	// Check permission
-	hasPermission, err := h.fileService.CheckFilePermission(fileID, userID)
+	hasPermission, err := h.fileService.CheckFilePermission(fileID, userID, h.permissionService)
 	if err != nil {
 		utils.HandleError(c, http.StatusNotFound, "File not found", err)
 		return
@@ -426,10 +428,23 @@ func (h *ContractHandler) DownloadContractFile(c *gin.Context) {
 		return
 	}
 
-	// Get file content
+	// Get file content (with permission check) - EC-015
 	ctx := context.Background()
-	fileContent, file, err := h.fileService.GetFileContent(ctx, fileID)
+	fileContent, file, err := h.fileService.GetFileContent(ctx, fileID, userID, h.permissionService)
 	if err != nil {
+		// If permission denied, return file info but not content (EC-015)
+		if err.Error() == "您没有权限下载此文件" {
+			h.logger.Warn("Permission denied for contract file download",
+				zap.String("file_id", fileID),
+				zap.String("user_id", userID),
+			)
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"error":   "您没有权限下载此文件",
+				"file":    file, // Return file info
+			})
+			return
+		}
 		utils.HandleError(c, http.StatusNotFound, "File not found", err)
 		return
 	}

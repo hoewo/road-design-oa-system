@@ -156,7 +156,7 @@ export const ContractForm = ({
         const uploadedFile = await fileService.uploadFile(
           projectId,
           currentFile.originFileObj,
-          'contract',
+          'contract_main',
           '合同文件'
         )
         fileId = uploadedFile.id

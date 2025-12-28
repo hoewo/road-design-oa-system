@@ -19,6 +19,7 @@ import (
 type ProductionFileHandler struct {
 	productionFileService *services.ProductionFileService
 	fileService           *services.FileService
+	permissionService     *services.PermissionService
 	logger                *zap.Logger
 }
 
@@ -26,6 +27,7 @@ func NewProductionFileHandler(cfg *config.Config, logger *zap.Logger) *Productio
 	return &ProductionFileHandler{
 		productionFileService: services.NewProductionFileService(),
 		fileService:           services.NewFileService(cfg),
+		permissionService:     services.NewPermissionService(),
 		logger:                logger,
 	}
 }
@@ -84,16 +86,18 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 	defer file.Close()
 
 	ctx := context.Background()
+	// Convert ProductionFileType to FileCategory
+	fileCategory := fileType.ToFileCategory()
 	uploadedFile, err := h.fileService.UploadFile(ctx, &services.UploadFileRequest{
 		ProjectID:   projectID,
-		Category:    models.FileCategoryProduction,
+		Category:    fileCategory,
 		Description: description,
 		FileName:    fileHeader.Filename,
 		FileSize:    fileHeader.Size,
 		FileType:    fileHeader.Filename,
 		MimeType:    fileHeader.Header.Get("Content-Type"),
 		Reader:      file,
-	}, userID)
+	}, userID, h.permissionService)
 	if err != nil {
 		utils.HandleError(c, http.StatusInternalServerError, "上传生产文件失败", err)
 		return
@@ -112,15 +116,16 @@ func (h *ProductionFileHandler) UploadProductionFile(c *gin.Context) {
 		}
 		defer reviewFile.Close()
 
+		// Use audit_report category for review sheet files
 		reviewUpload, err := h.fileService.UploadFile(ctx, &services.UploadFileRequest{
 			ProjectID: projectID,
-			Category:  models.FileCategoryProduction,
+			Category:  models.FileCategoryAuditReport,
 			FileName:  reviewHeader.Filename,
 			FileSize:  reviewHeader.Size,
 			FileType:  reviewHeader.Filename,
 			MimeType:  reviewHeader.Header.Get("Content-Type"),
 			Reader:    reviewFile,
-		}, userID)
+		}, userID, h.permissionService)
 		if err != nil {
 			utils.HandleError(c, http.StatusInternalServerError, "上传校审单失败", err)
 			return
@@ -205,9 +210,29 @@ func (h *ProductionFileHandler) DownloadProductionFile(c *gin.Context) {
 		return
 	}
 
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
 	ctx := context.Background()
-	reader, file, err := h.fileService.GetFileContent(ctx, fileID)
+	reader, file, err := h.fileService.GetFileContent(ctx, fileID, userID, h.permissionService)
 	if err != nil {
+		// EC-015: If permission denied, return file info but not content
+		if err.Error() == "您没有权限下载此文件" {
+			h.logger.Warn("Permission denied for production file download",
+				zap.String("file_id", fileID),
+				zap.String("user_id", userID),
+			)
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"error":   "您没有权限下载此文件",
+				"file":    file, // Return file info
+			})
+			return
+		}
 		utils.HandleError(c, http.StatusNotFound, "文件不存在", err)
 		return
 	}

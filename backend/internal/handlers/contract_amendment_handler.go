@@ -18,17 +18,19 @@ import (
 
 // ContractAmendmentHandler handles contract amendment-related HTTP requests
 type ContractAmendmentHandler struct {
-	amendmentService *services.ContractAmendmentService
-	fileService      *services.FileService
-	logger           *zap.Logger
+	amendmentService  *services.ContractAmendmentService
+	fileService       *services.FileService
+	permissionService *services.PermissionService
+	logger            *zap.Logger
 }
 
 // NewContractAmendmentHandler creates a new contract amendment handler
 func NewContractAmendmentHandler(cfg *config.Config, logger *zap.Logger) *ContractAmendmentHandler {
 	return &ContractAmendmentHandler{
-		amendmentService: services.NewContractAmendmentService(),
-		fileService:      services.NewFileService(cfg),
-		logger:           logger,
+		amendmentService:  services.NewContractAmendmentService(),
+		fileService:       services.NewFileService(cfg),
+		permissionService: services.NewPermissionService(),
+		logger:            logger,
 	}
 }
 
@@ -350,7 +352,7 @@ func (h *ContractAmendmentHandler) UploadContractAmendmentFile(c *gin.Context) {
 	// Prepare upload request
 	uploadReq := &services.UploadFileRequest{
 		ProjectID:   contract.ProjectID,
-		Category:    models.FileCategoryContract,
+		Category:    models.FileCategoryContractAmendment,
 		Description: description,
 		FileName:    fileHeader.Filename,
 		FileSize:    fileHeader.Size,
@@ -361,7 +363,7 @@ func (h *ContractAmendmentHandler) UploadContractAmendmentFile(c *gin.Context) {
 
 	// Upload file
 	ctx := context.Background()
-	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID)
+	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID, h.permissionService)
 	if err != nil {
 		h.logger.Error("Failed to upload contract amendment file",
 			zap.Error(err),

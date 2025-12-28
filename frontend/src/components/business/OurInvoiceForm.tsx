@@ -180,7 +180,7 @@ export const OurInvoiceForm = ({
         const uploadedFile = await fileService.uploadFile(
           projectId,
           currentFile.originFileObj,
-          'contract',
+          'invoice',
           '发票文件'
         )
         fileId = uploadedFile.id

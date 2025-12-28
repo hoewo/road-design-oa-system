@@ -96,8 +96,8 @@ api.interceptors.response.use(
 export default api
 
 // Generic API functions
-export const get = async <T>(url: string): Promise<T> => {
-  const response = await api.get<any>(url)
+export const get = async <T>(url: string, params?: any): Promise<T> => {
+  const response = await api.get<any>(url, { params })
   // Handle both {success: true, data: ...} and {data: ...} formats
   if (response.data.success !== undefined) {
     return response.data.data

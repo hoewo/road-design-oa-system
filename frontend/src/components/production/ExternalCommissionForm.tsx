@@ -135,7 +135,7 @@ export const ExternalCommissionForm = ({
         const uploadedFile = await fileService.uploadFile(
           String(projectId),
           file,
-          'production',
+          'contract_external',
           '委托合同'
         )
         contractFileId = uploadedFile.id

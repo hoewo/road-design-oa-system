@@ -73,13 +73,23 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 
 	// Validate category
 	validCategories := []models.FileCategory{
-		models.FileCategoryContract,
-		models.FileCategoryBidding,
-		models.FileCategoryDesign,
-		models.FileCategoryAudit,
-		models.FileCategoryProduction,
+		// 合同相关
+		models.FileCategoryContractMain,
+		models.FileCategoryContractAmendment,
+		models.FileCategoryContractExternal,
+		// 招投标相关
+		models.FileCategoryTender,
+		models.FileCategoryBid,
+		models.FileCategoryAward,
+		// 生产相关
+		models.FileCategorySchemePPT,
+		models.FileCategoryPreliminary,
+		models.FileCategoryConstruction,
+		models.FileCategoryVariation,
+		models.FileCategoryCompletion,
+		models.FileCategoryAuditReport,
+		// 其他
 		models.FileCategoryInvoice,
-		models.FileCategoryOther,
 	}
 	valid := false
 	for _, vc := range validCategories {

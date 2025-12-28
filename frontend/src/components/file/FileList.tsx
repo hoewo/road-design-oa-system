@@ -14,13 +14,23 @@ interface FileListProps {
 }
 
 const FILE_CATEGORY_LABELS: Record<string, string> = {
-  contract: '合同文件',
-  bidding: '招投标文件',
-  design: '设计文件',
-  audit: '审计文件',
-  production: '生产文件',
+  // 合同相关
+  contract_main: '主合同文件',
+  contract_amendment: '补充协议文件',
+  contract_external: '外委合同文件',
+  // 招投标相关
+  tender: '招标文件',
+  bid: '投标文件',
+  award_notice: '中标通知书',
+  // 生产相关
+  scheme_ppt: '方案PPT',
+  preliminary_design: '初步设计',
+  construction_drawing: '施工图设计',
+  variation_order: '变更洽商',
+  completion_report: '竣工验收',
+  audit_report: '审计报告',
+  // 其他
   invoice: '发票文件',
-  other: '其他',
 }
 
 export const FileList = ({ files, loading, canManage = false, onRefresh }: FileListProps) => {
@@ -93,7 +103,7 @@ export const FileList = ({ files, loading, canManage = false, onRefresh }: FileL
     },
     {
       title: '项目名称',
-      dataIndex: ['project', 'name'],
+      dataIndex: ['project', 'project_name'],
       key: 'project_name',
       render: (text: string) => text || '-',
     },
@@ -165,7 +175,7 @@ export const FileList = ({ files, loading, canManage = false, onRefresh }: FileL
                     <p>您确定要删除文件 <strong>{record.original_name}</strong> 吗？</p>
                     <p style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
                       文件信息：<br />
-                      - 项目：{record.project?.name || '-'}<br />
+                      - 项目：{record.project?.project_name || '-'}<br />
                       - 文件类型：{FILE_CATEGORY_LABELS[record.category] || record.category}<br />
                       - 文件大小：{formatFileSize(record.file_size)}<br />
                       - 上传时间：{dayjs(record.created_at).format('YYYY-MM-DD HH:mm')}

@@ -124,7 +124,7 @@ export const ConstructionStageEditModal = ({
       const uploadedFile = await fileService.uploadFile(
         String(projectId),
         params.file,
-        'production',
+        'audit_report',
         '施工图设计阶段校审单'
       )
       

@@ -82,7 +82,7 @@ func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, up
 	filePath := s.generateFilePath(req.ProjectID, req.Category, req.FileName)
 
 	// Upload to MinIO
-	err := storage.UploadFile(ctx, s.config.MinIOBucketName, filePath, req.Reader, req.FileSize, req.MimeType)
+	err = storage.UploadFile(ctx, s.config.MinIOBucketName, filePath, req.Reader, req.FileSize, req.MimeType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
 	}
@@ -295,13 +295,33 @@ func (s *FileService) generateFilePath(projectID string, category models.FileCat
 // All other file types are allowed for security reasons
 func (s *FileService) validateFileType(fileType string, category models.FileCategory) error {
 	// Validate category first
-	if category != models.FileCategoryContract &&
-		category != models.FileCategoryBidding &&
-		category != models.FileCategoryDesign &&
-		category != models.FileCategoryAudit &&
-		category != models.FileCategoryProduction &&
-		category != models.FileCategoryInvoice &&
-		category != models.FileCategoryOther {
+	validCategories := []models.FileCategory{
+		// 合同相关
+		models.FileCategoryContractMain,
+		models.FileCategoryContractAmendment,
+		models.FileCategoryContractExternal,
+		// 招投标相关
+		models.FileCategoryTender,
+		models.FileCategoryBid,
+		models.FileCategoryAward,
+		// 生产相关
+		models.FileCategorySchemePPT,
+		models.FileCategoryPreliminary,
+		models.FileCategoryConstruction,
+		models.FileCategoryVariation,
+		models.FileCategoryCompletion,
+		models.FileCategoryAuditReport,
+		// 其他
+		models.FileCategoryInvoice,
+	}
+	valid := false
+	for _, vc := range validCategories {
+		if category == vc {
+			valid = true
+			break
+		}
+	}
+	if !valid {
 		return errors.New("invalid file category")
 	}
 

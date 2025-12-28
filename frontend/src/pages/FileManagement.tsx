@@ -69,7 +69,7 @@ const FileManagement = () => {
       page: 1, // Reset to first page on new search
       size: 10,
     })
-  })
+  }
 
   const handleReset = () => {
     setSearchParams({
@@ -131,7 +131,7 @@ const FileManagement = () => {
         <FileSearch
           onSearch={handleSearch}
           onReset={handleReset}
-          projects={projectsData?.data?.map((p) => ({ id: p.id, name: p.name }))}
+          projects={projectsData?.data?.map((p) => ({ id: p.id, name: p.project_name }))}
         />
 
         {/* File List */}
@@ -180,7 +180,7 @@ const FileManagement = () => {
           projectId={searchParams.project_id}
           onSuccess={handleUploadSuccess}
           onCancel={() => setUploadModalVisible(false)}
-          projects={projectsData?.data?.map((p) => ({ id: p.id, name: p.name }))}
+          projects={projectsData?.data?.map((p) => ({ id: p.id, name: p.project_name }))}
         />
       </Modal>
     </div>

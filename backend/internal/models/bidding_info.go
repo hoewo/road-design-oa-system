@@ -29,3 +29,18 @@ func (BiddingInfo) TableName() string {
 	return "bidding_info"
 }
 
+// BiddingFileTypeToCategory 将招投标文件类型转换为 FileCategory
+// biddingType: "tender", "bid", "award"
+func BiddingFileTypeToCategory(biddingType string) FileCategory {
+	switch biddingType {
+	case "tender":
+		return FileCategoryTender
+	case "bid":
+		return FileCategoryBid
+	case "award":
+		return FileCategoryAward
+	default:
+		return FileCategoryTender // 默认值
+	}
+}
+

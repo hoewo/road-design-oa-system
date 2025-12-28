@@ -86,7 +86,7 @@ export const ProductionCostForm = ({
           const uploadedFile = await fileService.uploadFile(
             String(projectId),
             file,
-            'production',
+            'invoice',
             '生产成本发票'
           )
           invoiceFileId = uploadedFile.id

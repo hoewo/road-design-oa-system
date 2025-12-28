@@ -21,7 +21,7 @@ import { fileService } from '@/services/file'
 import { permissionService } from '@/services/permission'
 import { ExpertFeeForm } from '@/components/business/ExpertFeeForm'
 import { ExpertFeePaymentList } from '@/components/business/ExpertFeePaymentList'
-import type { File } from '@/types'
+import type { File, FileCategory } from '@/types'
 import dayjs from 'dayjs'
 
 const { TextArea } = Input
@@ -64,11 +64,18 @@ export const BiddingFileList = ({ projectId }: BiddingFileListProps) => {
       file: globalThis.File
       description?: string
     }) => {
+      // Map bidding file type to FileCategory
+      const categoryMap: Record<BiddingFileType, FileCategory> = {
+        tender: 'tender',
+        bid: 'bid',
+        award: 'award_notice',
+      }
+      
       // First upload the file
       const uploadedFile = await fileService.uploadFile(
         projectId,
         file,
-        'bidding',
+        categoryMap[fileType],
         description
       )
 

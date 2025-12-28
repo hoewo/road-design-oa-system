@@ -47,7 +47,7 @@ export const ContractFileList = ({
     ],
     queryFn: () =>
       businessService.searchContractFiles(projectId, {
-        category: category || 'contract',
+        category: category || 'contract_main',
         keyword,
         startDate: dateRange?.[0]?.format('YYYY-MM-DD'),
         endDate: dateRange?.[1]?.format('YYYY-MM-DD'),
@@ -112,12 +112,23 @@ export const ContractFileList = ({
       width: 100,
       render: (category: FileCategory) => {
         const categoryMap: Record<FileCategory, string> = {
-          contract: '合同文件',
-          bidding: '招投标文件',
-          design: '设计文件',
-          audit: '审计文件',
-          production: '生产文件',
-          other: '其他',
+          // 合同相关
+          contract_main: '主合同文件',
+          contract_amendment: '补充协议文件',
+          contract_external: '外委合同文件',
+          // 招投标相关
+          tender: '招标文件',
+          bid: '投标文件',
+          award_notice: '中标通知书',
+          // 生产相关
+          scheme_ppt: '方案PPT',
+          preliminary_design: '初步设计',
+          construction_drawing: '施工图设计',
+          variation_order: '变更洽商',
+          completion_report: '竣工验收',
+          audit_report: '审计报告',
+          // 其他
+          invoice: '发票文件',
         }
         return <Tag>{categoryMap[category] || category}</Tag>
       },

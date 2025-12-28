@@ -20,16 +20,18 @@ import (
 )
 
 type ProductionApprovalHandler struct {
-	service    *services.ProductionApprovalService
-	fileService *services.FileService
-	logger     *zap.Logger
+	service          *services.ProductionApprovalService
+	fileService      *services.FileService
+	permissionService *services.PermissionService
+	logger           *zap.Logger
 }
 
 func NewProductionApprovalHandler(cfg *config.Config, logger *zap.Logger) *ProductionApprovalHandler {
 	return &ProductionApprovalHandler{
-		service:     services.NewProductionApprovalService(),
-		fileService: services.NewFileService(cfg),
-		logger:      logger,
+		service:          services.NewProductionApprovalService(),
+		fileService:      services.NewFileService(cfg),
+		permissionService: services.NewPermissionService(),
+		logger:           logger,
 	}
 }
 
@@ -315,8 +317,8 @@ func (h *ProductionApprovalHandler) UploadReportFile(c *gin.Context) {
 	}
 	defer src.Close()
 
-	// 确定文件类别（批复审计报告使用审计类别）
-	category := models.FileCategoryAudit
+	// 确定文件类别（批复审计报告使用审计报告类别）
+	category := models.FileCategoryAuditReport
 
 	// 上传文件
 	ctx := context.Background()
@@ -331,7 +333,7 @@ func (h *ProductionApprovalHandler) UploadReportFile(c *gin.Context) {
 		Reader:      src,
 	}
 
-	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID)
+	uploadedFile, err := h.fileService.UploadFile(ctx, uploadReq, userID, h.permissionService)
 	if err != nil {
 		h.logger.Error("Failed to upload report file",
 			zap.Error(err),
@@ -364,9 +366,25 @@ func (h *ProductionApprovalHandler) DownloadReportFile(c *gin.Context) {
 		return
 	}
 
+	// Get user ID from context
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
 	ctx := context.Background()
-	reader, file, err := h.fileService.GetFileContent(ctx, fileID)
+	reader, file, err := h.fileService.GetFileContent(ctx, fileID, userID, h.permissionService)
 	if err != nil {
+		// If permission denied, return file info but not content (EC-015)
+		if err.Error() == "您没有权限下载此文件" {
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"error":   "您没有权限下载此文件",
+				"file":    file, // Return file info
+			})
+			return
+		}
 		utils.HandleError(c, http.StatusNotFound, "文件不存在", err)
 		return
 	}

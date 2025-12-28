@@ -354,13 +354,23 @@ export interface UpdateProjectMemberRequest {
 
 // File types
 export type FileCategory =
-  | 'contract'
-  | 'bidding'
-  | 'design'
-  | 'audit'
-  | 'production'
+  // 合同相关
+  | 'contract_main'
+  | 'contract_amendment'
+  | 'contract_external'
+  // 招投标相关
+  | 'tender'
+  | 'bid'
+  | 'award_notice'
+  // 生产相关
+  | 'scheme_ppt'
+  | 'preliminary_design'
+  | 'construction_drawing'
+  | 'variation_order'
+  | 'completion_report'
+  | 'audit_report'
+  // 其他
   | 'invoice'
-  | 'other'
 
 export interface File {
   id: string // UUID string

@@ -17,13 +17,23 @@ interface FileUploadProps {
 }
 
 const FILE_CATEGORY_OPTIONS = [
-  { label: '合同文件', value: 'contract' as FileCategory },
-  { label: '招投标文件', value: 'bidding' as FileCategory },
-  { label: '设计文件', value: 'design' as FileCategory },
-  { label: '审计文件', value: 'audit' as FileCategory },
-  { label: '生产文件', value: 'production' as FileCategory },
+  // 合同相关
+  { label: '主合同文件', value: 'contract_main' as FileCategory },
+  { label: '补充协议文件', value: 'contract_amendment' as FileCategory },
+  { label: '外委合同文件', value: 'contract_external' as FileCategory },
+  // 招投标相关
+  { label: '招标文件', value: 'tender' as FileCategory },
+  { label: '投标文件', value: 'bid' as FileCategory },
+  { label: '中标通知书', value: 'award_notice' as FileCategory },
+  // 生产相关
+  { label: '方案PPT', value: 'scheme_ppt' as FileCategory },
+  { label: '初步设计', value: 'preliminary_design' as FileCategory },
+  { label: '施工图设计', value: 'construction_drawing' as FileCategory },
+  { label: '变更洽商', value: 'variation_order' as FileCategory },
+  { label: '竣工验收', value: 'completion_report' as FileCategory },
+  { label: '审计报告', value: 'audit_report' as FileCategory },
+  // 其他
   { label: '发票文件', value: 'invoice' as FileCategory },
-  { label: '其他', value: 'other' as FileCategory },
 ]
 
 export const FileUpload = ({ projectId, category, onSuccess, onCancel, projects }: FileUploadProps) => {

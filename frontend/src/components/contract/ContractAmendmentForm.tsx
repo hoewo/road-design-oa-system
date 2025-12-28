@@ -170,7 +170,7 @@ export const ContractAmendmentForm = ({
         const uploadedFile = await fileService.uploadFile(
           projectId,
           currentFile.originFileObj,
-          'contract',
+          'contract_amendment',
           '补充协议文件'
         )
         fileId = uploadedFile.id

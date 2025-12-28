@@ -7,13 +7,26 @@ import (
 type FileCategory string
 
 const (
-	FileCategoryContract   FileCategory = "contract"   // 合同文件
-	FileCategoryBidding    FileCategory = "bidding"    // 招投标文件
-	FileCategoryDesign     FileCategory = "design"     // 设计文件
-	FileCategoryAudit      FileCategory = "audit"      // 审计文件
-	FileCategoryProduction FileCategory = "production" // 生产文件
-	FileCategoryInvoice    FileCategory = "invoice"     // 发票文件
-	FileCategoryOther       FileCategory = "other"      // 其他文件
+	// 合同相关
+	FileCategoryContractMain       FileCategory = "contract_main"       // 主合同文件
+	FileCategoryContractAmendment FileCategory = "contract_amendment"  // 补充协议文件
+	FileCategoryContractExternal  FileCategory = "contract_external"   // 外委合同文件
+
+	// 招投标相关
+	FileCategoryTender FileCategory = "tender"       // 招标文件
+	FileCategoryBid    FileCategory = "bid"          // 投标文件
+	FileCategoryAward  FileCategory = "award_notice" // 中标通知书
+
+	// 生产相关
+	FileCategorySchemePPT       FileCategory = "scheme_ppt"        // 方案PPT
+	FileCategoryPreliminary     FileCategory = "preliminary_design" // 初步设计
+	FileCategoryConstruction    FileCategory = "construction_drawing" // 施工图设计
+	FileCategoryVariation       FileCategory = "variation_order"  // 变更洽商
+	FileCategoryCompletion      FileCategory = "completion_report" // 竣工验收
+	FileCategoryAuditReport     FileCategory = "audit_report"      // 审计报告
+
+	// 其他
+	FileCategoryInvoice FileCategory = "invoice" // 发票文件
 )
 
 type File struct {

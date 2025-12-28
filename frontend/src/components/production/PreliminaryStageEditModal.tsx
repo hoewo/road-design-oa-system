@@ -124,7 +124,7 @@ export const PreliminaryStageEditModal = ({
       const uploadedFile = await fileService.uploadFile(
         String(projectId),
         params.file,
-        'production',
+        'audit_report',
         '初步设计阶段校审单'
       )
       

@@ -140,7 +140,7 @@ export const SchemeStageEditModal = ({
       const uploadedFile = await fileService.uploadFile(
         String(projectId),
         params.file,
-        'production',
+        'audit_report',
         '方案阶段校审单'
       )
       

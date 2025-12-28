@@ -14,6 +14,27 @@ const (
 	ProductionFileOther        ProductionFileType = "other"
 )
 
+// ToFileCategory converts ProductionFileType to FileCategory
+func (pft ProductionFileType) ToFileCategory() FileCategory {
+	switch pft {
+	case ProductionFileScheme:
+		return FileCategorySchemePPT
+	case ProductionFilePreliminary:
+		return FileCategoryPreliminary
+	case ProductionFileConstruction:
+		return FileCategoryConstruction
+	case ProductionFileVariation:
+		return FileCategoryVariation
+	case ProductionFileCompletion:
+		return FileCategoryCompletion
+	case ProductionFileAudit:
+		return FileCategoryAuditReport
+	default:
+		// For "other" or unknown types, use audit_report as default
+		return FileCategoryAuditReport
+	}
+}
+
 // ProductionStage 生产阶段枚举
 type ProductionStage string
 

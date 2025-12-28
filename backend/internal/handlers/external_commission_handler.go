@@ -16,16 +16,18 @@ import (
 )
 
 type ExternalCommissionHandler struct {
-	service    *services.ExternalCommissionService
-	fileService *services.FileService
-	logger     *zap.Logger
+	service          *services.ExternalCommissionService
+	fileService      *services.FileService
+	permissionService *services.PermissionService
+	logger           *zap.Logger
 }
 
 func NewExternalCommissionHandler(cfg *config.Config, logger *zap.Logger) *ExternalCommissionHandler {
 	return &ExternalCommissionHandler{
-		service:     services.NewExternalCommissionService(),
-		fileService: services.NewFileService(cfg),
-		logger:      logger,
+		service:          services.NewExternalCommissionService(),
+		fileService:      services.NewFileService(cfg),
+		permissionService: services.NewPermissionService(),
+		logger:           logger,
 	}
 }
 
@@ -254,21 +256,19 @@ func (h *ExternalCommissionHandler) DownloadContractFile(c *gin.Context) {
 		return
 	}
 
-	// 检查文件权限
-	hasPermission, err := h.fileService.CheckFilePermission(*commission.ContractFileID, userID)
-	if err != nil {
-		utils.HandleError(c, http.StatusNotFound, "文件不存在", err)
-		return
-	}
-	if !hasPermission {
-		utils.HandleError(c, http.StatusForbidden, "权限不足", nil)
-		return
-	}
-
-	// 获取文件内容
+	// 获取文件内容 (with permission check) - EC-015
 	ctx := context.Background()
-	fileContent, file, err := h.fileService.GetFileContent(ctx, *commission.ContractFileID)
+	fileContent, file, err := h.fileService.GetFileContent(ctx, *commission.ContractFileID, userID, h.permissionService)
 	if err != nil {
+		// If permission denied, return file info but not content (EC-015)
+		if err.Error() == "您没有权限下载此文件" {
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"error":   "您没有权限下载此文件",
+				"file":    file, // Return file info
+			})
+			return
+		}
 		utils.HandleError(c, http.StatusNotFound, "文件不存在", err)
 		return
 	}
