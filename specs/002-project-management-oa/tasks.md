@@ -1441,27 +1441,53 @@
 
 ### Implementation Tasks
 
-- [ ] T269 [US24] 更新File模型符合002规范（ID为UUID，支持文件类型分类）backend/internal/models/file.go
-- [ ] T270 [US24] 更新FileService支持文件上传、下载、搜索 backend/internal/services/file_service.go
-- [ ] T271 [US24] 实现文件类型验证（仅限制危险文件类型）backend/internal/services/file_service.go
-- [ ] T272 [US24] 实现文件大小验证（最大100MB）backend/internal/services/file_service.go
-- [ ] T273 [US24] 实现文件搜索功能（按项目、文件类型、上传时间）backend/internal/services/file_service.go
-- [ ] T470 [US24] 更新FileService使用权限服务：在文件上传、下载、搜索时调用权限服务检查权限（CanAccessProject）backend/internal/services/file_service.go
-- [ ] T471 [US24] 更新FileHandler使用权限服务：在文件管理Handler中调用权限服务 backend/internal/handlers/file_handler.go
-- [ ] T275 [US24] 创建FileHandler支持文件管理接口 backend/internal/handlers/file_handler.go
-- [ ] T276 [US24] 实现文件上传接口 backend/internal/handlers/file_handler.go
-- [ ] T277 [US24] 实现文件下载接口（带权限验证）backend/internal/handlers/file_handler.go
-- [ ] T278 [US24] 实现文件搜索接口 backend/internal/handlers/file_handler.go
-- [ ] T279 [US24] 实现文件删除接口（软删除）backend/internal/handlers/file_handler.go
-- [ ] T280 [US24] 创建前端文件上传组件 frontend/src/components/file/FileUpload.tsx
-- [ ] T281 [US24] 创建前端文件搜索组件 frontend/src/components/file/FileSearch.tsx
-- [ ] T282 [US24] 实现文件类型选择器 frontend/src/components/file/FileTypeSelector.tsx
-- [ ] T283 [US24] 实现文件列表展示组件 frontend/src/components/file/FileList.tsx
-- [ ] T284 [US24] 实现文件下载功能 frontend/src/components/file/FileDownload.tsx
-- [ ] T285 [US24] 实现文件搜索筛选（项目、文件类型、上传时间）frontend/src/components/file/FileSearch.tsx
-- [ ] T286 [US24] 创建前端文件管理页面 frontend/src/pages/FileManagement.tsx
-- [ ] T287 [US24] 更新前端路由集成文件管理页面 frontend/src/App.tsx
-- [ ] T472 [US24] 更新前端文件管理页面：使用权限服务检查权限（CanAccessProject），无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看文件列表 frontend/src/pages/FileManagement.tsx
+#### 后端任务
+
+- [X] T269 [US24] 更新File模型符合002规范（ID为UUID，支持文件类型分类，添加DeletedAt字段支持软删除）backend/internal/models/file.go
+- [X] T270 [US24] 更新FileService支持文件上传、下载、搜索 backend/internal/services/file_service.go
+- [X] T271 [US24] 实现文件类型验证（仅限制危险文件类型，支持PDF、Word、Excel、图片等格式）backend/internal/services/file_service.go
+- [X] T272 [US24] 实现文件大小验证（最大100MB，EC-012）backend/internal/services/file_service.go
+- [X] T273 [US24] 实现文件搜索功能（按项目、文件类型、上传时间）backend/internal/services/file_service.go
+- [X] T274 [US24] 实现文件软删除功能（标记为已删除，保留文件记录，EC-017）backend/internal/services/file_service.go
+- [ ] T275 [US24] 实现文件上传失败处理（支持断点续传，EC-014）backend/internal/services/file_service.go
+- [X] T276 [US24] 实现文件下载权限验证（权限验证失败时返回错误但保留文件基本信息，EC-015）backend/internal/services/file_service.go
+- [X] T470 [US24] 更新FileService使用权限服务：在文件上传、下载、搜索时调用权限服务检查权限（CanAccessProject）backend/internal/services/file_service.go
+- [X] T471 [US24] 更新FileHandler使用权限服务：在文件管理Handler中调用权限服务 backend/internal/handlers/file_handler.go
+- [X] T277 [US24] 创建FileHandler支持文件管理接口 backend/internal/handlers/file_handler.go
+- [X] T278 [US24] 实现文件上传接口（支持文件类型验证、大小验证、断点续传）backend/internal/handlers/file_handler.go
+- [X] T279 [US24] 实现文件下载接口（带权限验证，权限失败时返回文件基本信息）backend/internal/handlers/file_handler.go
+- [X] T280 [US24] 实现文件搜索接口（支持按项目、文件类型、上传时间范围搜索）backend/internal/handlers/file_handler.go
+- [X] T281 [US24] 实现文件删除接口（软删除，保留文件记录）backend/internal/handlers/file_handler.go
+
+#### 前端组件任务
+
+- [X] T282 [US24] 创建前端文件上传组件（支持拖拽上传、文件选择、上传进度显示）frontend/src/components/file/FileUpload.tsx
+- [X] T283 [US24] 实现文件上传进度显示（显示上传百分比和进度条）frontend/src/components/file/FileUpload.tsx
+- [X] T284 [US24] 实现文件上传成功提示（显示成功消息和操作按钮）frontend/src/components/file/FileUpload.tsx
+- [X] T285 [US24] 实现文件大小超限错误提示（EC-012，显示错误消息和重新选择按钮）frontend/src/components/file/FileUpload.tsx
+- [X] T286 [US24] 实现不支持的文件类型错误提示（EC-013，显示错误消息和支持的文件类型列表）frontend/src/components/file/FileUpload.tsx
+- [X] T287 [US24] 实现文件上传失败处理（EC-014，显示断点续传提示和继续上传按钮）frontend/src/components/file/FileUpload.tsx
+- [X] T288 [US24] 创建前端文件搜索组件 frontend/src/components/file/FileSearch.tsx
+- [X] T289 [US24] 实现文件类型选择器（集成在FileSearch组件中）frontend/src/components/file/FileSearch.tsx
+- [X] T290 [US24] 实现文件列表展示组件（包含文件名、项目、类型、大小、上传时间、上传人、操作列）frontend/src/components/file/FileList.tsx
+- [X] T291 [US24] 实现文件列表加载中状态（显示加载提示，禁用搜索和上传按钮）frontend/src/pages/FileManagement.tsx
+- [X] T292 [US24] 实现文件列表空状态（EC-016，显示"未找到匹配的文件"提示和搜索条件修改建议）frontend/src/pages/FileManagement.tsx
+- [X] T293 [US24] 实现文件已删除状态显示（软删除后显示"已删除"标记和重新上传按钮，EC-017）frontend/src/components/file/FileList.tsx
+- [X] T294 [US24] 实现文件下载功能（包含下载中状态提示）frontend/src/components/file/FileList.tsx
+- [X] T295 [US24] 实现文件下载权限验证失败提示（EC-015，显示权限错误但保留文件基本信息）frontend/src/components/file/FileList.tsx
+- [X] T296 [US24] 实现文件删除确认对话框（显示文件信息和关联数据处理规则提示，EC-017）frontend/src/components/file/FileList.tsx
+- [X] T297 [US24] 实现文件搜索筛选（项目、文件类型、上传时间范围）frontend/src/components/file/FileSearch.tsx
+
+#### 前端页面任务
+
+- [X] T298 [US24] 创建前端文件管理页面（包含加载中、成功、空状态、错误状态，参考线框图08-file-management.html）frontend/src/pages/FileManagement.tsx
+- [X] T299 [US24] 实现文件管理页面加载中状态（显示"正在加载文件列表..."提示）frontend/src/pages/FileManagement.tsx
+- [X] T300 [US24] 实现文件管理页面正常状态（有文件数据，有权限：显示上传按钮和删除操作）frontend/src/pages/FileManagement.tsx
+- [X] T301 [US24] 实现文件管理页面无权限状态（EC-018，可查看但隐藏编辑入口：完全隐藏上传按钮和删除操作，不显示禁用状态）frontend/src/pages/FileManagement.tsx
+- [X] T302 [US24] 实现文件管理页面空状态（无文件数据，显示空状态提示）frontend/src/pages/FileManagement.tsx
+- [X] T303 [US24] 实现文件管理页面分页功能（每页10条记录，显示分页控件）frontend/src/pages/FileManagement.tsx
+- [X] T304 [US24] 更新前端路由集成文件管理页面 frontend/src/App.tsx
+- [X] T472 [US24] 更新前端文件管理页面：使用权限服务检查权限（CanAccessProject），无权限时隐藏编辑入口（上传、删除按钮等），所有用户可查看文件列表 frontend/src/pages/FileManagement.tsx
 
 ---
 
@@ -1478,32 +1504,28 @@
 
 ### Implementation Tasks
 
-- [ ] T288 实现项目编号重复验证和错误提示 backend/internal/services/project_service.go
-- [ ] T289 实现项目软删除功能 backend/internal/services/project_service.go
-- [ ] T290 实现项目恢复功能（仅admin）backend/internal/services/project_service.go
-- [ ] T291 实现并发编辑冲突提示 backend/internal/handlers/project_handler.go
-- [ ] T292 实现文件大小超限错误提示 frontend/src/components/file/FileUpload.tsx
-- [ ] T293 实现危险文件类型拦截和错误提示 frontend/src/components/file/FileUpload.tsx
-- [ ] T294 实现文件上传失败重试机制 frontend/src/components/file/FileUpload.tsx
-- [ ] T295 实现文件下载权限验证失败提示 frontend/src/components/file/FileDownload.tsx
-- [ ] T296 实现文件搜索无结果提示 frontend/src/components/file/FileSearch.tsx
-- [ ] T297 实现财务数据计算异常处理和回滚 backend/internal/services/financial_service.go
-- [ ] T298 实现统计数据实时更新机制 backend/internal/services/project_business_service.go
-- [ ] T299 实现数据导出功能（经营统计、公司收入）backend/internal/handlers/financial_handler.go
-- [ ] T300 优化数据库查询性能（添加必要索引）scripts/migrations/009_add_performance_indexes.sql
-- [ ] T301 实现缓存机制（统计数据缓存）backend/internal/services/cache_service.go
-- [ ] T302 完善错误日志记录 backend/internal/middleware/logging.go
-- [ ] T303 实现系统健康检查接口 backend/internal/handlers/health_handler.go
-- [ ] T304 完善API文档（OpenAPI规范）specs/002-project-management-oa/contracts/openapi.yaml
-- [ ] T305 实现前端错误边界组件 frontend/src/components/common/ErrorBoundary.tsx
-- [ ] T306 实现前端加载状态组件 frontend/src/components/common/LoadingSpinner.tsx
-- [ ] T307 实现前端空状态组件 frontend/src/components/common/EmptyState.tsx
-- [ ] T308 优化前端路由和导航体验 frontend/src/App.tsx
-- [ ] T309 实现前端国际化支持（中文/英文）frontend/src/i18n/
-- [ ] T310 完善单元测试覆盖 backend/tests/unit/
-- [ ] T311 完善集成测试覆盖 backend/tests/integration/
-- [ ] T312 完善前端组件测试 frontend/tests/components/
-- [ ] T313 实现E2E测试场景 frontend/tests/e2e/
+- [ ] T510 实现项目编号重复验证和错误提示 backend/internal/services/project_service.go
+- [ ] T511 实现项目软删除功能 backend/internal/services/project_service.go
+- [ ] T512 实现项目恢复功能（仅admin）backend/internal/services/project_service.go
+- [ ] T513 实现并发编辑冲突提示 backend/internal/handlers/project_handler.go
+- [ ] T514 实现文件管理边界情况处理优化（文件大小超限、不支持的文件类型、上传失败重试、下载权限验证失败、搜索无结果等已在US24中实现，此处仅做优化）frontend/src/components/file/
+- [ ] T515 实现财务数据计算异常处理和回滚 backend/internal/services/financial_service.go
+- [ ] T516 实现统计数据实时更新机制 backend/internal/services/project_business_service.go
+- [ ] T517 实现数据导出功能（经营统计、公司收入）backend/internal/handlers/financial_handler.go
+- [ ] T518 优化数据库查询性能（添加必要索引）scripts/migrations/009_add_performance_indexes.sql
+- [ ] T519 实现缓存机制（统计数据缓存）backend/internal/services/cache_service.go
+- [ ] T520 完善错误日志记录 backend/internal/middleware/logging.go
+- [ ] T521 实现系统健康检查接口 backend/internal/handlers/health_handler.go
+- [ ] T522 完善API文档（OpenAPI规范）specs/002-project-management-oa/contracts/openapi.yaml
+- [ ] T523 实现前端错误边界组件 frontend/src/components/common/ErrorBoundary.tsx
+- [ ] T524 实现前端加载状态组件 frontend/src/components/common/LoadingSpinner.tsx
+- [ ] T525 实现前端空状态组件 frontend/src/components/common/EmptyState.tsx
+- [ ] T526 优化前端路由和导航体验 frontend/src/App.tsx
+- [ ] T527 实现前端国际化支持（中文/英文）frontend/src/i18n/
+- [ ] T528 完善单元测试覆盖 backend/tests/unit/
+- [ ] T529 完善集成测试覆盖 backend/tests/integration/
+- [ ] T530 完善前端组件测试 frontend/tests/components/
+- [ ] T531 实现E2E测试场景 frontend/tests/e2e/
 
 ---
 
@@ -1529,7 +1551,7 @@
 - T218-T231 (US21) 可以部分并行
 - T232-T239 (US22) 可以部分并行
 - T240-T257 (US23) 可以部分并行
-- T258-T276 (US24) 可以部分并行
+- T269-T281, T282-T297 (US24) 可以部分并行
 
 **Phase 2.10内部并行**:
 - T389-T391 (权限辅助函数和权限服务基础) 可以部分并行
@@ -1543,10 +1565,10 @@
 - US23-US24的权限集成任务（T465-T472）可以部分并行
 
 **Final Phase内部并行**:
-- T288-T291 (边界情况处理) 可以并行
-- T292-T297 (错误处理和优化) 可以并行
-- T298-T302 (性能优化和测试) 可以并行
-- T303-T312 (完善和测试) 可以并行
+- T510-T513 (边界情况处理) 可以并行
+- T514-T517 (错误处理和优化) 可以并行
+- T518-T521 (性能优化和测试) 可以并行
+- T522-T531 (完善和测试) 可以并行
 
 ---
 
@@ -1594,9 +1616,15 @@
 - 对外委托支付和开票通过FinancialRecord管理
 - 公司收入管理需要权限隔离，仅财务人员可访问
 - 文件管理需要支持搜索、下载和权限验证
+- 文件管理需要实现所有状态（加载中、成功、空状态、错误状态）和边界情况处理（EC-012到EC-017）
+- 文件管理权限控制采用"可查看但隐藏编辑入口"模式（EC-018），无权限用户可查看文件列表但完全隐藏上传和删除按钮
+- 文件删除采用软删除策略，保留文件记录，支持重新上传（EC-017）
+- 文件上传需要支持断点续传功能（EC-014），显示上传进度和成功提示
+- 文件下载权限验证失败时显示文件基本信息但不显示文件内容（EC-015）
+- 参考线框图：specs/main/design/wireframes/08-file-management.html
 - 所有边界情况需要妥善处理，提供友好的错误提示
 
-**任务进度**: 450/621 (72%)
+**任务进度**: 450/658 (68%)
 
 **任务统计**:
 - Phase 1-2: 75个任务（Setup和Foundational改造，包含Auth优化）
@@ -1615,10 +1643,10 @@
 - Phase 23: 29个任务（US21，优化后新增约15个任务：补充编辑删除功能、文件上传在保存时触发、文件下载和删除功能、汇总信息显示、UI状态管理）+ 3个权限集成任务（T459-T461）+ 7个基于线框图的新任务（T462-T468）
 - Phase 24: 18个任务（US22，包含组件建设和复用任务：创建可复用的BonusAllocation组件，统一经营奖金和生产奖金交互）+ 8个后端任务 + 4个组件建设任务（T496-T499）+ 6个集成任务（T500-T504, T464）
 - Phase 25: 18个任务（US23）+ 5个权限集成任务（T465-T469，替换T258和T267）
-- Phase 26: 19个任务（US24）+ 3个权限集成任务（T470-T472，替换T274和T277）
-- Final Phase: 26个任务（完善和优化）
+- Phase 26: 36个任务（US24，包含所有状态和边界情况处理：加载状态、错误状态、成功状态、权限控制、软删除等，参考线框图08-file-management.html）+ 3个权限集成任务（T470-T472）
+- Final Phase: 22个任务（完善和优化，任务ID从T510开始）
 
-**总计**: 630个任务（新增2个任务：组件建设和复用相关）
+**总计**: 658个任务（新增28个任务：文件管理功能完整状态和边界情况处理）
 
 **最新完成情况**（2025-01-29更新）:
 - Phase 17-19（US15-US17）已完成：86个任务

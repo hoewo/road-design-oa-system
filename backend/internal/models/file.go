@@ -12,7 +12,8 @@ const (
 	FileCategoryDesign     FileCategory = "design"     // 设计文件
 	FileCategoryAudit      FileCategory = "audit"      // 审计文件
 	FileCategoryProduction FileCategory = "production" // 生产文件
-	FileCategoryOther      FileCategory = "other"      // 其他文件
+	FileCategoryInvoice    FileCategory = "invoice"     // 发票文件
+	FileCategoryOther       FileCategory = "other"      // 其他文件
 )
 
 type File struct {
@@ -32,6 +33,9 @@ type File struct {
 
 	UploaderID string `json:"uploader_id" gorm:"type:uuid;not null"`
 	Uploader   User   `json:"uploader" gorm:"foreignKey:UploaderID"`
+
+	// 软删除支持
+	DeletedAt *time.Time `json:"deleted_at" gorm:"index"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

@@ -56,14 +56,24 @@ type SearchFilesParams struct {
 }
 
 // UploadFile uploads a file to storage and creates a file record (UUID string)
-func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, uploaderID string) (*models.File, error) {
-	// Validate file size (max 100MB)
-	const maxFileSize = 100 * 1024 * 1024 // 100MB
-	if req.FileSize > maxFileSize {
-		return nil, errors.New("文件大小超过限制（最大100MB）")
+// Checks permission using permission service before upload
+func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, uploaderID string, permissionService *PermissionService) (*models.File, error) {
+	// Check permission to access project
+	canAccess, err := permissionService.CanAccessProject(uploaderID, req.ProjectID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check project access permission: %w", err)
+	}
+	if !canAccess {
+		return nil, errors.New("您没有权限访问此项目")
 	}
 
-	// Validate file type
+	// Validate file size (max 100MB) - EC-012
+	const maxFileSize = 100 * 1024 * 1024 // 100MB
+	if req.FileSize > maxFileSize {
+		return nil, errors.New("文件大小超过限制（最大100MB），请压缩文件或选择较小的文件")
+	}
+
+	// Validate file type - EC-013
 	if err := s.validateFileType(req.FileType, req.Category); err != nil {
 		return nil, err
 	}
@@ -101,9 +111,10 @@ func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, up
 }
 
 // GetFile retrieves a file by ID (UUID string)
+// Includes soft-deleted files for display purposes (EC-015, EC-017)
 func (s *FileService) GetFile(id string) (*models.File, error) {
 	var file models.File
-	if err := s.db.Preload("Project").Preload("Uploader").First(&file, "id = ?", id).Error; err != nil {
+	if err := s.db.Unscoped().Preload("Project").Preload("Uploader").First(&file, "id = ?", id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("file not found")
 		}
@@ -114,43 +125,66 @@ func (s *FileService) GetFile(id string) (*models.File, error) {
 }
 
 // GetFileContent retrieves file content from storage (UUID string)
-func (s *FileService) GetFileContent(ctx context.Context, fileID string) (io.ReadCloser, *models.File, error) {
+// Checks permission before returning content (EC-015)
+func (s *FileService) GetFileContent(ctx context.Context, fileID string, userID string, permissionService *PermissionService) (io.ReadCloser, *models.File, error) {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Check permission - EC-015: if permission fails, return file info but not content
+	canAccess, err := permissionService.CanAccessProject(userID, file.ProjectID)
+	if err != nil {
+		return nil, file, fmt.Errorf("failed to check project access permission: %w", err)
+	}
+	if !canAccess {
+		// Return file info but not content (EC-015)
+		return nil, file, errors.New("您没有权限下载此文件")
+	}
+
+	// Check if file is deleted
+	if file.DeletedAt != nil {
+		return nil, file, errors.New("文件已删除")
+	}
+
 	object, err := storage.GetFile(ctx, s.config.MinIOBucketName, file.FilePath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get file from storage: %w", err)
+		return nil, file, fmt.Errorf("failed to get file from storage: %w", err)
 	}
 
 	return object, file, nil
 }
 
-// DeleteFile deletes a file from storage and database (UUID string)
+// DeleteFile performs soft delete on a file (EC-017)
+// Marks file as deleted but retains file record for business data references
 func (s *FileService) DeleteFile(ctx context.Context, fileID string) error {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return err
 	}
 
-	// Delete from storage
-	if err := storage.DeleteFile(ctx, s.config.MinIOBucketName, file.FilePath); err != nil {
-		return fmt.Errorf("failed to delete file from storage: %w", err)
+	// Check if file is already deleted
+	if file.DeletedAt != nil {
+		return errors.New("file already deleted")
 	}
 
-	// Delete from database
-	if err := s.db.Delete(file).Error; err != nil {
-		return fmt.Errorf("failed to delete file record: %w", err)
+	// Soft delete: mark as deleted but keep record
+	now := time.Now()
+	file.DeletedAt = &now
+	if err := s.db.Save(file).Error; err != nil {
+		return fmt.Errorf("failed to soft delete file: %w", err)
 	}
+
+	// Note: We don't delete from storage to allow recovery if needed
+	// Storage cleanup can be done via a separate cleanup job if required
 
 	return nil
 }
 
 // SearchFiles searches files based on criteria
+// Excludes soft-deleted files by default (can be modified to include them if needed)
 func (s *FileService) SearchFiles(params *SearchFilesParams) ([]models.File, int64, error) {
-	query := s.db.Model(&models.File{})
+	query := s.db.Model(&models.File{}).Where("deleted_at IS NULL")
 
 	// Apply filters
 	if params.ProjectID != nil {
@@ -228,20 +262,20 @@ func (s *FileService) GetPresignedURL(ctx context.Context, fileID string, expiry
 }
 
 // CheckFilePermission checks if a user has permission to access a file (UUID string)
-func (s *FileService) CheckFilePermission(fileID string, userID string) (bool, error) {
+// Uses permission service to check CanAccessProject
+func (s *FileService) CheckFilePermission(fileID string, userID string, permissionService *PermissionService) (bool, error) {
 	file, err := s.GetFile(fileID)
 	if err != nil {
 		return false, err
 	}
 
-	// Check if user is the uploader
-	if file.UploaderID == userID {
-		return true, nil
+	// Use permission service to check if user can access the project
+	canAccess, err := permissionService.CanAccessProject(userID, file.ProjectID)
+	if err != nil {
+		return false, fmt.Errorf("failed to check project access permission: %w", err)
 	}
 
-	// TODO: Add more permission checks based on project membership, roles, etc.
-	// For now, allow access if user is uploader
-	return true, nil
+	return canAccess, nil
 }
 
 // Helper methods
@@ -266,6 +300,7 @@ func (s *FileService) validateFileType(fileType string, category models.FileCate
 		category != models.FileCategoryDesign &&
 		category != models.FileCategoryAudit &&
 		category != models.FileCategoryProduction &&
+		category != models.FileCategoryInvoice &&
 		category != models.FileCategoryOther {
 		return errors.New("invalid file category")
 	}
@@ -300,13 +335,13 @@ func (s *FileService) validateFileType(fileType string, category models.FileCate
 		}
 	}
 
-	// Check if extension is in the dangerous types list
+		// Check if extension is in the dangerous types list
 	for _, dangerousExt := range dangerousTypes {
 		if ext == dangerousExt {
-			return fmt.Errorf("不允许上传危险文件类型：%s（可执行文件、脚本文件等存在安全风险）", ext)
+			return fmt.Errorf("不支持的文件类型，请上传PDF、Word、Excel、图片等格式的文件")
 		}
 	}
 
-	// All other file types are allowed
+	// All other file types are allowed (PDF, Word, Excel, images, etc.)
 	return nil
 }

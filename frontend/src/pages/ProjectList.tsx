@@ -19,6 +19,7 @@ import {
   DollarOutlined,
   SettingOutlined,
   UserOutlined,
+  FileOutlined,
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
@@ -228,6 +229,12 @@ const ProjectList = () => {
         title="项目管理"
         extra={
           <Space>
+            <Button
+              icon={<FileOutlined />}
+              onClick={() => navigate('/files')}
+            >
+              文件管理
+            </Button>
             <Button
               icon={<DollarOutlined />}
               onClick={() => navigate('/company-revenue')}

@@ -30,6 +30,17 @@
         .empty-state { text-align: center; padding: 60px 20px; color: #999; }
         .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
         .upload-area { border: 2px dashed #ccc; padding: 40px; text-align: center; margin: 20px 0; background: #f9f9f9; }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .progress-bar { width: 100%; height: 20px; background: #f0f0f0; border: 1px solid #ccc; margin: 10px 0; }
+        .progress-fill { height: 100%; background: #4CAF50; width: 65%; }
+        .modal { border: 2px solid #333; padding: 20px; background: white; max-width: 500px; margin: 20px auto; }
+        .modal-header { font-weight: bold; margin-bottom: 15px; }
+        .modal-footer { margin-top: 20px; text-align: right; }
+        .success-message { padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; color: #155724; margin: 10px 0; border-radius: 4px; }
+        .error-message { padding: 15px; background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; margin: 10px 0; border-radius: 4px; }
+        .warning-message { padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; margin: 10px 0; border-radius: 4px; }
+        .disabled { color: #999; opacity: 0.6; }
+        .deleted-file { text-decoration: line-through; color: #999; }
     </style>
 </head>
 <body>
@@ -38,9 +49,45 @@
             <h1>文件管理页面 - 线框图</h1>
         </div>
 
-        <!-- 正常状态 -->
+        <!-- 加载状态 - 文件列表加载中 -->
         <div class="container">
-            <h2>正常状态 - 有文件数据</h2>
+            <h2>加载状态 - 文件列表加载中</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <input type="text" class="search-box" placeholder="搜索文件名..." disabled />
+                    <select class="select" disabled>
+                        <option>全部项目</option>
+                    </select>
+                    <select class="select" disabled>
+                        <option>全部类型</option>
+                    </select>
+                    <input type="date" class="select" disabled />
+                    <input type="date" class="select" disabled />
+                    <button class="button button-primary" disabled>搜索</button>
+                    <button class="button" disabled>重置</button>
+                </div>
+                <div>
+                    <button class="button button-primary">+ 上传文件</button>
+                </div>
+            </div>
+
+            <div class="loading">
+                <div style="font-size: 48px; margin-bottom: 20px;">⏳</div>
+                <div>正在加载文件列表...</div>
+            </div>
+        </div>
+
+        <!-- 正常状态 - 有文件数据（有权限） -->
+        <div class="container">
+            <h2>正常状态 - 有文件数据（有权限）</h2>
             
             <div class="navbar">
                 <div class="navbar-item">项目列表</div>
@@ -233,26 +280,453 @@
             </div>
         </div>
 
-        <!-- 错误状态 - 文件过大 -->
+        <!-- 无权限状态 - 可查看但隐藏编辑入口 -->
         <div class="container">
-            <h2>错误状态 - 文件大小超过限制</h2>
+            <h2>无权限状态 - 可查看但隐藏编辑入口</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <!-- 工具栏 - 无权限用户不显示上传按钮 -->
+            <div class="toolbar">
+                <div class="filter-group">
+                    <input type="text" class="search-box" placeholder="搜索文件名..." />
+                    <select class="select">
+                        <option>全部项目</option>
+                        <option>XX道路改造工程</option>
+                        <option>YY桥梁设计项目</option>
+                    </select>
+                    <select class="select">
+                        <option>全部类型</option>
+                        <option>合同文件</option>
+                        <option>生产文件</option>
+                        <option>发票文件</option>
+                        <option>其他</option>
+                    </select>
+                    <input type="date" class="select" placeholder="开始日期" />
+                    <input type="date" class="select" placeholder="结束日期" />
+                    <button class="button button-primary">搜索</button>
+                    <button class="button">重置</button>
+                </div>
+                <!-- 无权限用户：上传按钮完全隐藏，不显示 -->
+            </div>
+
+            <!-- 文件列表 - 无权限用户只能查看和下载，不能删除 -->
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>项目名称</th>
+                        <th>文件类型</th>
+                        <th>文件大小</th>
+                        <th>上传时间</th>
+                        <th>上传人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">合同文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>合同文件</td>
+                        <td>2.5MB</td>
+                        <td>2024-01-25 10:30</td>
+                        <td>张三</td>
+                        <td>
+                            <span class="link">下载</span>
+                            <!-- 无权限用户：删除操作完全隐藏 -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">方案文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>生产文件</td>
+                        <td>5.5MB</td>
+                        <td>2024-02-20 14:20</td>
+                        <td>李四</td>
+                        <td>
+                            <span class="link">下载</span>
+                            <!-- 无权限用户：删除操作完全隐藏 -->
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 分页 -->
+            <div class="pagination">
+                <button>上一页</button>
+                <button class="active">1</button>
+                <button>2</button>
+                <button>3</button>
+                <button>下一页</button>
+                <span style="margin-left: 20px;">共 35 条，每页 10 条</span>
+            </div>
+        </div>
+
+        <!-- 上传文件弹窗/区域 -->
+        <div class="container">
+            <h2>上传文件弹窗</h2>
+            
+            <div class="upload-area">
+                <div style="font-size: 48px; margin-bottom: 20px;">📁</div>
+                <div style="margin-bottom: 15px;">
+                    <button class="button button-primary">选择文件</button>
+                    <span style="margin-left: 10px; color: #666;">或拖拽文件到此处</span>
+                </div>
+                <div style="color: #999; font-size: 12px;">
+                    支持 PDF、Word、Excel、图片等格式，单个文件最大 100MB
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <label class="label">关联项目 <span style="color: red;">*</span></label>
+                    <select class="select" style="width: 300px;">
+                        <option>请选择项目</option>
+                        <option>XX道路改造工程</option>
+                        <option>YY桥梁设计项目</option>
+                    </select>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label class="label">文件类型 <span style="color: red;">*</span></label>
+                    <select class="select" style="width: 300px;">
+                        <option>请选择文件类型</option>
+                        <option>合同文件</option>
+                        <option>生产文件</option>
+                        <option>发票文件</option>
+                        <option>其他</option>
+                    </select>
+                </div>
+                <div>
+                    <button class="button">取消</button>
+                    <button class="button button-primary">上传</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上传中状态 - 显示上传进度 -->
+        <div class="container">
+            <h2>上传中状态 - 显示上传进度</h2>
+            
+            <div class="upload-area">
+                <div style="font-size: 48px; margin-bottom: 20px;">📤</div>
+                <div style="margin-bottom: 15px; font-weight: bold;">正在上传：合同文件.pdf</div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div style="color: #666; font-size: 14px;">65% (65MB / 100MB)</div>
+                <div style="margin-top: 15px;">
+                    <button class="button">取消上传</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 上传成功状态 -->
+        <div class="container">
+            <h2>上传成功状态</h2>
+            
+            <div class="success-message">
+                ✅ 文件上传成功！合同文件.pdf 已保存
+            </div>
+
+            <div class="upload-area" style="border-color: #4CAF50; background: #f0f9f0;">
+                <div style="font-size: 48px; margin-bottom: 20px;">✅</div>
+                <div style="color: #4CAF50; font-weight: bold; margin-bottom: 10px;">上传成功</div>
+                <div style="color: #666;">文件已成功上传并保存到系统</div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <button class="button button-primary">继续上传</button>
+                <button class="button">关闭</button>
+            </div>
+        </div>
+
+        <!-- 错误状态 - 文件大小超过限制 -->
+        <div class="container">
+            <h2>错误状态 - 文件大小超过限制 (EC-012)</h2>
+            
+            <div class="error-message">
+                ⚠️ 文件大小超过限制（最大100MB），请压缩文件或选择较小的文件
+            </div>
             
             <div class="upload-area" style="border-color: red; background: #ffe0e0;">
                 <div style="color: red; font-weight: bold; margin-bottom: 10px;">⚠️ 上传失败</div>
-                <div style="color: red;">文件大小超过限制（最大100MB），请压缩文件或选择较小的文件</div>
+                <div style="color: red;">文件大小：150MB，超过限制（最大100MB）</div>
+                <div style="margin-top: 15px;">
+                    <button class="button button-primary">重新选择文件</button>
+                </div>
             </div>
+        </div>
+
+        <!-- 错误状态 - 不支持的文件类型 -->
+        <div class="container">
+            <h2>错误状态 - 不支持的文件类型 (EC-013)</h2>
+            
+            <div class="error-message">
+                ⚠️ 不支持的文件类型，请上传PDF、Word、Excel、图片等格式的文件
+            </div>
+            
+            <div class="upload-area" style="border-color: red; background: #ffe0e0;">
+                <div style="color: red; font-weight: bold; margin-bottom: 10px;">⚠️ 上传失败</div>
+                <div style="color: red;">文件类型：.exe，不支持此文件类型</div>
+                <div style="color: #666; margin-top: 10px; font-size: 12px;">
+                    支持的文件类型：PDF、Word (.doc, .docx)、Excel (.xls, .xlsx)、图片 (.jpg, .png, .gif) 等
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="button button-primary">重新选择文件</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 - 文件上传失败（网络中断等） -->
+        <div class="container">
+            <h2>错误状态 - 文件上传失败（网络中断等）(EC-014)</h2>
+            
+            <div class="error-message">
+                ⚠️ 文件上传失败，网络连接中断。系统支持断点续传，您可以重新连接后继续上传。
+            </div>
+            
+            <div class="upload-area" style="border-color: orange; background: #fff3cd;">
+                <div style="color: #856404; font-weight: bold; margin-bottom: 10px;">⚠️ 上传中断</div>
+                <div style="color: #856404;">上传进度：65% (65MB / 100MB)</div>
+                <div style="color: #666; margin-top: 10px; font-size: 12px;">
+                    系统已保存上传进度，重新连接后可以从断点处继续上传
+                </div>
+                <div style="margin-top: 15px;">
+                    <button class="button button-primary">继续上传</button>
+                    <button class="button">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错误状态 - 文件下载权限验证失败 -->
+        <div class="container">
+            <h2>错误状态 - 文件下载权限验证失败 (EC-015)</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <input type="text" class="search-box" placeholder="搜索文件名..." />
+                    <button class="button button-primary">搜索</button>
+                    <button class="button">重置</button>
+                </div>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>项目名称</th>
+                        <th>文件类型</th>
+                        <th>文件大小</th>
+                        <th>上传时间</th>
+                        <th>上传人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span>合同文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>合同文件</td>
+                        <td>2.5MB</td>
+                        <td>2024-01-25 10:30</td>
+                        <td>张三</td>
+                        <td>
+                            <span style="color: red;">您没有权限下载此文件</span>
+                            <!-- 显示文件基本信息，但不显示文件内容 -->
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="warning-message" style="margin-top: 20px;">
+                ⚠️ 您没有权限下载此文件，但可以查看文件基本信息（文件名、大小、上传时间）
+            </div>
+        </div>
+
+        <!-- 文件删除确认对话框 -->
+        <div class="container">
+            <h2>文件删除确认对话框</h2>
+            
+            <div class="modal">
+                <div class="modal-header">确认删除文件</div>
+                <div style="margin-bottom: 15px;">
+                    <p>您确定要删除文件 <strong>合同文件.pdf</strong> 吗？</p>
+                    <p style="color: #666; font-size: 12px; margin-top: 10px;">
+                        文件信息：<br>
+                        - 项目：XX道路改造工程<br>
+                        - 文件类型：合同文件<br>
+                        - 文件大小：2.5MB<br>
+                        - 上传时间：2024-01-25 10:30
+                    </p>
+                    <div class="warning-message" style="margin-top: 15px;">
+                        ⚠️ 注意：如果文件已被业务数据引用（如合同文件、发票文件等），系统将保留文件记录（标记为已删除），在业务数据中显示为"文件已删除"，支持重新上传。
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="button">取消</button>
+                    <button class="button button-primary" style="background: #dc3545; border-color: #dc3545;">确认删除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 文件已删除状态（软删除） -->
+        <div class="container">
+            <h2>文件已删除状态（软删除）(EC-017)</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <div class="toolbar">
+                <div class="filter-group">
+                    <input type="text" class="search-box" placeholder="搜索文件名..." />
+                    <button class="button button-primary">搜索</button>
+                    <button class="button">重置</button>
+                </div>
+                <div>
+                    <button class="button button-primary">+ 上传文件</button>
+                </div>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>项目名称</th>
+                        <th>文件类型</th>
+                        <th>文件大小</th>
+                        <th>上传时间</th>
+                        <th>上传人</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="deleted-file">合同文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>合同文件</td>
+                        <td>2.5MB</td>
+                        <td>2024-01-25 10:30</td>
+                        <td>张三</td>
+                        <td>
+                            <span style="color: #999;">已删除</span>
+                        </td>
+                        <td>
+                            <span class="link">重新上传</span>
+                            <!-- 已删除的文件不显示下载和删除操作 -->
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">方案文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>生产文件</td>
+                        <td>5.5MB</td>
+                        <td>2024-02-20 14:20</td>
+                        <td>李四</td>
+                        <td>
+                            <span style="color: #4CAF50;">正常</span>
+                        </td>
+                        <td>
+                            <span class="link">下载</span> | 
+                            <span class="link">删除</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 下载中状态 -->
+        <div class="container">
+            <h2>下载中状态</h2>
+            
+            <div class="navbar">
+                <div class="navbar-item">项目列表</div>
+                <div class="navbar-item">公司收入</div>
+                <div class="navbar-item active">文件管理</div>
+                <div class="navbar-item" style="float: right;">用户名 | 退出</div>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>文件名</th>
+                        <th>项目名称</th>
+                        <th>文件类型</th>
+                        <th>文件大小</th>
+                        <th>上传时间</th>
+                        <th>上传人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <span class="file-icon"></span>
+                            <span class="link">合同文件.pdf</span>
+                        </td>
+                        <td>XX道路改造工程</td>
+                        <td>合同文件</td>
+                        <td>2.5MB</td>
+                        <td>2024-01-25 10:30</td>
+                        <td>张三</td>
+                        <td>
+                            <span style="color: #666;">⏳ 正在下载...</span>
+                            <!-- 下载中时禁用删除操作 -->
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <div class="note">
             <strong>设计说明：</strong><br>
             - 支持按项目、文件类型、上传时间进行搜索和筛选<br>
             - 文件列表显示文件名、项目、类型、大小、上传时间、上传人等信息<br>
-            - 支持文件下载和删除操作<br>
-            - 上传文件时需选择关联项目和文件类型<br>
-            - 单个文件最大100MB，支持常见文档格式<br>
-            - 文件上传失败时显示错误提示<br>
-            - 搜索无结果时显示空状态提示<br>
-            - 支持分页显示，每页10条记录
+            - 支持文件下载和删除操作（有权限用户）<br>
+            - 上传文件时需选择关联项目和文件类型（必填项）<br>
+            - 单个文件最大100MB，支持常见文档格式（PDF、Word、Excel、图片等）<br>
+            - 文件上传失败时显示错误提示（文件过大、不支持的类型、网络中断等）<br>
+            - 文件上传支持断点续传功能（EC-014）<br>
+            - 文件上传中显示上传进度条和百分比<br>
+            - 文件上传成功显示成功提示<br>
+            - 文件删除前显示确认对话框，提示关联数据处理规则（EC-017）<br>
+            - 文件删除后采用软删除策略，保留文件记录，显示"已删除"状态，支持重新上传<br>
+            - 文件下载权限验证失败时，显示文件基本信息但不显示文件内容（EC-015）<br>
+            - 搜索无结果时显示空状态提示（EC-016）<br>
+            - 支持分页显示，每页10条记录<br>
+            - 权限控制：无权限用户可以查看所有内容（列表、详情、文件等），但完全隐藏所有编辑入口（上传、删除按钮/链接等），不显示禁用状态的按钮（EC-018）<br>
+            - 加载状态：文件列表加载中、文件上传中、文件下载中都有相应的加载提示
         </div>
     </div>
 </body>

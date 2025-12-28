@@ -359,6 +359,7 @@ export type FileCategory =
   | 'design'
   | 'audit'
   | 'production'
+  | 'invoice'
   | 'other'
 
 export interface File {
@@ -372,8 +373,10 @@ export interface File {
   category: FileCategory
   description?: string
   project_id: string // UUID string
+  project?: Project
   uploader_id: string // UUID string
   uploader?: User
+  deleted_at?: string | null // Soft delete timestamp
   created_at: string
   updated_at: string
 }

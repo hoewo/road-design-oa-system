@@ -302,6 +302,10 @@ func (r *Router) SetupRoutes(
 
 		// General file download route
 		user.GET("/files/:fileId/download", fileHandler.DownloadFile)
+		// File search route
+		user.GET("/files/search", fileHandler.SearchFiles)
+		// File delete route (soft delete)
+		user.DELETE("/files/:fileId", fileHandler.DeleteFile)
 	}
 
 	// Admin路由（需要管理员权限）
