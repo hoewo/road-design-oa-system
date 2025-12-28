@@ -11,6 +11,8 @@ import (
 )
 
 // CompanyConfigService handles company configuration operations
+// Note: Only management fee ratio related methods are kept.
+// General configuration management has been removed and is now maintained in company revenue statistics.
 type CompanyConfigService struct {
 	db               *gorm.DB
 	permissionService *PermissionService
@@ -25,6 +27,7 @@ func NewCompanyConfigService() *CompanyConfigService {
 }
 
 // GetConfig retrieves a configuration value by key
+// This method is kept for internal use by GetDefaultManagementFeeRatio
 func (s *CompanyConfigService) GetConfig(key string) (*models.CompanyConfig, error) {
 	var config models.CompanyConfig
 	if err := s.db.Where("config_key = ?", key).First(&config).Error; err != nil {
@@ -63,6 +66,7 @@ func (s *CompanyConfigService) GetDefaultManagementFeeRatio() (float64, error) {
 }
 
 // SetConfig creates or updates a configuration value (UUID string)
+// This method is kept for internal use by SetDefaultManagementFeeRatio
 func (s *CompanyConfigService) SetConfig(key, value, description string, createdByID string) (*models.CompanyConfig, error) {
 	// Validate key
 	if key == "" {
@@ -144,13 +148,4 @@ func (s *CompanyConfigService) SetDefaultManagementFeeRatio(ratio float64, descr
 	}
 
 	return s.SetConfig(models.ConfigKeyDefaultManagementFeeRatio, value, description, createdByID)
-}
-
-// GetAllConfigs retrieves all configuration entries
-func (s *CompanyConfigService) GetAllConfigs() ([]models.CompanyConfig, error) {
-	var configs []models.CompanyConfig
-	if err := s.db.Preload("CreatedBy").Find(&configs).Error; err != nil {
-		return nil, err
-	}
-	return configs, nil
 }

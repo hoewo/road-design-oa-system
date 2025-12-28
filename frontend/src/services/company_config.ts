@@ -1,39 +1,11 @@
 import { get, put } from './api'
 import type { CompanyConfig } from '@/types'
 
+/**
+ * 公司配置服务（仅保留管理费比例相关功能）
+ * 注意：通用配置管理功能已移除，统一由公司收入统计页面维护
+ */
 export const companyConfigService = {
-  // Get all company configurations
-  getAllConfigs: async (): Promise<CompanyConfig[]> => {
-    const response = await get<CompanyConfig[]>('/user/company-config')
-    return response || []
-  },
-
-  // Get a specific configuration by key
-  getConfig: async (key: string): Promise<CompanyConfig | null> => {
-    try {
-      const response = await get<CompanyConfig>(`/user/company-config/${key}`)
-      return response || null
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        return null
-      }
-      throw error
-    }
-  },
-
-  // Update a configuration value
-  updateConfig: async (
-    key: string,
-    value: string,
-    description?: string
-  ): Promise<CompanyConfig> => {
-    const response = await put<CompanyConfig>(`/user/company-config/${key}`, {
-      value,
-      description,
-    })
-    return response
-  },
-
   // Get default management fee ratio
   getDefaultManagementFeeRatio: async (): Promise<number> => {
     const response = await get<{ ratio: number; key: string }>(

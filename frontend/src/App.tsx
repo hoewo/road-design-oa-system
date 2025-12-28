@@ -7,7 +7,6 @@ import Login from './pages/Login'
 import ProjectList from './pages/ProjectList'
 import ProjectDetail from './pages/ProjectDetail'
 import ProjectRevenue from './pages/ProjectRevenue'
-import CompanyConfig from './pages/CompanyConfig'
 import CompanyRevenue from './pages/CompanyRevenue'
 import UserManagement from './pages/UserManagement'
 import FileManagement from './pages/FileManagement'
@@ -138,7 +137,6 @@ function AppContent() {
                     path="/projects/:id/revenue"
                     element={<ProjectRevenue />}
                   />
-                  <Route path="/company-config" element={<CompanyConfig />} />
                   <Route path="/company-revenue" element={<CompanyRevenue />} />
                   <Route path="/users" element={<UserManagement />} />
                   <Route path="/files" element={<FileManagement />} />

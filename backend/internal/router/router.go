@@ -267,12 +267,10 @@ func (r *Router) SetupRoutes(
 			users.PUT("/:id", userHandler.UpdateUser)
 		}
 
-		// Company configuration routes
+		// Company configuration routes (only management fee ratio)
+		// Note: General configuration management has been removed and is now maintained in company revenue statistics.
 		companyConfig := user.Group("/company-config")
 		{
-			companyConfig.GET("", companyConfigHandler.GetAllConfigs)
-			companyConfig.GET("/:key", companyConfigHandler.GetConfig)
-			companyConfig.PUT("/:key", companyConfigHandler.UpdateConfig)
 			companyConfig.GET("/default-management-fee-ratio", companyConfigHandler.GetDefaultManagementFeeRatio)
 			companyConfig.PUT("/default-management-fee-ratio", companyConfigHandler.UpdateDefaultManagementFeeRatio)
 		}

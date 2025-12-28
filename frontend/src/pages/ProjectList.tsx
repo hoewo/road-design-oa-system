@@ -241,12 +241,6 @@ const ProjectList = () => {
             >
               公司收入统计
             </Button>
-            <Button
-              icon={<SettingOutlined />}
-              onClick={() => navigate('/company-config')}
-            >
-              公司配置
-            </Button>
             {permissionService.utils.isSystemAdmin(currentUser) && (
               <Button
                 icon={<UserOutlined />}
