@@ -99,11 +99,38 @@ export const ClientSelectModal = ({
       contact_name?: string
       contact_phone?: string
     }) => businessService.updateProjectBusiness(projectId, data),
-    onSuccess: () => {
+    onSuccess: async (response) => {
       message.success('甲方信息更新成功')
+      
+      // 先使用响应数据乐观更新projectContact缓存，确保立即显示
+      if (response.contact_name || response.contact_phone) {
+        queryClient.setQueryData(['projectContact', projectId], (oldData: any) => {
+          if (oldData) {
+            return {
+              ...oldData,
+              contact_name: response.contact_name || oldData.contact_name,
+              contact_phone: response.contact_phone || oldData.contact_phone,
+            }
+          }
+          // 如果旧数据不存在，从response构建新数据
+          return {
+            id: '',
+            project_id: projectId,
+            client_id: response.client_id,
+            contact_name: response.contact_name || '',
+            contact_phone: response.contact_phone || '',
+          }
+        })
+      }
+      
+      // 后台刷新，不阻塞UI
       queryClient.invalidateQueries({
         queryKey: ['projectBusiness', projectId],
       })
+      queryClient.refetchQueries({
+        queryKey: ['projectContact', projectId],
+      })
+
       onSuccess?.()
       onCancel()
     },

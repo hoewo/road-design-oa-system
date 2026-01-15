@@ -272,6 +272,8 @@ export interface ProjectBusiness {
   client_id?: string // UUID string
   client?: Client
   project_contact?: ProjectContact // 项目联系人信息
+  contact_name?: string // 联系人姓名（后端直接返回，用于乐观更新）
+  contact_phone?: string // 联系人电话（后端直接返回，用于乐观更新）
   business_manager_ids: string[] // UUID strings
   business_personnel_ids: string[] // UUID strings
 }
