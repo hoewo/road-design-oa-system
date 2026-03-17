@@ -1,0 +1,76 @@
+entity: ProductionApproval
+description: 批复审计信息实体，包含批复/审计报告文件和金额明细
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: ApprovalType
+    type: ApprovalType
+    constraints: not null
+    description: 类型：批复/审计
+  - name: ApproverID
+    type: "*uuid"
+    description: 责任人ID（可选）
+  - name: Status
+    type: ApprovalStatus
+    default: pending
+  - name: SignedAt
+    type: "*time.Time"
+    description: 签字/确认时间（可选）
+  - name: ReportFileID
+    type: "*uuid"
+    description: 批复/审计报告文件ID
+  - name: AmountDesign
+    type: float64
+    default: 0
+    description: 设计费（元）
+  - name: AmountSurvey
+    type: float64
+    default: 0
+    description: 勘察费（元）
+  - name: AmountConsulting
+    type: float64
+    default: 0
+    description: 咨询费（元）
+  - name: TotalAmount
+    type: float64
+    constraints: not null
+    description: 总金额，应等于三项费用之和
+  - name: SourceContractID
+    type: "*uuid"
+    description: 关联的合同ID（默认引用合同金额）
+  - name: OverrideReason
+    type: text
+    description: 金额覆盖原因说明
+  - name: Remarks
+    type: text
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  ApprovalType:
+    - approval: 批复
+    - audit: 审计
+
+  ApprovalStatus:
+    - pending: 待审核
+    - approved: 已审核
+
+business_rules:
+  - 批复/审计金额默认引用关联合同（含补充协议）的费用明细
+  - 可在记录中手工调整金额，并填写覆盖原因
+  - 支持两级在线审批流程（审核、审定）
+
+relationships:
+  - "1:1 Project"
+  - "1:1 File (ReportFile)"
+  - "1:1 User (Approver)"
+  - "1:1 Contract (SourceContract)"

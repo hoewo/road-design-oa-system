@@ -1,0 +1,75 @@
+entity: Project
+description: 项目实体，包含基本信息、负责人配置、关联数据
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectName
+    type: string
+    constraints: not null
+    validation: 2-100字符，必填
+  - name: ProjectNumber
+    type: string
+    constraints: uniqueIndex, not null
+    validation: 格式 YYYY-XXX，必填
+  - name: StartDate
+    type: "*time.Time"
+    description: 承接日期（可选）
+  - name: ProjectOverview
+    type: text
+    description: 项目概况（可选，最多1000字符）
+  - name: DrawingUnit
+    type: string
+    description: 出图单位（可选）
+  - name: Status
+    type: ProjectStatus
+    default: planning
+  - name: IsDeleted
+    type: bool
+    default: false
+    description: 软删除标记
+  - name: BusinessManagerID
+    type: "*uuid"
+    description: 经营负责人ID（项目级别配置）
+  - name: ProductionManagerID
+    type: "*uuid"
+    description: 生产负责人ID（项目级别配置）
+  - name: ClientID
+    type: "*uuid"
+    description: 甲方ID（在项目经营信息中管理）
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  ProjectStatus:
+    - planning: 规划中
+    - bidding: 招投标
+    - contract: 合同签订
+    - production: 生产中
+    - completed: 已完成
+    - cancelled: 已取消
+
+business_rules:
+  - 项目编号唯一性约束（数据库唯一索引 + 应用层验证）
+  - 软删除策略：删除项目时仅标记IsDeleted=true，保留所有关联数据
+  - 只有admin可以彻底删除项目（硬删除）
+  - 经营负责人和生产负责人在项目基本信息中配置，存储在BusinessManagerID和ProductionManagerID字段
+  - 甲方信息在项目经营信息中管理，不在项目创建时填写
+
+relationships:
+  - "1:1 Client"
+  - "1:1 ProjectContact"
+  - "1:1 BiddingInfo"
+  - "1:N Contract"
+  - "1:N FinancialRecord"
+  - "1:N ProductionFile"
+  - "1:N ProductionApproval"
+  - "1:N ExternalCommission"
+  - "1:N File"
+  - "1:N ProjectMember"
+  - "1:N Discipline (项目级专业)"

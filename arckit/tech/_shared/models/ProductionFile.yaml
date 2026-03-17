@@ -1,0 +1,58 @@
+entity: ProductionFile
+description: 生产阶段文件实体，包含阶段类型、文件、校审单和评分
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: Stage
+    type: ProductionStage
+    constraints: not null
+    description: 生产阶段
+  - name: FileID
+    type: uuid
+    constraints: not null
+    description: 生产文件ID
+  - name: ReviewSheetFileID
+    type: "*uuid"
+    description: 校审单文件ID（方案/初步设计/施工图设计必填）
+  - name: Score
+    type: "*float64"
+    validation: 0-100
+    description: 评分（方案/初步设计/施工图设计必填）
+  - name: DefaultAmountReference
+    type: text
+    description: 默认金额引用说明
+  - name: Description
+    type: text
+  - name: CreatedByID
+    type: uuid
+    constraints: not null
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  ProductionStage:
+    - scheme: 方案
+    - preliminary: 初步设计
+    - construction: 施工图设计
+    - change: 变更洽商
+    - completion: 竣工验收
+
+business_rules:
+  - 方案、初步设计、施工图设计必须上传校审单并填写评分
+  - 校审单和评分为必填项（仅限方案、初步设计、施工图设计阶段）
+  - 变更洽商、竣工验收阶段不需要校审单和评分
+
+relationships:
+  - "1:1 Project"
+  - "1:1 File"
+  - "1:1 File (ReviewSheetFile)"
+  - "1:1 User (CreatedBy)"

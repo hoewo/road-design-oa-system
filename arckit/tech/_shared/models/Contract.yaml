@@ -1,0 +1,58 @@
+entity: Contract
+description: 合同实体，包含合同文件、签订时间、合同金额明细（设计费/勘察费/咨询费）、合同费率
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ContractNumber
+    type: string
+    constraints: uniqueIndex, not null
+    validation: 格式 HT-YYYY-XXX
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: SignDate
+    type: time.Time
+    constraints: not null
+  - name: ContractRate
+    type: float64
+    validation: 0-100之间
+    description: 合同费率%
+  - name: DesignFee
+    type: float64
+    default: 0
+    description: 设计费（元）
+  - name: SurveyFee
+    type: float64
+    default: 0
+    description: 勘察费（元）
+  - name: ConsultationFee
+    type: float64
+    default: 0
+    description: 咨询费（元）
+  - name: ContractAmount
+    type: float64
+    constraints: not null
+    description: 合同总金额（应等于设计费+勘察费+咨询费之和）
+  - name: ContractFileID
+    type: "*uuid"
+    description: 合同文件ID（可选）
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+business_rules:
+  - 合同金额必须明确包含设计费、勘察费、咨询费等明细
+  - 合同总金额应等于各项费用之和
+  - 合同文件通过文件管理功能单独上传和管理
+  - 支持补充协议（通过ContractAmendment关联）
+
+relationships:
+  - "1:N ContractAmendment"
+  - "1:1 File (ContractFile)"
+  - "1:1 Project"
+  - "1:N ProductionApproval (SourceContract)"

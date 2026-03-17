@@ -1,0 +1,11 @@
+# Pattern Library 索引
+# 每条 pattern 对应一个 .md 文件，文件名即 pattern 的分类标识
+# hit_count 由 arcflow retro 自动维护，不要手动修改
+#
+# 新增 pattern 步骤：
+#   1. 参考 example.md.sample 创建 .md 文件
+#   2. 在下方 patterns 列表添加对应条目
+#
+# Pattern 会在 arcflow start/run 时根据 trigger_keywords 自动匹配注入
+
+patterns: []

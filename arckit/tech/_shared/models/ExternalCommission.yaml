@@ -1,0 +1,51 @@
+entity: ExternalCommission
+description: 对外委托实体，包含委托类型、评分、委托合同；委托支付和对方开票通过FinancialRecord管理
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: VendorType
+    type: CommissionType
+    constraints: not null
+    description: 委托类型：个人/单位
+  - name: VendorName
+    type: string
+    constraints: not null
+    validation: 必填，2-100字符
+  - name: Score
+    type: "*float64"
+    validation: 0-100
+    description: 对委托方的评分（可选）
+  - name: ContractFileID
+    type: "*uuid"
+    description: 委托合同文件ID（可选）
+  - name: Notes
+    type: text
+  - name: CreatedByID
+    type: uuid
+    constraints: not null
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  CommissionType:
+    - person: 个人
+    - company: 单位
+
+business_rules:
+  - 委托支付和对方开票通过FinancialRecord实体管理（通过ProjectID+FinancialType查询）
+  - 可与成本统计、奖金分配联动（如根据评分决定奖金比例）
+
+relationships:
+  - "1:1 Project"
+  - "1:1 File (ContractFile)"
+  - "1:1 User (CreatedBy)"
+  - "$ref: FinancialRecord (委托支付commission_payment, 对方开票vendor_invoice)"

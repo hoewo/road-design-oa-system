@@ -1,0 +1,128 @@
+entity: FinancialRecord
+description: 统一财务记录实体，通过财务类型和方向区分所有财务业务场景
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: FinancialType
+    type: FinancialType
+    constraints: not null
+    description: 财务类型
+  - name: Direction
+    type: FinancialDirection
+    constraints: not null
+    description: 方向：收入/支出
+  - name: Amount
+    type: float64
+    constraints: not null
+    validation: 大于0的数值
+  - name: OccurredAt
+    type: time.Time
+    constraints: not null
+    description: 发生时间
+  # 奖金类型字段
+  - name: BonusCategory
+    type: "*BonusCategory"
+    description: 奖金类别（奖金类型使用）
+  - name: RecipientID
+    type: "*uuid"
+    description: 发放人员ID（奖金类型必填）
+  # 成本类型字段
+  - name: CostCategory
+    type: "*CostCategory"
+    description: 成本类别（成本类型使用）
+  - name: Mileage
+    type: "*float64"
+    description: 里程（仅打车类型）
+  - name: InvoiceFileID
+    type: "*uuid"
+    description: 发票文件ID
+  # 甲方支付/我方开票字段
+  - name: ClientID
+    type: "*uuid"
+    description: 甲方ID
+  - name: RelatedPaymentID
+    type: "*uuid"
+    description: 关联的甲方支付记录ID（我方开票时使用）
+  # 专家费字段
+  - name: PaymentMethod
+    type: "*PaymentMethod"
+    description: 支付方式（现金/转账，专家费使用）
+  - name: ExpertName
+    type: string
+    description: 专家姓名（专家费使用）
+  # 委托支付/对方开票字段
+  - name: CommissionType
+    type: "*CommissionType"
+    description: 委托类型（个人/单位）
+  - name: VendorName
+    type: string
+    description: 委托方名称
+  - name: VendorScore
+    type: "*float64"
+    description: 委托方评分
+  - name: RelatedCommissionID
+    type: "*uuid"
+    description: 关联的委托支付记录ID（对方开票时使用）
+  - name: Description
+    type: text
+  - name: CreatedByID
+    type: uuid
+    constraints: not null
+  - name: UpdatedByID
+    type: "*uuid"
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  FinancialType:
+    - bonus: 奖金（经营奖金/生产奖金）
+    - cost: 成本（打车/住宿/公共交通）
+    - client_payment: 甲方支付
+    - our_invoice: 我方开票
+    - expert_fee: 专家费
+    - commission_payment: 委托支付
+    - vendor_invoice: 对方开票
+
+  FinancialDirection:
+    - income: 收入
+    - expense: 支出
+
+  BonusCategory:
+    - business: 经营奖金
+    - production: 生产奖金
+
+  CostCategory:
+    - taxi: 打车
+    - accommodation: 住宿
+    - public_transport: 公共交通
+
+  PaymentMethod:
+    - cash: 现金
+    - transfer: 转账
+
+  CommissionType:
+    - person: 个人
+    - company: 单位
+
+business_rules:
+  - 统一的财务记录实体，替代所有财务相关实体
+  - 通过FinancialType区分不同业务场景
+  - 通过Direction区分收入和支出
+  - 支持支付和开票的关联（通过RelatedPaymentID和RelatedCommissionID）
+  - 奖金发放人员必须关联到项目中的用户
+
+relationships:
+  - "1:1 Project"
+  - "1:1 User (Recipient, CreatedBy, UpdatedBy)"
+  - "1:1 Client"
+  - "1:1 File (InvoiceFile)"
+  - "self ref: RelatedPayment, RelatedCommission"

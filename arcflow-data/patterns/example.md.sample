@@ -1,0 +1,29 @@
+# Pattern 文件格式示例（此文件为格式参考，不会被 arcflow 加载）
+# 复制此文件，重命名为 <your-pattern>.md，并在 index.yaml 中添加对应条目
+
+# ── YAML 元数据头（arcflow 读取）──────────────────────────────
+id: P-XX-001
+title: <一句话规则标题>
+trigger_keywords: [<关键词1>, <关键词2>, <关键词3>]
+# stage 可选值: taskcard | plancard | execute
+stage: [plancard, execute]
+source: <来源任务 ID 或说明>
+created_at: <YYYY-MM-DD>
+hit_count: 0
+# ─────────────────────────────────────────────────────────────
+
+## 检查项
+
+<具体的检查清单，带 [ ] 格式，arcflow 会将此部分注入到对应阶段的 prompt>
+
+- [ ] 检查点 1
+- [ ] 检查点 2
+- [ ] 检查点 3
+
+## 正确示例
+
+<简短的正确做法示例>
+
+## 常见错误
+
+<对应的常见错误描述>

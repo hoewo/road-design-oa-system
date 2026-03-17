@@ -1,0 +1,41 @@
+entity: BiddingInfo
+description: 招投标信息实体，包含招投标文件（数组）和专家费支付（通过FinancialRecord管理）
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null, uniqueIndex
+    description: 一个项目只能有一条招投标信息
+  - name: TenderFileIDs
+    type: "pq.StringArray (text[])"
+    description: 招标文件ID数组，支持多个文件
+  - name: BidFileIDs
+    type: "pq.StringArray (text[])"
+    description: 投标文件ID数组，支持多个文件
+  - name: AwardNoticeFileIDs
+    type: "pq.StringArray (text[])"
+    description: 中标通知书ID数组，支持多个文件
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+business_rules:
+  - 招投标信息与项目一对一关系
+  - 每种文件类型（招标文件、投标文件、中标通知书）支持多个文件上传
+  - 文件通过File实体关联，支持上传、下载、删除
+  - 专家费支付通过FinancialRecord实体管理（financial_type=expert_fee），支持创建、编辑、删除
+
+migration_notes:
+  - 需要将现有的单文件字段（TenderFileID等）迁移到数组字段
+  - PostgreSQL数组类型需要确保数据库支持 text[] 类型
+
+relationships:
+  - "1:1 Project"
+  - "$ref: File (通过TenderFileIDs/BidFileIDs/AwardNoticeFileIDs)"
+  - "$ref: FinancialRecord (专家费，通过ProjectID+financial_type=expert_fee查询)"

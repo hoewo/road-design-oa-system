@@ -1,0 +1,38 @@
+entity: ProjectContact
+description: 项目联系人实体，甲方在特定项目中的联系人，作为独立实体存在
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null, uniqueIndex
+    description: 一个项目只能有一个项目联系人
+  - name: ClientID
+    type: "*uuid"
+    description: 关联甲方（可选，应与Project.ClientID保持一致）
+  - name: ContactName
+    type: string
+    constraints: not null
+    validation: 2-50字符，必填
+  - name: ContactPhone
+    type: string
+    description: 联系人电话（可选，11位手机号或固定电话）
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+business_rules:
+  - 项目联系人与项目一对一关系（uniqueIndex约束）
+  - 项目联系人实体与甲方实体分离，但通过ClientID建立关联关系
+  - 相同甲方在不同项目中可以有不同的项目联系人实体
+  - 修改一个项目的联系人信息不会影响其他项目
+  - ClientID应该与Project.ClientID保持一致，确保数据一致性
+
+relationships:
+  - "1:1 Project"
+  - "1:1 Client"

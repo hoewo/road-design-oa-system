@@ -1,0 +1,69 @@
+entity: User
+description: 用户实体，统一账号、经营人员、生产人员
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey, default:gen_random_uuid()
+    description: UUID v4格式，与网关注入的X-User-ID格式一致
+  - name: Username
+    type: string
+    constraints: uniqueIndex, not null
+    validation: 3-20字符，只能包含字母、数字、下划线
+  - name: Email
+    type: string
+    constraints: uniqueIndex, not null
+    validation: 有效的邮箱格式
+  - name: Password
+    type: string
+    constraints: not null, json:"-"
+    validation: 最少8位，包含字母和数字（仅当HasAccount=true时）
+  - name: RealName
+    type: string
+    constraints: not null
+    validation: 2-10个中文字符
+  - name: Phone
+    type: string
+    description: 联系电话（可选）
+  - name: Department
+    type: string
+    description: 部门（可选）
+  - name: IsActive
+    type: bool
+    default: true
+  - name: HasAccount
+    type: bool
+    default: false
+    description: 是否有账号
+  - name: Roles
+    type: "pq.StringArray (text[])"
+    description: 账号权限角色（支持多选）
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  UserRole:
+    - admin: 系统管理员
+    - project_manager: 项目管理员
+    - business_manager: 经营负责人（仅用于配置项目负责人时过滤）
+    - production_manager: 生产负责人（仅用于配置项目负责人时过滤）
+    - finance: 财务人员
+    - member: 普通成员
+
+business_rules:
+  - 有账号的用户可以登录系统，有不同的权限（Roles字段，支持多选）
+  - 用户角色支持多选，一个用户可以同时拥有多个角色
+  - 系统管理员具备所有角色类型的权限，其他角色只有自己角色的权限
+  - 如果用户是系统管理员，角色不能修改
+  - 经营负责人和生产负责人是项目级别的角色，不存在全局角色
+  - 用户ID使用UUID格式，与网关注入的X-User-ID格式一致
+
+relationships:
+  - "1:N Project (BusinessManager, ProductionManager)"
+  - "1:N ProjectMember"
+  - "1:N FinancialRecord (Recipient, CreatedBy, UpdatedBy)"
+  - "1:N File (Uploader)"

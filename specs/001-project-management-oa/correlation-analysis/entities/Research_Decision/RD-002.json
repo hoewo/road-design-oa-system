@@ -1,8 +1,0 @@
-{
-  "id": "RD-002",
-  "topic": "Go后端框架选择",
-  "decision": "Gin + GORM + JWT",
-  "rationale": "Gin是Go生态最流行的Web框架，性能优秀，文档完善；GORM提供强大的ORM功能，支持PostgreSQL，开发效率高；JWT提供无状态的用户认证，适合分布式部署",
-  "related_functional_requirements": [],
-  "type": "Research_Decision"
-}

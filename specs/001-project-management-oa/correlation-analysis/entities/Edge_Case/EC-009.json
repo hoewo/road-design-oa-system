@@ -1,8 +1,0 @@
-{
-  "id": "EC-009",
-  "type": "Edge_Case",
-  "scenario": "当用户权限不足时，系统如何控制敏感信息的访问？",
-  "handling_requirement": "基于角色的访问控制（RBAC），实现细粒度权限管理",
-  "severity": "High",
-  "related_user_stories": []
-}

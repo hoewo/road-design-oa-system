@@ -1,0 +1,45 @@
+# 组件目录 — 道路设计公司项目管理OA
+# AI 生成页面代码时参考此文件选择可复用组件。
+# 每当创建新的可复用组件时更新此文件。
+
+metadata:
+  project: "道路设计公司项目管理OA"
+  last_updated: "2026-03-17"
+  tokens: "./tokens/design-tokens.yaml"
+
+# ─── 组件列表 ───
+# 格式说明：
+#   file:     源码文件路径
+#   usage:    调用示例（一行代码）
+#   props:    公开属性列表
+#   variants: 样式变体（如有）
+#   notes:    使用注意事项（如有）
+
+components: {}
+
+  # 示例（取消注释并修改）：
+  #
+  # PrimaryButton:
+  #   file: Sources/UI/Styles/PrimaryButtonStyle.swift
+  #   usage: 'Button("Label") { action }.buttonStyle(.primary)'
+  #   props:
+  #     - label: String
+  #     - action: () -> Void
+  #   variants: [default, destructive, disabled]
+  #
+  # EmptyStateView:
+  #   file: Sources/UI/Components/EmptyStateView.swift
+  #   usage: 'EmptyStateView(icon: "heart.slash", title: "暂无收藏")'
+  #   props:
+  #     - icon: String          # SF Symbol name
+  #     - title: String
+  #     - description: String?
+  #     - action: Button?
+  #
+  # AvatarView:
+  #   file: Sources/UI/Components/AvatarView.swift
+  #   usage: 'AvatarView(url: user.avatarURL, size: .medium)'
+  #   props:
+  #     - url: URL?
+  #     - size: AvatarSize      # .small(24) .medium(40) .large(64)
+  #     - fallback: String?     # 缺省时显示的首字母

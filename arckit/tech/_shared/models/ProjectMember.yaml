@@ -1,0 +1,56 @@
+entity: ProjectMember
+description: 项目成员实体，项目与用户的关联关系，包括成员角色和专业关联
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: UserID
+    type: uuid
+    constraints: not null
+  - name: Role
+    type: MemberRole
+    constraints: not null
+  - name: DisciplineID
+    type: "*uuid"
+    description: 专业ID（生产人员角色 designer/participant/reviewer 必填）
+  - name: JoinDate
+    type: time.Time
+    constraints: not null
+  - name: LeaveDate
+    type: "*time.Time"
+    validation: 如果填写，必须晚于JoinDate
+  - name: IsActive
+    type: bool
+    default: true
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  MemberRole:
+    - designer: 专业设计人
+    - participant: 专业参与人
+    - reviewer: 专业复核人
+    - auditor: 审核人
+    - approver: 审定人
+    - business_personnel: 经营参与人
+
+business_rules:
+  - 支持一人多角色：同一用户在同一项目中可以有多个角色（通过多条ProjectMember记录实现）
+  - 按专业维度维护：每个专业分别配置专业设计人、专业参与人、专业复核人
+  - 允许同一人员在不同专业下承担不同角色
+  - 经营参与人由项目管理员或经营负责人配置
+  - 生产人员由项目管理员或生产负责人配置
+  - 生产人员角色（designer/participant/reviewer）必须关联专业（DisciplineID必填）
+
+relationships:
+  - "1:1 Project"
+  - "1:1 User"
+  - "1:1 Discipline"

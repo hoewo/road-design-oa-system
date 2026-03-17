@@ -1,0 +1,73 @@
+entity: File
+description: 文件实体，支持所有项目活动中产生的文件和发票
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: FileName
+    type: string
+    constraints: not null
+    description: 存储文件名
+  - name: OriginalName
+    type: string
+    constraints: not null
+    description: 原始文件名，不能包含特殊字符
+  - name: FilePath
+    type: string
+    constraints: not null
+    description: "存储路径，格式：projects/{project_id}/{category}/{file_id}/{filename}"
+  - name: FileSize
+    type: int64
+    constraints: not null
+    validation: 最大100MB (104857600字节)
+  - name: MimeType
+    type: string
+    constraints: not null
+  - name: Category
+    type: FileCategory
+    constraints: not null
+  - name: Description
+    type: text
+  - name: ProjectID
+    type: uuid
+    constraints: not null
+  - name: UploaderID
+    type: uuid
+    constraints: not null
+  - name: IsDeleted
+    type: bool
+    default: false
+    description: 软删除标记
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+enums:
+  FileCategory:
+    - contract: 合同文件
+    - bidding: 招投标文件
+    - production: 生产文件
+    - invoice: 发票文件
+    - approval: 批复审计文件
+    - other: 其他文件
+
+validation:
+  forbidden_file_types:
+    - .exe, .bat, .cmd, .com, .pif, .scr
+    - .vbs, .js, .jar, .sh, .ps1
+    - .app, .dmg, .deb, .rpm, .msi, .apk, .ipa
+
+business_rules:
+  - 文件存储路径统一格式，兼容MinIO和OSS
+  - 支持软删除，删除后保留文件记录但标记为已删除
+  - 文件权限验证：用户只能访问有权限的项目文件
+  - 支持按项目、文件类型、上传时间搜索和筛选
+  - 文件大小上限100MB
+
+relationships:
+  - "1:1 Project"
+  - "1:1 User (Uploader)"

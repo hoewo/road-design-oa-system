@@ -1,0 +1,47 @@
+entity: Client
+description: 甲方实体，包含甲方基本信息
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: ClientName
+    type: string
+    constraints: uniqueIndex, not null
+    validation: 2-100字符，必填，唯一
+  - name: Email
+    type: string
+    description: 邮箱（可选）
+  - name: Address
+    type: string
+    description: 地址（可选）
+  - name: TaxNumber
+    type: string
+    description: 统一社会信用代码（可选，18位）
+  - name: BankAccount
+    type: string
+    description: 银行账号（可选）
+  - name: BankName
+    type: string
+    description: 开户银行（可选）
+  - name: IsActive
+    type: bool
+    default: true
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+business_rules:
+  - 甲方名称必须唯一，创建时自动检测重复并阻止
+  - 如果甲方已被项目使用，不允许删除；未使用的甲方可以硬删除
+  - 在项目经营信息模块中管理，支持选择已有甲方或创建新甲方
+  - 每个项目最多关联一个甲方（可以为空），可以更换或删除关联
+  - 甲方实体不包含联系人信息，联系人信息通过ProjectContact实体管理
+
+relationships:
+  - "1:N Project"
+  - "1:N ProjectContact"
+  - "1:N FinancialRecord (ClientPayment, OurInvoice)"

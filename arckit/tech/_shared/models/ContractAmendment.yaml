@@ -1,0 +1,58 @@
+entity: ContractAmendment
+description: 合同补充协议实体，关联到主合同，金额会影响项目总应收金额
+status: ✅ 已定义
+updated: 2026-03-17
+
+fields:
+  - name: ID
+    type: uuid
+    constraints: primaryKey
+  - name: AmendmentNumber
+    type: string
+    constraints: uniqueIndex, not null
+    validation: 格式 XIE-YYYY-XXX
+  - name: ContractID
+    type: uuid
+    constraints: not null
+  - name: SignDate
+    type: time.Time
+    constraints: not null
+    validation: 不能早于主合同签订日期
+  - name: ContractRate
+    type: float64
+    description: 合同费率%
+  - name: DesignFee
+    type: float64
+    default: 0
+    description: 设计费（元）
+  - name: SurveyFee
+    type: float64
+    default: 0
+    description: 勘察费（元）
+  - name: ConsultationFee
+    type: float64
+    default: 0
+    description: 咨询费（元）
+  - name: AmendmentAmount
+    type: float64
+    constraints: not null
+    description: 补充协议总金额，应等于各项费用之和
+  - name: AmendmentFileID
+    type: "*uuid"
+    description: 补充协议文件ID（可选）
+  - name: Description
+    type: text
+    description: 备注说明
+  - name: CreatedAt
+    type: time.Time
+  - name: UpdatedAt
+    type: time.Time
+
+business_rules:
+  - 补充协议关联到主合同
+  - 补充协议金额会影响项目的总应收金额和财务统计
+  - 补充协议文件通过文件管理功能上传
+
+relationships:
+  - "1:1 Contract"
+  - "1:1 File (AmendmentFile)"
