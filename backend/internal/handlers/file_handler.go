@@ -170,6 +170,116 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 	})
 }
 
+// InitiateMultipartUpload 发起分片上传（断点续传）
+func (h *FileHandler) InitiateMultipartUpload(c *gin.Context) {
+	projectID := c.Param("id")
+	if projectID == "" {
+		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+	var req struct {
+		FileName string              `json:"file_name" binding:"required"`
+		FileSize int64               `json:"file_size" binding:"required"`
+		MimeType string              `json:"mime_type" binding:"required"`
+		FileType string              `json:"file_type" binding:"required"`
+		Category models.FileCategory `json:"category" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "Invalid request", err)
+		return
+	}
+	ctx := context.Background()
+	uploadID, fileID, err := h.fileService.InitiateMultipartUpload(ctx, projectID, req.Category, req.FileName, req.FileSize, req.MimeType, req.FileType, userID, h.permissionService)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "upload_id": uploadID, "file_id": fileID})
+}
+
+// UploadPart 上传一个分片
+func (h *FileHandler) UploadPart(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+	uploadID := c.PostForm("upload_id")
+	partNumStr := c.PostForm("part_number")
+	if uploadID == "" || partNumStr == "" {
+		utils.HandleError(c, http.StatusBadRequest, "upload_id and part_number required", nil)
+		return
+	}
+	partNumber, err := strconv.Atoi(partNumStr)
+	if err != nil || partNumber < 1 {
+		utils.HandleError(c, http.StatusBadRequest, "part_number must be a positive integer", nil)
+		return
+	}
+	fileHeader, err := c.FormFile("part")
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "part file required", err)
+		return
+	}
+	file, _ := fileHeader.Open()
+	defer file.Close()
+	ctx := context.Background()
+	if err := h.fileService.UploadPart(ctx, uploadID, partNumber, file, fileHeader.Size, userID); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "part_number": partNumber})
+}
+
+// CompleteMultipartUpload 合并分片并完成上传
+func (h *FileHandler) CompleteMultipartUpload(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+	var req struct {
+		UploadID string `json:"upload_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "upload_id required", err)
+		return
+	}
+	ctx := context.Background()
+	file, err := h.fileService.CompleteMultipartUpload(ctx, req.UploadID, userID)
+	if err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"success": true, "data": file})
+}
+
+// AbortMultipartUpload 取消分片上传
+func (h *FileHandler) AbortMultipartUpload(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+	var req struct {
+		UploadID string `json:"upload_id" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, "upload_id required", err)
+		return
+	}
+	ctx := context.Background()
+	if err := h.fileService.AbortMultipartUpload(ctx, req.UploadID, userID); err != nil {
+		utils.HandleError(c, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
 // DownloadFile handles file download
 // @Summary Download a file
 // @Description Download a file by file ID

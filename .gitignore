@@ -104,6 +104,8 @@ public
 # Temporary folders
 tmp/
 temp/
+docs/_docx_extract/
+docs/.venv_docx/
 
 # Editor directories and files
 .vscode/

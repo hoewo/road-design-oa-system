@@ -258,7 +258,7 @@ type StageFileInfo struct {
 	Score       *float64 `json:"score"`
 }
 
-// UpdateProductionFile 更新生产文件
+// UpdateProductionFile 更新生产文件。变更洽商、竣工验收阶段会先写入历史版本再更新（US-18、US-19）
 func (s *ProductionFileService) UpdateProductionFile(fileID string, userID string, req *UpdateProductionFileRequest) (*models.ProductionFile, error) {
 	var file models.ProductionFile
 	if err := s.db.First(&file, "id = ?", fileID).Error; err != nil {
@@ -294,6 +294,25 @@ func (s *ProductionFileService) UpdateProductionFile(fileID string, userID strin
 
 		if err := s.validateProductionStage(file.ProjectID, stage, score, reviewSheetID); err != nil {
 			return nil, err
+		}
+	}
+
+	// 变更洽商、竣工验收：更新前保留历史版本（US-18、US-19）
+	if file.Stage == models.StageChange || file.Stage == models.StageCompletion {
+		version := &models.ProductionFileVersion{
+			ProductionFileID:       file.ID,
+			ProjectID:             file.ProjectID,
+			FileID:                 file.FileID,
+			Stage:                  file.Stage,
+			Description:            file.Description,
+			ReviewSheetFileID:      file.ReviewSheetFileID,
+			Score:                  file.Score,
+			DefaultAmountReference: file.DefaultAmountReference,
+			SupersededAt:           time.Now(),
+			SupersededByID:         userID,
+		}
+		if err := s.db.Create(version).Error; err != nil {
+			return nil, fmt.Errorf("保存历史版本失败: %w", err)
 		}
 	}
 
@@ -395,7 +414,7 @@ func (s *ProductionFileService) DeleteProductionFile(fileID string, userID strin
 
 func (s *ProductionFileService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}

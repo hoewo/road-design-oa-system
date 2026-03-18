@@ -49,7 +49,7 @@ type UpdateProjectBusinessRequest struct {
 // GetProjectBusiness retrieves business information for a project (UUID string)
 func (s *ProjectBusinessService) GetProjectBusiness(projectID string) (*ProjectBusiness, error) {
 	var project models.Project
-	if err := s.db.Preload("Client").Preload("Members").First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Members").First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -93,7 +93,7 @@ func (s *ProjectBusinessService) GetProjectBusiness(projectID string) (*ProjectB
 func (s *ProjectBusinessService) UpdateProjectBusiness(projectID string, req *UpdateProjectBusinessRequest, userID string) (*ProjectBusiness, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -229,7 +229,7 @@ type BusinessStatistics struct {
 func (s *ProjectBusinessService) GetBusinessStatistics(projectID string) (*BusinessStatistics, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -279,7 +279,7 @@ func (s *ProjectBusinessService) GetBusinessStatistics(projectID string) (*Busin
 func (s *ProjectBusinessService) GetBusinessStatisticsByTimeRange(projectID string, startDate, endDate *time.Time) (*BusinessStatistics, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}

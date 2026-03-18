@@ -26,8 +26,8 @@ type Storage interface {
     UploadFile(ctx context.Context, bucket, objectName string, file io.Reader, size int64) error
     GetFile(ctx context.Context, bucket, objectName string) (io.Reader, error)
     DeleteFile(ctx context.Context, bucket, objectName string) error
-    GetFileURL(ctx context.Context, bucket, objectName string) (string, error)
-    ListFiles(ctx context.Context, bucket, prefix string) ([]FileInfo, error)
+    GetFileURL(ctx context.Context, bucket, objectName string, expiry time.Duration) (string, error)
+    FileExists(ctx context.Context, bucket, objectName string) (bool, error)
 }
 
 // pkg/storage/minio.go - MinIO实现
@@ -45,7 +45,7 @@ type Storage interface {
 
 ## 文件存储路径设计
 
-**决策**: 使用统一的路径格式：`projects/{project_id}/{category}/{file_id}/{filename}`
+**决策**: 使用统一的路径格式：`projects/{project_id}/{category}/{safeBaseName}_{timestamp}{ext}`
 
 **理由**:
 - 路径结构清晰，便于管理和查找
@@ -54,10 +54,10 @@ type Storage interface {
 - 便于权限控制和备份
 
 **路径规范**:
-- 路径格式：`projects/{project_id}/{category}/{file_id}/{filename}`
-- category 枚举：`contract`、`production`、`invoice`、`bidding` 等
-- 文件 ID 使用 UUID，保证唯一性
-- 支持文件版本管理（通过路径或元数据）
+- 路径格式：`projects/{project_id}/{category}/{file_id}_{safeBaseName}_{timestamp}{ext}`，其中 file_id 与 files 表主键一致，便于追溯与列举
+- category 枚举由具体业务文件类型映射而来，比如合同、招投标、生产阶段、发票等
+- 上传前先生成 file_id（UUID），再生成路径并写入存储与数据库
+- 提供 ListFiles(ctx, bucket, prefix) 按前缀列举对象，用于运维、备份与路径追溯
 
 **备选方案**:
 - 扁平结构：难以管理和查找

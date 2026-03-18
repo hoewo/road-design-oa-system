@@ -104,6 +104,23 @@ func (s *MinIOStorage) FileExists(ctx context.Context, bucket, objectName string
 	return true, nil
 }
 
+// ListFiles 按前缀列举对象
+func (s *MinIOStorage) ListFiles(ctx context.Context, bucket, prefix string) ([]ObjectInfo, error) {
+	opts := minio.ListObjectsOptions{Prefix: prefix, Recursive: true}
+	var result []ObjectInfo
+	for obj := range s.client.ListObjects(ctx, bucket, opts) {
+		if obj.Err != nil {
+			return nil, fmt.Errorf("list objects: %w", obj.Err)
+		}
+		result = append(result, ObjectInfo{
+			Key:          obj.Key,
+			Size:         obj.Size,
+			LastModified: obj.LastModified,
+		})
+	}
+	return result, nil
+}
+
 // 向后兼容的全局变量和函数
 var (
 	MinioClient   *minio.Client

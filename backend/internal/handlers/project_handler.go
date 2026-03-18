@@ -204,21 +204,41 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	})
 }
 
-// DeleteProject handles project deletion
+// DeleteProject handles project deletion (soft delete).
+// Only project managers or system admins can delete projects.
 // @Summary Delete project
-// @Description Delete a project
+// @Description Soft-delete a project; only project managers or system admins can perform this action
 // @Tags 项目管理
 // @Security BearerAuth
 // @Produce json
 // @Param id path string true "Project ID (UUID)"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Router /projects/{id} [delete]
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.HandleError(c, http.StatusUnauthorized, "User not authenticated", nil)
+		return
+	}
+
 	id := c.Param("id")
 	if id == "" {
 		utils.HandleError(c, http.StatusBadRequest, "Project ID is required", nil)
+		return
+	}
+
+	permissionService := services.NewPermissionService()
+	canManage, err := permissionService.CanManageProjectManagers(userID)
+	if err != nil {
+		h.logger.Error("Failed to check delete permission", zap.Error(err))
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to check permission", err)
+		return
+	}
+	if !canManage {
+		utils.HandleError(c, http.StatusForbidden, "Only project managers or system admins can delete projects", nil)
 		return
 	}
 
@@ -227,6 +247,10 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 			zap.Error(err),
 			zap.String("project_id", id),
 		)
+		if err.Error() == "project not found" {
+			utils.HandleError(c, http.StatusNotFound, "Project not found", err)
+			return
+		}
 		utils.HandleError(c, http.StatusBadRequest, "Failed to delete project", err)
 		return
 	}

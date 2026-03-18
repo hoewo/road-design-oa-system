@@ -44,21 +44,19 @@ database:
 
 ## 数据库迁移策略
 
-**决策**: 使用 golang-migrate 工具，支持 PostgreSQL 迁移
+**决策**: 启动时先执行 GORM AutoMigrate + 手写 SQL（`Migrate()`），再执行版本化 SQL 迁移（golang-migrate）
 
 **理由**:
-- golang-migrate 是 Go 生态最流行的迁移工具
-- 支持 PostgreSQL，兼容阿里云 RDS
-- 支持版本管理和回滚
-- 支持 SQL 和 Go 代码混合迁移
+- 生产环境需要可追溯、可回滚的 schema 变更，版本化迁移满足该需求
+- 现有 GORM + 手写 SQL 保留以兼容已有部署，新版变更放入 `migrations/` 目录
+- 同一套流程同时适配本地 PostgreSQL 和阿里云 RDS
 
 **实现**:
-- 使用 golang-migrate 的 CLI 工具
-- 迁移文件存储在 `backend/migrations/` 目录
-- 支持 up 和 down 迁移
-- 部署时自动执行迁移
+- 应用启动时依次执行 `database.Migrate()`、`database.RunVersionedMigrations()`
+- `Migrate()`：UUID 扩展、用户角色/招投标等历史数据迁移、AutoMigrate 全表、初始化专业字典
+- `RunVersionedMigrations()`：对迁移目录执行 migrate up，支持回滚（migrate down）。迁移目录优先取环境变量 `MIGRATIONS_PATH`（绝对路径），未设置时再按进程 cwd 试 `migrations`、`backend/migrations`，避免 systemd/Docker 下 cwd 不确定导致找不到文件
+- 后续所有 schema 变更以新编号迁移文件形式添加（如 `000002_xxx.up.sql`），禁止再在 `Migrate()` 内写死
 
 **备选方案**:
-- 手动 SQL 脚本：容易出错，难以管理
-- GORM AutoMigrate：不适合生产环境，无法回滚
-- 其他迁移工具：生态不如 golang-migrate 成熟
+- 纯手写 SQL：可控性高，维护成本更高
+- 仅 AutoMigrate：无版本与回滚能力

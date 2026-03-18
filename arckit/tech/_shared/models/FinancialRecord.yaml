@@ -85,7 +85,7 @@ fields:
 enums:
   FinancialType:
     - bonus: 奖金（经营奖金/生产奖金）
-    - cost: 成本（打车/住宿/公共交通）
+    - cost: 成本（用车/住宿/交通/其他）
     - client_payment: 甲方支付
     - our_invoice: 我方开票
     - expert_fee: 专家费
@@ -101,9 +101,10 @@ enums:
     - production: 生产奖金
 
   CostCategory:
-    - taxi: 打车
+    - vehicle: 用车
     - accommodation: 住宿
-    - public_transport: 公共交通
+    - transport: 交通
+    - other: 其他
 
   PaymentMethod:
     - cash: 现金

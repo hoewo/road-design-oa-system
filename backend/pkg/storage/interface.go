@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+// ObjectInfo 列举对象时的元信息，用于运维、备份、路径追溯
+type ObjectInfo struct {
+	Key          string    // 对象键（路径）
+	Size         int64     // 大小（字节）
+	LastModified time.Time // 最后修改时间
+}
+
 // Storage 定义统一的存储接口，支持 MinIO 和 OSS 两种实现
 type Storage interface {
 	// UploadFile 上传文件到存储
@@ -38,4 +45,9 @@ type Storage interface {
 	// objectName: 对象名称（文件路径）
 	// 返回文件是否存在
 	FileExists(ctx context.Context, bucket, objectName string) (bool, error)
+
+	// ListFiles 按前缀列举对象，用于运维、备份与路径追溯
+	// prefix: 前缀，如 "projects/xxx/" 表示某项目下所有文件
+	// 返回该前缀下的对象列表（不递归子前缀时由实现决定，通常递归列举）
+	ListFiles(ctx context.Context, bucket, prefix string) ([]ObjectInfo, error)
 }

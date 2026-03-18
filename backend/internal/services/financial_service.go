@@ -89,7 +89,7 @@ type FeeTypeFinancial struct {
 func (s *FinancialService) CreateFinancialRecord(projectID string, createdByID string, req *CreateFinancialRecordRequest) (*models.FinancialRecord, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -219,7 +219,7 @@ func (s *FinancialService) CreateFinancialRecord(projectID string, createdByID s
 func (s *FinancialService) GetProjectFinancial(projectID string) (*ProjectFinancial, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -297,7 +297,7 @@ func (s *FinancialService) GetProjectFinancial(projectID string) (*ProjectFinanc
 func (s *FinancialService) ListFinancialRecordsByProject(projectID string) ([]models.FinancialRecord, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -698,7 +698,7 @@ func (s *FinancialService) GetTotalBusinessBonus(projectID string) (float64, err
 func (s *FinancialService) GetEffectiveManagementFeeRatio(projectID string) (float64, error) {
 	// Get project
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return 0.0, errors.New("project not found")
 		}

@@ -171,7 +171,7 @@ func (s *ProjectDisciplineService) ReplaceAssignments(projectID string, req *Upd
 
 func (s *ProjectDisciplineService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fmt.Errorf("project not found")
 		}

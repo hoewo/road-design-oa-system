@@ -31,6 +31,9 @@ fields:
     type: bool
     default: false
     description: 软删除标记
+  - name: ManagementFeeRatio
+    type: "*float64"
+    description: 管理费比例（可选，NULL表示使用公司默认值）
   - name: BusinessManagerID
     type: "*uuid"
     description: 经营负责人ID（项目级别配置）
@@ -57,7 +60,7 @@ enums:
 business_rules:
   - 项目编号唯一性约束（数据库唯一索引 + 应用层验证）
   - 软删除策略：删除项目时仅标记IsDeleted=true，保留所有关联数据
-  - 只有admin可以彻底删除项目（硬删除）
+  - 当前代码未提供单独的硬删除接口
   - 经营负责人和生产负责人在项目基本信息中配置，存储在BusinessManagerID和ProductionManagerID字段
   - 甲方信息在项目经营信息中管理，不在项目创建时填写
 
@@ -72,4 +75,3 @@ relationships:
   - "1:N ExternalCommission"
   - "1:N File"
   - "1:N ProjectMember"
-  - "1:N Discipline (项目级专业)"

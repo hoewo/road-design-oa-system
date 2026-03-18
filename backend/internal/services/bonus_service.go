@@ -33,7 +33,7 @@ type CreateBonusRequest struct {
 func (s *BonusService) CreateBonus(projectID string, createdByID string, req *CreateBonusRequest) (*models.Bonus, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -94,7 +94,7 @@ func (s *BonusService) CreateBonus(projectID string, createdByID string, req *Cr
 func (s *BonusService) ListBonusesByProject(projectID string) ([]models.Bonus, error) {
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}

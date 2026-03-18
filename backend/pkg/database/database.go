@@ -3,8 +3,13 @@ package database
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"github.com/golang-migrate/migrate/v4"
+	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -143,12 +148,14 @@ func Migrate() error {
 		&models.Bonus{},
 		&models.ProjectDisciplineAssignment{},
 		&models.ProductionFile{},
+		&models.ProductionFileVersion{},
 		&models.ProductionApproval{},      // 新的批复审计信息实体（符合002规范）
 		&models.ProductionApprovalRecord{}, // 保留旧模型以保持向后兼容
 		&models.AuditResolution{},
 		&models.ExternalCommission{},
 		&models.CompanyConfig{},
-		&models.BiddingInfo{}, // 招投标信息实体（如果表不存在，会创建数组字段）
+		&models.BiddingInfo{},   // 招投标信息实体（如果表不存在，会创建数组字段）
+		&models.MultipartUpload{}, &models.MultipartUploadPart{},
 	)
 
 	if err != nil {
@@ -688,6 +695,44 @@ func dropContractTypeColumn() error {
 	}
 
 	log.Println("contract_type column dropped successfully")
+	return nil
+}
+
+// RunVersionedMigrations 执行版本化 SQL 迁移（golang-migrate），应在 Migrate() 之后调用。
+// 迁移文件位于 migrations/ 目录，命名 000001_xxx.up.sql / .down.sql，支持回滚。
+func RunVersionedMigrations() error {
+	if DB == nil {
+		return fmt.Errorf("database connection not initialized")
+	}
+	sqlDB, err := DB.DB()
+	if err != nil {
+		return fmt.Errorf("get underlying sql.DB: %w", err)
+	}
+	driver, err := migratepostgres.WithInstance(sqlDB, &migratepostgres.Config{})
+	if err != nil {
+		return fmt.Errorf("create postgres driver: %w", err)
+	}
+	// 优先使用配置的绝对路径，避免依赖进程 cwd（systemd/Docker 等场景）
+	dir := os.Getenv("MIGRATIONS_PATH")
+	if dir == "" {
+		cwd, _ := filepath.Abs(".")
+		dir = filepath.Join(cwd, "migrations")
+		if _, err := os.Stat(dir); err != nil {
+			dir = filepath.Join(cwd, "backend", "migrations")
+		}
+	} else {
+		dir = filepath.Clean(dir)
+	}
+	migrationPath := "file://" + dir
+	m, err := migrate.NewWithDatabaseInstance(migrationPath, "postgres", driver)
+	if err != nil {
+		return fmt.Errorf("new migrate instance: %w", err)
+	}
+	defer m.Close()
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migrate up: %w", err)
+	}
+	log.Println("Versioned migrations applied")
 	return nil
 }
 

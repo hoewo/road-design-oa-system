@@ -104,3 +104,20 @@ func (s *OSSStorage) FileExists(ctx context.Context, bucket, objectName string) 
 	}
 	return exists, nil
 }
+
+// ListFiles 按前缀列举对象
+func (s *OSSStorage) ListFiles(ctx context.Context, bucket, prefix string) ([]ObjectInfo, error) {
+	lor, err := s.bucket.ListObjects(oss.Prefix(prefix))
+	if err != nil {
+		return nil, fmt.Errorf("list objects: %w", err)
+	}
+	result := make([]ObjectInfo, 0, len(lor.Objects))
+	for _, obj := range lor.Objects {
+		result = append(result, ObjectInfo{
+			Key:          obj.Key,
+			Size:         obj.Size,
+			LastModified: obj.LastModified,
+		})
+	}
+	return result, nil
+}

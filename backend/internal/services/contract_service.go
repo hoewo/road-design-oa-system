@@ -61,7 +61,7 @@ func (s *ContractService) CreateContract(projectID string, userID string, req *C
 
 	// Verify project exists
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}

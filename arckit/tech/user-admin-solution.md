@@ -27,7 +27,7 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
   "is_verified": false,
   "is_active": true,
   "real_name": "新用户",
-  "role": "member",
+  "roles": ["member"],
   "department": "设计部"
 }
 ```
@@ -35,7 +35,7 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
 ### 步骤 2：查询 OA 本地数据库
 
 - 通过邮箱或用户名查询 OA 本地数据库
-- **如果已存在**：直接更新 OA 业务字段（real_name, role, department），返回结果，**流程结束**
+- **如果已存在**：直接更新 OA 业务字段（real_name, roles, department），返回结果，**流程结束**
 
 ### 步骤 3：查询 NebulaAuth（OA 本地不存在时）
 
@@ -53,11 +53,11 @@ OA前端 → OA后端 → [查询OA本地数据库] → [查询NebulaAuth] → [
 
 **角色映射规则**：
 - NebulaAuth `is_admin = true` → OA `RoleAdmin`（强制覆盖）
-- NebulaAuth `is_admin = false` → 使用前端传入的 `role`（默认 `RoleMember`）
+- NebulaAuth `is_admin = false` → 使用前端传入的 `roles` 数组（默认 `RoleMember`）
 
 **数据来源**：
 - NebulaAuth：`id`, `email`, `phone`, `username`, `is_admin`, `is_active`, `is_verified`
-- OA 前端：`real_name`, `role`（可选），`department`（可选）
+- OA 前端：`real_name`, `roles`（可选），`department`（可选）
 
 ## 关键要点
 

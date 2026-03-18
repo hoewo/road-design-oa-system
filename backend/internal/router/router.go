@@ -129,6 +129,11 @@ func (r *Router) SetupRoutes(
 
 			// File upload route (general purpose)
 			projects.POST("/:id/files", fileHandler.UploadFile)
+			// Multipart upload (resumable)
+			projects.POST("/:id/files/upload/initiate", fileHandler.InitiateMultipartUpload)
+			projects.PUT("/:id/files/upload/part", fileHandler.UploadPart)
+			projects.POST("/:id/files/upload/complete", fileHandler.CompleteMultipartUpload)
+			projects.DELETE("/:id/files/upload/abort", fileHandler.AbortMultipartUpload)
 
 			// Project member routes
 			projects.GET("/:id/members", projectMemberHandler.ListMembers)

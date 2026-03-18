@@ -1,5 +1,5 @@
 entity: Discipline
-description: 专业字典实体，支持全局专业和项目级专业
+description: 专业字典实体，支持全局专业列表
 status: ✅ 已定义
 updated: 2026-03-17
 
@@ -11,30 +11,20 @@ fields:
     type: string
     constraints: uniqueIndex, not null
     validation: 必填，2-50字符，全局专业名称唯一
-  - name: Code
-    type: string
-    constraints: uniqueIndex
-    description: 专业代码（可选，填写则唯一）
   - name: Description
     type: text
-  - name: IsGlobal
+  - name: IsActive
     type: bool
     default: true
-    description: 是否全局专业（true则ProjectID必须为NULL）
-  - name: ProjectID
-    type: "*uuid"
-    description: 项目级专业关联项目ID（IsGlobal=false时必填）
   - name: CreatedAt
     type: time.Time
   - name: UpdatedAt
     type: time.Time
 
 business_rules:
-  - 全局专业：所有项目可用，由管理员维护，ProjectID为NULL
-  - 项目级专业：仅在特定项目中使用，可同步回全局字典
-  - 专业列表优先从全局专业字典选择，若缺少可在项目内新增并同步回字典
-  - IsGlobal=true时，ProjectID必须为NULL；IsGlobal=false时，ProjectID必须填写
+  - 全局专业：所有项目可用，由管理员维护
+  - 项目成员对专业的使用关系通过关联表表达，不在 Discipline 本体上维护 ProjectID
+  - 专业列表由全局字典维护
 
 relationships:
   - "1:N ProjectMember (生产人员专业关联)"
-  - "1:1 Project (项目级专业)"

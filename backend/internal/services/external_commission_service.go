@@ -340,7 +340,7 @@ type ExternalCommissionSummary struct {
 
 func (s *ExternalCommissionService) ensureProjectExists(projectID string) error {
 	var project models.Project
-	if err := s.db.Select("id").First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.Select("id").First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}

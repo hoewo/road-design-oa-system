@@ -135,7 +135,7 @@ func (s *ProjectService) CreateProject(userID string, req *CreateProjectRequest)
 // GetProject retrieves a project by ID (UUID string)
 func (s *ProjectService) GetProject(id string) (*models.Project, error) {
 	var project models.Project
-	if err := s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(&project, "id = ?", id).Error; err != nil {
+	if err := s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(&project, "id = ? AND is_deleted = ?", id, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -150,7 +150,7 @@ func (s *ProjectService) ListProjects(params *ListProjectsParams) ([]models.Proj
 	var projects []models.Project
 	var total int64
 
-	query := s.db.Model(&models.Project{})
+	query := s.db.Model(&models.Project{}).Where("is_deleted = ?", false)
 
 	// Apply filters
 	if params.Status != "" {
@@ -197,7 +197,7 @@ func (s *ProjectService) CanManageProjectManagers(userID string) (bool, error) {
 // userID: 更新项目的用户ID，用于权限检查（配置项目负责人时需要）
 func (s *ProjectService) UpdateProject(userID string, id string, req *UpdateProjectRequest) (*models.Project, error) {
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", id).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", id, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}
@@ -286,7 +286,7 @@ func (s *ProjectService) UpdateProject(userID string, id string, req *UpdateProj
 	}
 
 	// Reload with associations
-	s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(&project, "id = ?", id)
+	s.db.Preload("Client").Preload("Manager").Preload("BusinessManager").Preload("ProductionManager").Preload("ProjectContact").First(&project, "id = ? AND is_deleted = ?", id, false)
 
 	return &project, nil
 }
@@ -294,21 +294,15 @@ func (s *ProjectService) UpdateProject(userID string, id string, req *UpdateProj
 // DeleteProject deletes a project (UUID string)
 func (s *ProjectService) DeleteProject(id string) error {
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", id).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", id, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("project not found")
 		}
 		return err
 	}
 
-	// Check if project has related data
-	var contractCount int64
-	s.db.Model(&models.Contract{}).Where("project_id = ?", id).Count(&contractCount)
-	if contractCount > 0 {
-		return errors.New("cannot delete project with existing contracts")
-	}
-
-	if err := s.db.Delete(&project).Error; err != nil {
+	project.IsDeleted = true
+	if err := s.db.Save(&project).Error; err != nil {
 		return err
 	}
 

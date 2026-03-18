@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"project-oa-backend/internal/config"
@@ -78,17 +80,19 @@ func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, up
 		return nil, err
 	}
 
-	// Generate file path
-	filePath := s.generateFilePath(req.ProjectID, req.Category, req.FileName)
+	// 先生成 file_id，路径含 file_id 便于追溯与列举
+	fileID := uuid.New().String()
+	filePath := s.generateFilePath(req.ProjectID, req.Category, fileID, req.FileName)
 
-	// Upload to MinIO
-	err = storage.UploadFile(ctx, s.config.MinIOBucketName, filePath, req.Reader, req.FileSize, req.MimeType)
+	// Upload to storage
+	err = storage.UploadFile(ctx, s.config.StorageBucketName(), filePath, req.Reader, req.FileSize, req.MimeType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to upload file to storage: %w", err)
 	}
 
-	// Create file record in database
+	// Create file record in database（使用预生成的 ID，与路径中的 file_id 一致）
 	file := &models.File{
+		ID:           fileID,
 		FileName:     req.FileName,
 		OriginalName: req.FileName,
 		FilePath:     filePath,
@@ -103,7 +107,7 @@ func (s *FileService) UploadFile(ctx context.Context, req *UploadFileRequest, up
 
 	if err := s.db.Create(file).Error; err != nil {
 		// If database insert fails, try to delete the uploaded file
-		_ = storage.DeleteFile(ctx, s.config.MinIOBucketName, filePath)
+		_ = storage.DeleteFile(ctx, s.config.StorageBucketName(), filePath)
 		return nil, fmt.Errorf("failed to create file record: %w", err)
 	}
 
@@ -147,7 +151,7 @@ func (s *FileService) GetFileContent(ctx context.Context, fileID string, userID 
 		return nil, file, errors.New("文件已删除")
 	}
 
-	object, err := storage.GetFile(ctx, s.config.MinIOBucketName, file.FilePath)
+	object, err := storage.GetFile(ctx, s.config.StorageBucketName(), file.FilePath)
 	if err != nil {
 		return nil, file, fmt.Errorf("failed to get file from storage: %w", err)
 	}
@@ -253,7 +257,7 @@ func (s *FileService) GetPresignedURL(ctx context.Context, fileID string, expiry
 		return "", err
 	}
 
-	url, err := storage.GetPresignedURL(ctx, s.config.MinIOBucketName, file.FilePath, expiry)
+	url, err := storage.GetPresignedURL(ctx, s.config.StorageBucketName(), file.FilePath, expiry)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate presigned URL: %w", err)
 	}
@@ -280,15 +284,15 @@ func (s *FileService) CheckFilePermission(fileID string, userID string, permissi
 
 // Helper methods
 
-// generateFilePath generates a unique file path for storage (UUID string)
-func (s *FileService) generateFilePath(projectID string, category models.FileCategory, fileName string) string {
+// generateFilePath 生成带 file_id 的存储路径，便于追溯与列举（格式: projects/{project_id}/{category}/{file_id}_{safeBaseName}_{timestamp}{ext}）
+func (s *FileService) generateFilePath(projectID string, category models.FileCategory, fileID string, fileName string) string {
 	timestamp := time.Now().Format("20060102150405")
 	ext := filepath.Ext(fileName)
 	baseName := strings.TrimSuffix(fileName, ext)
 	safeBaseName := strings.ReplaceAll(baseName, " ", "_")
 	safeBaseName = strings.ReplaceAll(safeBaseName, "/", "_")
 
-	return fmt.Sprintf("projects/%s/%s/%s_%s%s", projectID, category, safeBaseName, timestamp, ext)
+	return fmt.Sprintf("projects/%s/%s/%s_%s_%s%s", projectID, category, fileID, safeBaseName, timestamp, ext)
 }
 
 // validateFileType validates file type - only blocks dangerous file types
@@ -363,5 +367,175 @@ func (s *FileService) validateFileType(fileType string, category models.FileCate
 	}
 
 	// All other file types are allowed (PDF, Word, Excel, images, etc.)
+	return nil
+}
+
+// multipartPartPrefix 分片暂存路径前缀，完成合并后删除
+const multipartPartPrefix = "multipart/"
+
+func multipartPartKey(uploadID string, partNumber int) string {
+	return multipartPartPrefix + uploadID + "/" + strconv.Itoa(partNumber)
+}
+
+// InitiateMultipartUpload 发起分片上传（断点续传），返回 upload_id 与 file_id
+func (s *FileService) InitiateMultipartUpload(ctx context.Context, projectID string, category models.FileCategory, fileName string, fileSize int64, mimeType, fileType string, uploaderID string, permissionService *PermissionService) (uploadID, fileID string, err error) {
+	canAccess, err := permissionService.CanAccessProject(uploaderID, projectID)
+	if err != nil {
+		return "", "", err
+	}
+	if !canAccess {
+		return "", "", errors.New("您没有权限访问此项目")
+	}
+	const maxFileSize = 100 * 1024 * 1024
+	if fileSize <= 0 || fileSize > maxFileSize {
+		return "", "", errors.New("文件大小超过限制（最大100MB）或无效")
+	}
+	if err := s.validateFileType(fileType, category); err != nil {
+		return "", "", err
+	}
+	fileID = uuid.New().String()
+	objectKey := s.generateFilePath(projectID, category, fileID, fileName)
+	uploadID = uuid.New().String()
+	rec := &models.MultipartUpload{
+		UploadID:   uploadID,
+		ProjectID:  projectID,
+		Category:   category,
+		FileName:   fileName,
+		FileSize:   fileSize,
+		MimeType:   mimeType,
+		FileID:     fileID,
+		ObjectKey:  objectKey,
+		UploaderID: uploaderID,
+		Status:     models.MultipartUploadStatusInProgress,
+	}
+	if err := s.db.Create(rec).Error; err != nil {
+		return "", "", fmt.Errorf("创建分片上传任务失败: %w", err)
+	}
+	return uploadID, fileID, nil
+}
+
+// UploadPart 上传一个分片
+func (s *FileService) UploadPart(ctx context.Context, uploadID string, partNumber int, reader io.Reader, partSize int64, uploaderID string) error {
+	var rec models.MultipartUpload
+	if err := s.db.First(&rec, "upload_id = ? AND status = ?", uploadID, models.MultipartUploadStatusInProgress).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("upload not found or already completed/aborted")
+		}
+		return err
+	}
+	if rec.UploaderID != uploaderID {
+		return errors.New("您没有权限上传该任务的分片")
+	}
+	if partNumber < 1 {
+		return errors.New("part_number must be >= 1")
+	}
+	partKey := multipartPartKey(uploadID, partNumber)
+	if err := storage.UploadFile(ctx, s.config.StorageBucketName(), partKey, reader, partSize, ""); err != nil {
+		return fmt.Errorf("上传分片失败: %w", err)
+	}
+	// 幂等：存在则更新 size
+	s.db.Where("upload_id = ? AND part_number = ?", uploadID, partNumber).Delete(&models.MultipartUploadPart{})
+	if err := s.db.Create(&models.MultipartUploadPart{UploadID: uploadID, PartNumber: partNumber, Size: partSize}).Error; err != nil {
+		return fmt.Errorf("记录分片失败: %w", err)
+	}
+	return nil
+}
+
+// CompleteMultipartUpload 合并分片并创建文件记录
+func (s *FileService) CompleteMultipartUpload(ctx context.Context, uploadID string, uploaderID string) (*models.File, error) {
+	var rec models.MultipartUpload
+	if err := s.db.First(&rec, "upload_id = ? AND status = ?", uploadID, models.MultipartUploadStatusInProgress).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("upload not found or already completed/aborted")
+		}
+		return nil, err
+	}
+	if rec.UploaderID != uploaderID {
+		return nil, errors.New("您没有权限完成该上传任务")
+	}
+	var parts []models.MultipartUploadPart
+	if err := s.db.Where("upload_id = ?", uploadID).Order("part_number").Find(&parts).Error; err != nil {
+		return nil, err
+	}
+	if len(parts) == 0 {
+		return nil, errors.New("没有已上传的分片")
+	}
+	bucket := s.config.StorageBucketName()
+	var totalPartsSize int64
+	for _, p := range parts {
+		totalPartsSize += p.Size
+	}
+	if totalPartsSize != rec.FileSize {
+		return nil, fmt.Errorf("分片总大小 %d 与声明文件大小 %d 不一致", totalPartsSize, rec.FileSize)
+	}
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		for _, p := range parts {
+			key := multipartPartKey(uploadID, p.PartNumber)
+			obj, err := storage.GetFile(ctx, bucket, key)
+			if err != nil {
+				_ = pw.CloseWithError(fmt.Errorf("读取分片 %d: %w", p.PartNumber, err))
+				return
+			}
+			_, err = io.Copy(pw, obj)
+			if r, ok := interface{}(obj).(io.Closer); ok {
+				_ = r.Close()
+			}
+			if err != nil {
+				_ = pw.CloseWithError(err)
+				return
+			}
+		}
+	}()
+	if err := storage.UploadFile(ctx, bucket, rec.ObjectKey, pr, rec.FileSize, rec.MimeType); err != nil {
+		return nil, fmt.Errorf("合并上传失败: %w", err)
+	}
+	file := &models.File{
+		ID:           rec.FileID,
+		FileName:     rec.FileName,
+		OriginalName: rec.FileName,
+		FilePath:     rec.ObjectKey,
+		FileSize:     rec.FileSize,
+		FileType:     filepath.Ext(rec.FileName),
+		MimeType:     rec.MimeType,
+		Category:     rec.Category,
+		ProjectID:    rec.ProjectID,
+		UploaderID:   rec.UploaderID,
+	}
+	if err := s.db.Create(file).Error; err != nil {
+		_ = storage.DeleteFile(ctx, bucket, rec.ObjectKey)
+		return nil, fmt.Errorf("创建文件记录失败: %w", err)
+	}
+	rec.Status = models.MultipartUploadStatusCompleted
+	s.db.Save(&rec)
+	s.db.Where("upload_id = ?", uploadID).Delete(&models.MultipartUploadPart{})
+	for _, p := range parts {
+		_ = storage.DeleteFile(ctx, bucket, multipartPartKey(uploadID, p.PartNumber))
+	}
+	return file, nil
+}
+
+// AbortMultipartUpload 取消分片上传并删除已传分片
+func (s *FileService) AbortMultipartUpload(ctx context.Context, uploadID string, uploaderID string) error {
+	var rec models.MultipartUpload
+	if err := s.db.First(&rec, "upload_id = ? AND status = ?", uploadID, models.MultipartUploadStatusInProgress).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("upload not found or already completed/aborted")
+		}
+		return err
+	}
+	if rec.UploaderID != uploaderID {
+		return errors.New("您没有权限取消该上传任务")
+	}
+	var parts []models.MultipartUploadPart
+	s.db.Where("upload_id = ?", uploadID).Find(&parts)
+	bucket := s.config.StorageBucketName()
+	for _, p := range parts {
+		_ = storage.DeleteFile(ctx, bucket, multipartPartKey(uploadID, p.PartNumber))
+	}
+	s.db.Where("upload_id = ?", uploadID).Delete(&models.MultipartUploadPart{})
+	rec.Status = models.MultipartUploadStatusAborted
+	s.db.Save(&rec)
 	return nil
 }

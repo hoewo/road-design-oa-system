@@ -40,9 +40,12 @@ func main() {
 	}
 	defer database.Close()
 
-	// Run database migrations
+	// Run database migrations（GORM + 手写 SQL，再执行版本化迁移）
 	if err := database.Migrate(); err != nil {
 		logger.Fatal("Failed to migrate database", zap.Error(err))
+	}
+	if err := database.RunVersionedMigrations(); err != nil {
+		logger.Fatal("Failed to run versioned migrations", zap.Error(err))
 	}
 
 	// Initialize storage (MinIO or OSS)

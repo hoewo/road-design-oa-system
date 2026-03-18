@@ -206,8 +206,17 @@ paths:
             type: string
             format: uuid
       responses:
-        '204':
+        '200':
           description: 项目删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
         '404':
           $ref: '#/components/responses/NotFound'
         '401':
@@ -642,23 +651,24 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   # 文件管理
-  /user/projects/{id}/files:
+  /user/files/search:
     get:
       tags:
         - 文件管理
-      summary: 获取项目文件列表
+      summary: 搜索文件
+      description: 按项目、文件类型、上传时间和关键词搜索文件
       parameters:
-        - name: id
-          in: path
-          required: true
+        - name: project_id
+          in: query
           schema:
             type: string
             format: uuid
+          description: 项目 ID
         - name: category
           in: query
           schema:
             type: string
-            enum: [contract, bidding, production, invoice, approval, other]
+            enum: [contract_main, contract_amendment, contract_external, tender, bid, award_notice, scheme_ppt, preliminary_design, construction_drawing, variation_order, completion_report, audit_report, invoice]
         - name: start_date
           in: query
           schema:
@@ -689,17 +699,27 @@ paths:
               schema:
                 type: object
                 properties:
+                  success:
+                    type: boolean
                   data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/File'
-                  total:
-                    type: integer
+                    type: object
+                    properties:
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/File'
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      size:
+                        type: integer
         '404':
           $ref: '#/components/responses/NotFound'
         '401':
           $ref: '#/components/responses/Unauthorized'
     
+  /user/projects/{id}/files:
     post:
       tags:
         - 文件管理
@@ -727,7 +747,7 @@ paths:
                   format: binary
                 category:
                   type: string
-                  enum: [contract, bidding, production, invoice, approval, other]
+                  enum: [contract_main, contract_amendment, contract_external, tender, bid, award_notice, scheme_ppt, preliminary_design, construction_drawing, variation_order, completion_report, audit_report, invoice]
                 description:
                   type: string
       responses:
@@ -749,18 +769,12 @@ paths:
         '413':
           description: 文件大小超过限制（最大100MB）
 
-  /user/projects/{id}/files/{fileId}:
+  /user/files/{fileId}/download:
     get:
       tags:
         - 文件管理
       summary: 下载文件
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
         - name: fileId
           in: path
           required: true
@@ -781,18 +795,13 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           description: 无权限访问此文件
-    
+
+  /user/files/{fileId}:
     delete:
       tags:
         - 文件管理
       summary: 删除文件（软删除）
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
         - name: fileId
           in: path
           required: true
@@ -1288,6 +1297,7 @@ paths:
               required:
                 - file
                 - stage
+                - file_type
               properties:
                 file:
                   type: string
@@ -1295,6 +1305,12 @@ paths:
                 stage:
                   type: string
                   enum: [scheme, preliminary, construction, change, completion]
+                file_type:
+                  type: string
+                  enum: [scheme_ppt, preliminary_design, construction_drawing, variation_order, completion_report, audit_report, other]
+                default_amount_reference:
+                  type: string
+                  description: 默认金额参考说明
                 review_sheet_file:
                   type: string
                   format: binary
@@ -2321,6 +2337,11 @@ components:
           $ref: '#/components/schemas/UUID'
         production_manager_id:
           $ref: '#/components/schemas/UUID'
+        is_deleted:
+          type: boolean
+        management_fee_ratio:
+          type: number
+          format: float
         client_id:
           $ref: '#/components/schemas/UUID'
         created_at:
@@ -2362,6 +2383,11 @@ components:
         status:
           type: string
           enum: [planning, bidding, contract, production, completed, cancelled]
+        management_fee_ratio:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
         business_manager_id:
           $ref: '#/components/schemas/UUID'
         production_manager_id:
@@ -2407,9 +2433,11 @@ components:
           type: string
         department:
           type: string
-        role:
-          type: string
-          enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, project_manager, business_manager, production_manager, finance, member]
         has_account:
           type: boolean
         is_active:
@@ -2636,7 +2664,7 @@ components:
           $ref: '#/components/schemas/UUID'
         cost_category:
           type: string
-          enum: [taxi, accommodation, public_transport]
+          enum: [vehicle, accommodation, transport, other]
         mileage:
           type: number
           format: float
@@ -2780,13 +2808,15 @@ components:
           type: string
         category:
           type: string
-          enum: [contract, bidding, production, invoice, approval, other]
+          enum: [contract_main, contract_amendment, contract_external, tender, bid, award_notice, scheme_ppt, preliminary_design, construction_drawing, variation_order, completion_report, audit_report, invoice]
         description:
           type: string
         project_id:
           $ref: '#/components/schemas/UUID'
         uploader_id:
           $ref: '#/components/schemas/UUID'
+        deleted_at:
+          $ref: '#/components/schemas/DateTime'
         created_at:
           $ref: '#/components/schemas/DateTime'
     
@@ -3291,14 +3321,10 @@ components:
           $ref: '#/components/schemas/UUID'
         name:
           type: string
-        code:
-          type: string
         description:
           type: string
-        is_global:
+        is_active:
           type: boolean
-        project_id:
-          $ref: '#/components/schemas/UUID'
         created_at:
           $ref: '#/components/schemas/DateTime'
         updated_at:
@@ -3342,7 +3368,6 @@ components:
         - username
         - email
         - real_name
-        - role
       properties:
         username:
           type: string
@@ -3351,10 +3376,6 @@ components:
         email:
           type: string
           format: email
-        password:
-          type: string
-          minLength: 8
-          description: 密码（仅当has_account=true时必填）
         real_name:
           type: string
           minLength: 2
@@ -3363,9 +3384,11 @@ components:
           type: string
         department:
           type: string
-        role:
-          type: string
-          enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, project_manager, business_manager, production_manager, finance, member]
         has_account:
           type: boolean
           default: false
@@ -3376,9 +3399,6 @@ components:
         email:
           type: string
           format: email
-        password:
-          type: string
-          minLength: 8
         real_name:
           type: string
           minLength: 2
@@ -3387,9 +3407,11 @@ components:
           type: string
         department:
           type: string
-        role:
-          type: string
-          enum: [admin, project_manager, business_manager, production_manager, finance, member]
+        roles:
+          type: array
+          items:
+            type: string
+            enum: [admin, project_manager, business_manager, production_manager, finance, member]
         has_account:
           type: boolean
         is_active:

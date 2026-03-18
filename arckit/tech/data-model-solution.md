@@ -20,7 +20,7 @@
 
 **财务类型枚举**:
 - 奖金（经营奖金、生产奖金）
-- 成本（打车、住宿、公共交通）
+- 成本（用车、住宿、交通、其他）
 - 甲方支付
 - 我方开票
 - 专家费
@@ -43,32 +43,28 @@
 
 ## 专业字典设计方案
 
-**决策**: 创建 Discipline 实体，支持全局专业字典和项目级专业扩展
+**决策**: 创建全局 Discipline 实体，并通过项目成员/专业关联表承载项目内使用关系
 
 **理由**:
-- 全局专业字典保证跨项目一致性
-- 项目内可临时新增专业，并同步回字典
-- 支持专业的自定义扩展
-- 便于专业管理和统计
+- 当前实现里 `Discipline` 仅保存专业名称、描述和启用状态
+- 项目级别的专业使用关系由 `ProjectDisciplineAssignment` 承载
+- 这样可以保持全局字典简洁，同时保留项目内的人员和专业映射
+- 现有代码更适合这种拆分后的数据模型
 
 **实体定义**:
 ```go
 type Discipline struct {
-    ID          uint      `json:"id" gorm:"primaryKey"`
-    Name        string    `json:"name" gorm:"uniqueIndex;not null"`
-    Code        string    `json:"code" gorm:"uniqueIndex"`
-    Description string    `json:"description"`
-    IsGlobal    bool      `json:"is_global" gorm:"default:true"`
-    ProjectID   *uint     `json:"project_id"` // 项目级专业关联项目ID
-    CreatedAt   time.Time `json:"created_at"`
-    UpdatedAt   time.Time `json:"updated_at"`
+    ID          string
+    Name        string
+    Description string
+    IsActive    bool
 }
 ```
 
 **业务规则**:
 - 全局专业：所有项目可用，由管理员维护
-- 项目级专业：仅在特定项目中使用，可同步回全局字典
-- 专业名称唯一性：全局专业名称唯一，项目级专业在项目内唯一
+- 项目级使用关系：通过项目成员或项目专业关联记录表达，不在 `Discipline` 本体上存 `ProjectID`
+- 专业名称唯一性：按名称唯一约束控制
 
 **备选方案**:
 - 仅全局专业：无法满足项目特定需求

@@ -53,6 +53,14 @@ type Config struct {
 	LogFormat string
 }
 
+// StorageBucketName 返回当前存储类型对应的 bucket 名，避免 OSS 时误用 MinIO bucket
+func (c *Config) StorageBucketName() string {
+	if c.StorageType == "oss" {
+		return c.OSSBucketName
+	}
+	return c.MinIOBucketName
+}
+
 // Load 从环境变量加载配置
 // 配置来源：
 //   - Docker 环境：通过 docker-compose.yml 的 environment 设置

@@ -57,7 +57,7 @@ func (s *ProjectContactService) CreateOrUpdateProjectContact(projectID string, c
 
 	// 检查项目是否存在
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("project not found")
 		}

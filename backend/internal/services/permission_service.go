@@ -99,7 +99,7 @@ func (s *PermissionService) CanManageProjectMembers(userID string, projectID str
 
 	// 获取项目信息
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, fmt.Errorf("project not found: %s", projectID)
 		}
@@ -161,7 +161,7 @@ func (s *PermissionService) CanAccessProject(userID string, projectID string) (b
 
 	// 获取项目信息
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, fmt.Errorf("project not found: %s", projectID)
 		}
@@ -257,7 +257,7 @@ func (s *PermissionService) CanManageBusinessInfo(userID string, projectID strin
 
 	// 获取项目信息
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, fmt.Errorf("project not found: %s", projectID)
 		}
@@ -288,7 +288,7 @@ func (s *PermissionService) CanManageProductionInfo(userID string, projectID str
 
 	// 获取项目信息
 	var project models.Project
-	if err := s.db.First(&project, "id = ?", projectID).Error; err != nil {
+	if err := s.db.First(&project, "id = ? AND is_deleted = ?", projectID, false).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return false, fmt.Errorf("project not found: %s", projectID)
 		}

@@ -18,7 +18,7 @@ fields:
   - name: FilePath
     type: string
     constraints: not null
-    description: "存储路径，格式：projects/{project_id}/{category}/{file_id}/{filename}"
+    description: "存储路径，格式：projects/{project_id}/{category}/{safeBaseName}_{timestamp}{ext}"
   - name: FileSize
     type: int64
     constraints: not null
@@ -37,10 +37,9 @@ fields:
   - name: UploaderID
     type: uuid
     constraints: not null
-  - name: IsDeleted
-    type: bool
-    default: false
-    description: 软删除标记
+  - name: DeletedAt
+    type: "*time.Time"
+    description: 软删除时间戳
   - name: CreatedAt
     type: time.Time
   - name: UpdatedAt
@@ -48,12 +47,19 @@ fields:
 
 enums:
   FileCategory:
-    - contract: 合同文件
-    - bidding: 招投标文件
-    - production: 生产文件
+    - contract_main: 主合同文件
+    - contract_amendment: 补充协议文件
+    - contract_external: 外委合同文件
+    - tender: 招标文件
+    - bid: 投标文件
+    - award_notice: 中标通知书
+    - scheme_ppt: 方案PPT
+    - preliminary_design: 初步设计
+    - construction_drawing: 施工图设计
+    - variation_order: 变更洽商
+    - completion_report: 竣工验收
+    - audit_report: 审计报告
     - invoice: 发票文件
-    - approval: 批复审计文件
-    - other: 其他文件
 
 validation:
   forbidden_file_types:
