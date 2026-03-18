@@ -6,10 +6,10 @@
 - 特殊文件: 大写（`INDEX.md`, `GLOSSARY.md`, `CONVENTIONS.md`）
 
 ## 文件大小限制
-| 文件类型 | 建议行数 | 强制拆分 |
-|---------|---------|---------|
-| INDEX.md | 50-100 | 150 |
-| feature.md | 300-500 | 500 |
+| 文件类型 | 建议行数 | 警告 | 强制拆分 |
+|---------|---------|------|---------|
+| INDEX.md | 50-100 | >120 行 | >150 行 |
+| feature.md | 300-500 | >450 行 | >500 行 |
 
 ## 路径与引用
 - 跨文档引用使用路径（如 spec/user-management/authentication.md、tech/_shared/models/User.yaml）

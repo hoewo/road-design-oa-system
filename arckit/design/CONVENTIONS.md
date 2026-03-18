@@ -6,10 +6,14 @@
 arckit/design/
 ├── INDEX.md                      # 全局设计地图
 ├── CONVENTIONS.md                # 本文件
+├── wireframe-style.css           # 线框图统一样式（根目录唯一，各 HTML 引用）
 ├── _library/                     # Design System
 │   ├── brief.md                  # 品牌方向
 │   ├── tokens/design-tokens.yaml # Token 定义
 │   └── component-catalog.yaml    # 组件目录
+├── _map/                         # 映射与依赖
+│   ├── feature-matrix.md         # 线框图路径与状态
+│   └── RELATIONS.md              # 设计依赖、设计→规格映射
 ├── [page-or-flow]/               # 页面/流程
 │   ├── default.html              # 主线框图（带 data-kit 标注）
 │   ├── [sub-view].html           # 子视图（复杂页面拆分时）
@@ -31,4 +35,4 @@ arckit/design/
 - 再平铺各区域独立 .html（sidebar.html、editor-area.html 等）
 
 ## 状态标识
-- ✅ 已完成 | 🟡 设计中 | ⚪ 待设计 | 🔴 已废弃
+- ✅ 已完成 | 🟡 进行中 | ⚪ 计划中 | 🔴 已废弃

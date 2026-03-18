@@ -2,12 +2,11 @@
 
 ✅ 已采用 | 🔬 调研中 | 📋 调研完成 | ❌ 已废弃 | ⚪ 待定
 
-- project-management/ 项目管理OA技术方案：存储、数据库、认证、数据模型、文件路径。✅
-  - storage-solution.md 存储方案：MinIO/OSS统一抽象层接口、文件存储路径设计。✅ (65行)
-  - database-solution.md 数据库方案：GORM ORM、PostgreSQL/RDS兼容、golang-migrate迁移策略。✅ (64行)
-  - data-model-solution.md 数据模型方案：FinancialRecord统一财务实体、Discipline专业字典设计。✅ (76行)
-  - auth-solution.md 认证与路由方案：Gin路由格式、Header认证中间件、NebulaAuth集成、Token刷新。✅ (138行)
-  - user-admin-solution.md 管理员预设用户方案：先查询后创建流程、NebulaAuth用户同步机制。✅ (80行)
+- storage-solution.md 存储方案：MinIO/OSS统一抽象层接口、文件存储路径设计。✅ (65行)
+- database-solution.md 数据库方案：GORM ORM、PostgreSQL/RDS兼容、golang-migrate迁移策略。✅ (64行)
+- data-model-solution.md 数据模型方案：FinancialRecord统一财务实体、Discipline专业字典设计。✅ (76行)
+- auth-solution.md 认证与路由方案：Gin路由格式、Header认证中间件、NebulaAuth集成、Token刷新。✅ (138行)
+- user-admin-solution.md 管理员预设用户方案：先查询后创建流程、NebulaAuth用户同步机制。✅ (80行)
 - _shared/ 共享数据资产：跨领域数据模型与API契约。
   - models/ 数据模型：14个核心实体定义。✅
     - User.yaml 用户实体：基础属性、角色枚举、权限规则。✅ (69行)

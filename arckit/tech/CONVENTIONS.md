@@ -1,5 +1,26 @@
 # Tech 技术文档规范
 
+## 目录结构
+
+```
+arckit/tech/
+├── INDEX.md              # 技术索引（缩进树形+行数）
+├── CONVENTIONS.md        # 本文件
+├── _shared/              # 公共资产（扁平）
+│   ├── models/           # 数据模型 YAML
+│   └── contracts/       # API 契约 YAML
+├── _map/                 # 映射与依赖
+│   ├── feature-matrix.md # 方案/模型/契约路径与状态
+│   ├── RELATIONS.md      # 方案→模型/API、功能→技术映射
+│   └── decision-log.md  # 技术决策日志
+├── [tech-domain]/        # 技术领域（可选分级）
+│   ├── research.md
+│   ├── solution.md
+│   └── decision.md
+├── _spikes/              # POC
+└── _archive/
+```
+
 ## 文件命名
 - 目录: kebab-case（如 `user-management/`）
 - Markdown: kebab-case（如 `auth-solution.md`）
@@ -7,11 +28,13 @@
 - YAML 契约: kebab-case（如 `auth-login.yaml`, `get-user.yaml`）
 
 ## 文件大小限制
-| 文件类型 | 建议行数 | 强制拆分 |
-|---------|---------|---------|
-| research.md | 300-600 | 800 |
-| solution.md | 300-500 | 600 |
-| decision.md | 200-400 | 500 |
+| 文件类型 | 建议行数 | 警告 | 强制拆分 |
+|---------|---------|------|---------|
+| INDEX.md | — | >120 行 | >150 行 |
+| research.md | 300-600 | — | >800 行 |
+| solution.md | 300-500 | >450 行 | >500 行 |
+| decision.md | 200-400 | — | >500 行 |
+| model/contract YAML | — | — | >200 行（建议拆为多个） |
 
 ## 路径与引用
 - 跨文档引用使用路径（如 tech/user-management/auth-solution.md、tech/_shared/models/User.yaml）
