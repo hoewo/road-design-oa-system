@@ -35,23 +35,23 @@
 
 ## 快速开始
 
-### 使用快速启动脚本 (推荐)
+### 使用 Docker 部署（推荐）
 
 ```bash
-# 启动所有服务（后端 + 前端）
-./start.sh
+# 本地一键部署（编译 + 构建镜像 + 启动所有服务）
+./scripts/deploy-prod.sh --local
 
-# 停止所有服务
-./stop.sh
+# 查看服务状态
+docker compose ps
 
-# 查看服务日志
-tail -f backend.log   # 后端日志
-tail -f frontend.log  # 前端日志
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
 ```
 
-**注意**: 使用脚本前，请确保 PostgreSQL 和 MinIO 已启动。
-
-### 使用Docker Compose
+### 仅使用 Docker Compose（镜像已构建时）
 
 ```bash
 # 启动所有服务
@@ -180,12 +180,11 @@ ERROR: could not create unique index "idx_clients_client_name" (SQLSTATE 23505)
 ```bash
 # 方法 1: 重置数据库（推荐，开发环境）
 ./scripts/reset-db.sh
-./start.sh
+docker compose up -d
 
-# 方法 2: 清理数据目录（完全重置）
-./stop.sh
-rm -rf .postgresql-data/
-./start.sh
+# 方法 2: 完全重置（删除数据卷后重新部署）
+docker compose down -v
+./scripts/deploy-prod.sh --local
 ```
 
 ### 端口占用
@@ -206,13 +205,12 @@ kill -9 <PID>
 
 ```bash
 # 查看日志
-tail -f backend.log
-tail -f frontend.log
-tail -f postgresql.log
+docker compose logs -f backend
+docker compose logs -f frontend
 
 # 重置环境
-./stop.sh
-./start.sh
+docker compose down
+./scripts/deploy-prod.sh --local
 ```
 
 ### 数据库管理

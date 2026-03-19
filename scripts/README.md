@@ -123,36 +123,39 @@ psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE project_oa TO project_oa_u
 
 1. **首次设置**:
    ```bash
-   ./scripts/init-db.sh
-   ./start.sh
+   ./scripts/deploy-prod.sh --local
    ```
+   脚本会完成数据库初始化检查并启动所有服务。
 
-2. **正常启动**:
+2. **正常启动**（镜像已存在时）:
    ```bash
-   ./start.sh
+   docker compose up -d
    ```
 
 3. **停止服务**:
    ```bash
-   ./stop.sh
+   docker compose down
    ```
+   或仅停止不删容器：`docker compose stop`
 
 ### 遇到数据库问题
 
 1. **停止服务**:
    ```bash
-   ./stop.sh
+   docker compose down
    ```
 
 2. **重置数据库**:
    ```bash
    ./scripts/reset-db.sh
    ```
+   （需根据脚本要求配置数据库连接，如通过 .env 或 Docker 网络）
 
 3. **重新启动**:
    ```bash
-   ./start.sh
+   docker compose up -d
    ```
+   或重新完整部署：`./scripts/deploy-prod.sh --local`
 
 ### 切换分支后
 
@@ -160,13 +163,13 @@ psql -d postgres -c "GRANT ALL PRIVILEGES ON DATABASE project_oa TO project_oa_u
 
 ```bash
 # 停止服务
-./stop.sh
+docker compose down
 
 # 重置数据库
 ./scripts/reset-db.sh
 
 # 重新启动（会自动迁移到新结构）
-./start.sh
+docker compose up -d
 ```
 
 ## 手动数据库操作
@@ -270,16 +273,11 @@ tail -f postgresql.log
 如果一切都出问题了：
 
 ```bash
-# 1. 停止所有服务
-./stop.sh
+# 1. 停止并删除容器与数据卷
+docker compose down -v
 
-# 2. 清理数据
-rm -rf .postgresql-data/
-rm -rf .minio-data/
-rm -f *.log
-
-# 3. 重新开始
-./start.sh
+# 2. 重新完整部署
+./scripts/deploy-prod.sh --local
 ```
 
 ## 更多帮助

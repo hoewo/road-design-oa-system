@@ -64,8 +64,8 @@ func (c *Config) StorageBucketName() string {
 // Load 从环境变量加载配置
 // 配置来源：
 //   - Docker 环境：通过 docker-compose.yml 的 environment 设置
-//   - 本地开发：通过 shell 脚本（start.sh）设置环境变量
-//   注意：代码不直接加载 .env 文件，由 shell 脚本负责加载
+//   - 本地开发：通过 deploy-prod.sh --local 或 docker compose 启动时由 .env 注入
+//   注意：代码不直接加载 .env 文件，由启动方式负责注入环境变量
 func Load() *Config {
 	config := &Config{
 		// Database

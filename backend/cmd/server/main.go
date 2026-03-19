@@ -44,7 +44,9 @@ func main() {
 	if err := database.Migrate(); err != nil {
 		logger.Fatal("Failed to migrate database", zap.Error(err))
 	}
-	if err := database.RunVersionedMigrations(); err != nil {
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBSSLMode)
+	if err := database.RunVersionedMigrations(dsn); err != nil {
 		logger.Fatal("Failed to run versioned migrations", zap.Error(err))
 	}
 

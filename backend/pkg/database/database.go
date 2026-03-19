@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -700,15 +702,17 @@ func dropContractTypeColumn() error {
 
 // RunVersionedMigrations 执行版本化 SQL 迁移（golang-migrate），应在 Migrate() 之后调用。
 // 迁移文件位于 migrations/ 目录，命名 000001_xxx.up.sql / .down.sql，支持回滚。
-func RunVersionedMigrations() error {
-	if DB == nil {
-		return fmt.Errorf("database connection not initialized")
+// 使用独立连接执行迁移，避免 m.Close() 关闭全局 DB 导致后续请求报 "database is closed"。
+func RunVersionedMigrations(dsn string) error {
+	if dsn == "" {
+		return fmt.Errorf("DSN required for versioned migrations")
 	}
-	sqlDB, err := DB.DB()
+	migrateDB, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return fmt.Errorf("get underlying sql.DB: %w", err)
+		return fmt.Errorf("open migration connection: %w", err)
 	}
-	driver, err := migratepostgres.WithInstance(sqlDB, &migratepostgres.Config{})
+	defer migrateDB.Close()
+	driver, err := migratepostgres.WithInstance(migrateDB, &migratepostgres.Config{})
 	if err != nil {
 		return fmt.Errorf("create postgres driver: %w", err)
 	}
