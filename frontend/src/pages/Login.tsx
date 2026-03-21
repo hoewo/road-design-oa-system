@@ -20,6 +20,11 @@ import { VerificationCodeInput } from '@/components/auth/VerificationCodeInput'
 import { ResendCodeButton } from '@/components/auth/ResendCodeButton'
 import { LoginErrorAlert, type LoginErrorType } from '@/components/auth/LoginErrorAlert'
 import { getErrorMessage } from '@/utils/error'
+import {
+  BRAND_LOGO_ALT,
+  BRAND_LOGO_SRC,
+  COMPANY_FULL_NAME,
+} from '@/brand/constants'
 
 type LoginState =
   | 'initial' // 初始状态：选择登录方式，输入邮箱/手机号
@@ -27,13 +32,6 @@ type LoginState =
   | 'code_sent' // 验证码已发送：输入验证码
   | 'logging_in' // 登录中
   | 'success' // 登录成功
-
-/** 公司全称：以 login-page-branding.md §1 为准；法务签批后若变更须同步此处与页面展示 */
-const COMPANY_FULL_NAME = '北京京宏勘察设计有限公司'
-
-/** Logo：由组织母版京宏logo.pdf 导出（见 frontend/public/branding/README.md） */
-const BRAND_LOGO_SRC = '/branding/jinghong-logo.png'
-const BRAND_LOGO_ALT = '北京京宏勘察设计有限公司标识'
 
 const { Title, Text } = Typography
 

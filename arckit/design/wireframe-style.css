@@ -171,6 +171,21 @@ details[open] summary { background: var(--gray-1); color: var(--white); }
     border: var(--border) solid var(--gray-4); border-radius: var(--radius);
     background: var(--white); margin-bottom: var(--sm);
 }
+/* Segmented control（登录方式等，仅灰度） */
+.segmented {
+    display: flex; width: 100%; border: var(--border) solid var(--gray-4);
+    border-radius: var(--radius); overflow: hidden; background: var(--white);
+}
+.segmented-item {
+    flex: 1; text-align: center; padding: var(--sm) var(--md);
+    font-size: 0.9rem; color: var(--gray-2);
+    border-right: var(--border) solid var(--gray-4);
+}
+.segmented-item:last-child { border-right: none; }
+.segmented-item.selected {
+    background: var(--gray-1); color: var(--white); font-weight: 600;
+}
+
 .toggle-row {
     display: flex; justify-content: space-between; align-items: center;
     padding: var(--md) 0; border-bottom: var(--border) solid var(--gray-5);

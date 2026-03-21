@@ -4,116 +4,238 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录页面 - 线框图</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
-        .wireframe { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border: 2px solid #333; }
-        .header { border: 2px dashed #999; padding: 10px; margin-bottom: 20px; text-align: center; background: #e0e0e0; }
-        .container { border: 2px dashed #999; padding: 40px; margin: 20px 0; }
-        .form-group { margin: 20px 0; }
-        .label { display: block; margin-bottom: 8px; font-weight: bold; }
-        .input { width: 100%; padding: 12px; border: 2px solid #ccc; border-radius: 4px; }
-        .required { color: red; }
-        .button { padding: 12px 24px; border: 2px solid #333; background: #fff; cursor: pointer; margin: 10px 5px; }
-        .button-primary { background: #333; color: white; }
-        .error { color: red; margin-top: 10px; padding: 10px; border: 2px dashed red; background: #ffe0e0; }
-        .link { color: blue; text-decoration: underline; cursor: pointer; }
-        .note { margin-top: 20px; padding: 10px; background: #f0f0f0; border-left: 4px solid #333; }
-    </style>
+    <link rel="stylesheet" href="../wireframe-style.css">
 </head>
 <body>
-    <div class="wireframe">
-        <div class="header">
-            <h1>登录页面 - 线框图</h1>
-        </div>
+    <div class="wireframe-container">
+        <header>
+            <h1>登录页面 · 线框图</h1>
+            <div class="meta-info">
+                <span>流程：<code>auth/</code></span>
+                <span>对齐实现：<code>frontend/src/pages/Login.tsx</code></span>
+                <span>规格：<code>arckit/spec/login-page-branding.md</code></span>
+            </div>
+        </header>
 
-        <!-- 正常状态 -->
-        <div class="container">
-            <h2>正常状态</h2>
-            <div style="max-width: 400px; margin: 0 auto;">
-                <h3 style="text-align: center; margin-bottom: 30px;">道路设计公司项目管理系统</h3>
-                
-                <div class="form-group">
-                    <label class="label">用户名 <span class="required">*</span></label>
-                    <input type="text" class="input" placeholder="请输入用户名" />
-                </div>
-                
-                <div class="form-group">
-                    <label class="label">密码 <span class="required">*</span></label>
-                    <input type="password" class="input" placeholder="请输入密码" />
-                </div>
-                
-                <div class="form-group">
-                    <button class="button button-primary" style="width: 100%;">登录</button>
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <span class="link">注册新账号</span>
+        <p class="state-description">
+            桌面宽屏为<strong>左右分栏</strong>：左品牌区（公司全称 → 辅助说明 → Logo），右操作区整栏铺底、<strong>无嵌套卡片</strong>；「登录」标题下细分隔线。登录方式为 Segmented。小屏为<strong>上下堆叠</strong>，两区之间横线分隔。
+        </p>
+
+        <!-- 桌面：正常态（获取验证码前） -->
+        <details open>
+            <summary>桌面 · 正常态（邮箱 / 手机 + 获取验证码）</summary>
+            <div class="state-content">
+                <div class="wireframe-canvas">
+                    <div class="device-frame desktop">
+                        <div class="split-h" style="min-height: 440px;">
+                            <div class="panel" style="flex: 0 0 38%; max-width: 420px; background: var(--gray-5); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="text-align: center; max-width: 280px;">
+                                    <p style="font-weight: 600; font-size: 1.05rem; color: var(--gray-0); margin-bottom: var(--xs);">北京京宏勘察设计有限公司</p>
+                                    <p style="font-size: 0.85rem; color: var(--gray-2);">使用组织账号登录</p>
+                                    <div class="image-placeholder" style="margin-top: var(--lg); min-height: 72px; max-width: 200px; margin-left: auto; margin-right: auto;">Logo</div>
+                                </div>
+                            </div>
+                            <div style="width: 1px; background: var(--gray-4); flex-shrink: 0;" aria-hidden="true"></div>
+                            <div class="panel" style="flex: 1; background: var(--white); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="width: 100%; max-width: 360px;">
+                                    <h2 style="font-size: 1.15rem; font-weight: 600; color: var(--gray-0); padding-bottom: var(--md); margin-bottom: var(--lg); border-bottom: 1px solid var(--gray-4); letter-spacing: 0.04em;">登录</h2>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">登录方式</div>
+                                        <div class="segmented" role="group" aria-label="登录方式">
+                                            <div class="segmented-item selected">邮箱登录</div>
+                                            <div class="segmented-item">手机号登录</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">邮箱</div>
+                                        <input type="text" class="input-field" placeholder="请输入邮箱" />
+                                    </div>
+                                    <a class="button primary" style="display: block; width: 100%; text-decoration: none;">获取验证码</a>
+                                    <div style="margin-top: var(--xl); padding-top: var(--lg); font-size: 0.8rem; color: var(--gray-2); text-align: center; line-height: 1.5;">
+                                        <p>如需账号，请联系系统管理员</p>
+                                        <p style="margin-top: var(--xs); color: var(--gray-3);">系统不提供公开注册功能</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </details>
 
-        <!-- 错误状态 -->
-        <div class="container">
-            <h2>错误状态 - 登录失败</h2>
-            <div style="max-width: 400px; margin: 0 auto;">
-                <h3 style="text-align: center; margin-bottom: 30px;">道路设计公司项目管理系统</h3>
-                
-                <div class="error">
-                    用户名或密码错误，请重新输入
-                </div>
-                
-                <div class="form-group">
-                    <label class="label">用户名 <span class="required">*</span></label>
-                    <input type="text" class="input" placeholder="请输入用户名" value="错误的用户名" />
-                </div>
-                
-                <div class="form-group">
-                    <label class="label">密码 <span class="required">*</span></label>
-                    <input type="password" class="input" placeholder="请输入密码" />
-                </div>
-                
-                <div class="form-group">
-                    <button class="button button-primary" style="width: 100%;">登录</button>
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <span class="link">注册新账号</span>
+        <!-- 桌面：验证码已发送 -->
+        <details>
+            <summary>桌面 · 验证码已发送</summary>
+            <div class="state-content">
+                <div class="wireframe-canvas">
+                    <div class="device-frame desktop">
+                        <div class="split-h" style="min-height: 440px;">
+                            <div class="panel" style="flex: 0 0 38%; max-width: 420px; background: var(--gray-5); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="text-align: center; max-width: 280px;">
+                                    <p style="font-weight: 600; font-size: 1.05rem;">北京京宏勘察设计有限公司</p>
+                                    <p style="font-size: 0.85rem; color: var(--gray-2); margin-top: var(--xs);">使用组织账号登录</p>
+                                    <div class="image-placeholder" style="margin-top: var(--lg); min-height: 72px; max-width: 200px; margin-left: auto; margin-right: auto;">Logo</div>
+                                </div>
+                            </div>
+                            <div style="width: 1px; background: var(--gray-4); flex-shrink: 0;"></div>
+                            <div class="panel" style="flex: 1; background: var(--white); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="width: 100%; max-width: 360px;">
+                                    <h2 style="font-size: 1.15rem; font-weight: 600; padding-bottom: var(--md); margin-bottom: var(--lg); border-bottom: 1px solid var(--gray-4);">登录</h2>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">登录方式</div>
+                                        <div class="segmented">
+                                            <div class="segmented-item selected">邮箱登录</div>
+                                            <div class="segmented-item">手机号登录</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">邮箱</div>
+                                        <input type="text" class="input-field" value="user@example.com" disabled />
+                                    </div>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">验证码</div>
+                                        <div style="display: flex; gap: var(--sm); justify-content: space-between;">
+                                            <span class="placeholder-box" style="flex: 1; min-height: 44px; padding: var(--sm); margin: 0;">□</span>
+                                            <span class="placeholder-box" style="flex: 1; min-height: 44px; padding: var(--sm); margin: 0;">□</span>
+                                            <span class="placeholder-box" style="flex: 1; min-height: 44px; padding: var(--sm); margin: 0;">□</span>
+                                            <span class="placeholder-box" style="flex: 1; min-height: 44px; padding: var(--sm); margin: 0;">□</span>
+                                            <span class="placeholder-box" style="flex: 1; min-height: 44px; padding: var(--sm); margin: 0;">□</span>
+                                            <span class="placeholder-box" style="flex: 1; min-height: 44px; padding: var(--sm); margin: 0;">□</span>
+                                        </div>
+                                        <p style="font-size: 0.8rem; color: var(--gray-2); margin-top: var(--sm);">验证码已发送到邮箱</p>
+                                    </div>
+                                    <p style="font-size: 0.85rem; margin-bottom: var(--md);"><span class="badge">60s 后可重新发送</span></p>
+                                    <a class="button primary" style="display: block; width: 100%; text-decoration: none;">登录</a>
+                                    <div style="margin-top: var(--xl); padding-top: var(--lg); font-size: 0.8rem; color: var(--gray-2); text-align: center;">
+                                        <p>如需账号，请联系系统管理员</p>
+                                        <p style="margin-top: var(--xs); color: var(--gray-3);">系统不提供公开注册功能</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </details>
 
-        <!-- 加载状态 -->
-        <div class="container">
-            <h2>加载状态 - 登录中</h2>
-            <div style="max-width: 400px; margin: 0 auto;">
-                <h3 style="text-align: center; margin-bottom: 30px;">道路设计公司项目管理系统</h3>
-                
-                <div class="form-group">
-                    <label class="label">用户名 <span class="required">*</span></label>
-                    <input type="text" class="input" placeholder="请输入用户名" disabled />
-                </div>
-                
-                <div class="form-group">
-                    <label class="label">密码 <span class="required">*</span></label>
-                    <input type="password" class="input" placeholder="请输入密码" disabled />
-                </div>
-                
-                <div class="form-group">
-                    <button class="button button-primary" style="width: 100%;" disabled>登录中...</button>
+        <!-- 桌面：错误提示 -->
+        <details>
+            <summary>桌面 · 错误提示（发送失败 / 验证码错误等）</summary>
+            <div class="state-content">
+                <div class="wireframe-canvas">
+                    <div class="device-frame desktop">
+                        <div class="split-h" style="min-height: 440px;">
+                            <div class="panel" style="flex: 0 0 38%; max-width: 420px; background: var(--gray-5); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="text-align: center; max-width: 280px;">
+                                    <p style="font-weight: 600;">北京京宏勘察设计有限公司</p>
+                                    <p style="font-size: 0.85rem; color: var(--gray-2); margin-top: var(--xs);">使用组织账号登录</p>
+                                    <div class="image-placeholder" style="margin-top: var(--lg); min-height: 72px; max-width: 200px; margin-left: auto; margin-right: auto;">Logo</div>
+                                </div>
+                            </div>
+                            <div style="width: 1px; background: var(--gray-4); flex-shrink: 0;"></div>
+                            <div class="panel" style="flex: 1; background: var(--white); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="width: 100%; max-width: 360px;">
+                                    <h2 style="font-size: 1.15rem; font-weight: 600; padding-bottom: var(--md); margin-bottom: var(--lg); border-bottom: 1px solid var(--gray-4);">登录</h2>
+                                    <div class="placeholder-box" style="margin-bottom: var(--md); border-style: solid; border-color: var(--gray-3); color: var(--gray-1); text-align: left;">
+                                        [LoginErrorAlert] 可关闭的错误说明文案
+                                    </div>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">登录方式</div>
+                                        <div class="segmented">
+                                            <div class="segmented-item selected">邮箱登录</div>
+                                            <div class="segmented-item">手机号登录</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">邮箱</div>
+                                        <input type="text" class="input-field" placeholder="请输入邮箱" />
+                                    </div>
+                                    <a class="button primary" style="display: block; width: 100%; text-decoration: none;">获取验证码</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </details>
 
-        <div class="note">
-            <strong>设计说明：</strong><br>
-            - 登录表单居中显示，最大宽度400px<br>
-            - 用户名和密码为必填项，标注红色星号<br>
-            - 支持注册新账号链接<br>
-            - 登录失败时显示错误提示信息<br>
-            - 登录过程中禁用表单和按钮，显示"登录中..."状态
+        <!-- 桌面：处理中 -->
+        <details>
+            <summary>桌面 · 处理中（发送中 / 登录中）</summary>
+            <div class="state-content">
+                <div class="wireframe-canvas">
+                    <div class="device-frame desktop">
+                        <div class="split-h" style="min-height: 440px;">
+                            <div class="panel" style="flex: 0 0 38%; max-width: 420px; background: var(--gray-5); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="text-align: center; max-width: 280px;">
+                                    <p style="font-weight: 600;">北京京宏勘察设计有限公司</p>
+                                    <p style="font-size: 0.85rem; color: var(--gray-2); margin-top: var(--xs);">使用组织账号登录</p>
+                                    <div class="image-placeholder" style="margin-top: var(--lg); min-height: 72px; max-width: 200px; margin-left: auto; margin-right: auto;">Logo</div>
+                                </div>
+                            </div>
+                            <div style="width: 1px; background: var(--gray-4); flex-shrink: 0;"></div>
+                            <div class="panel" style="flex: 1; background: var(--white); display: flex; flex-direction: column; justify-content: center; align-items: center; padding: var(--xl);">
+                                <div style="width: 100%; max-width: 360px;">
+                                    <h2 style="font-size: 1.15rem; font-weight: 600; padding-bottom: var(--md); margin-bottom: var(--lg); border-bottom: 1px solid var(--gray-4);">登录</h2>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">登录方式</div>
+                                        <div class="segmented">
+                                            <div class="segmented-item selected">邮箱登录</div>
+                                            <div class="segmented-item">手机号登录</div>
+                                        </div>
+                                    </div>
+                                    <div style="margin-bottom: var(--md);">
+                                        <div class="group-box-title">邮箱</div>
+                                        <input type="text" class="input-field" disabled />
+                                    </div>
+                                    <button type="button" class="button primary" style="width: 100%; opacity: 0.7; cursor: default;" disabled>发送中…</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <!-- 小屏堆叠 -->
+        <details>
+            <summary>小屏 / 窄视口 · 上下堆叠</summary>
+            <div class="state-content">
+                <div class="wireframe-canvas">
+                    <div class="device-frame" style="display: flex; flex-direction: column;">
+                        <div class="split-v" style="min-height: 520px; flex: 1;">
+                            <div class="panel" style="background: var(--gray-5); padding: var(--lg); text-align: center;">
+                                <p style="font-weight: 600; font-size: 0.95rem;">北京京宏勘察设计有限公司</p>
+                                <p style="font-size: 0.8rem; color: var(--gray-2); margin-top: var(--xs);">使用组织账号登录</p>
+                                <div class="image-placeholder" style="margin-top: var(--md); min-height: 64px; max-width: 180px; margin-left: auto; margin-right: auto;">Logo</div>
+                            </div>
+                            <div class="split-divider-v" aria-hidden="true"></div>
+                            <div class="panel" style="background: var(--white); padding: var(--lg);">
+                                <h2 style="font-size: 1.05rem; font-weight: 600; padding-bottom: var(--sm); margin-bottom: var(--md); border-bottom: 1px solid var(--gray-4);">登录</h2>
+                                <div class="group-box-title">登录方式</div>
+                                <div class="segmented" style="margin-bottom: var(--md);">
+                                    <div class="segmented-item selected">邮箱</div>
+                                    <div class="segmented-item">手机</div>
+                                </div>
+                                <div class="group-box-title">邮箱</div>
+                                <input type="text" class="input-field" placeholder="请输入邮箱" />
+                                <a class="button primary" style="display: block; width: 100%; text-align: center; text-decoration: none; margin-top: var(--md);">获取验证码</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <div class="component-list">
+            <h3>组件与约束（对齐 login-page-branding.md）</h3>
+            <ul>
+                <li>左：品牌区（冷灰阶在实现中有色温；线框仅用 gray-5 表示「浅于右栏」）</li>
+                <li>右：整栏白底 + 最大宽度表单列，<strong>无</strong>圆角描边阴影包裹整块表单</li>
+                <li>无「道路设计公司项目管理系统」类通用占位主标题</li>
+                <li>无公开注册；页脚为说明文案</li>
+            </ul>
         </div>
     </div>
 </body>
 </html>
-

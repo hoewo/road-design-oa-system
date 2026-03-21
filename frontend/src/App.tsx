@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
-import { Layout, Spin } from 'antd'
+import { Layout, Spin, theme } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -12,6 +12,11 @@ import UserManagement from './pages/UserManagement'
 import FileManagement from './pages/FileManagement'
 import ContractDetail from './components/contract/ContractDetail'
 import UserInfo from './components/auth/UserInfo'
+import {
+  BRAND_LOGO_ALT,
+  BRAND_LOGO_SRC,
+  COMPANY_FULL_NAME,
+} from '@/brand/constants'
 import './App.css'
 
 const { Header, Content } = Layout
@@ -88,6 +93,8 @@ const ProjectProductionRedirect = () => {
 }
 
 function AppContent() {
+  const { token } = theme.useToken()
+
   return (
     <Routes>
       <Route path="/login" element={<LoginRoute />} />
@@ -98,24 +105,53 @@ function AppContent() {
             <Layout style={{ minHeight: '100vh' }}>
               <Header
                 style={{
-                  background: '#fff',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                  background: token.colorBgContainer,
+                  boxShadow: token.boxShadowSecondary,
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '0 24px',
+                  padding: `0 ${token.paddingLG}px`,
                 }}
               >
                 <div
                   style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#262626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    flex: 1,
+                    minWidth: 0,
+                    gap: token.marginSM,
+                    marginRight: token.margin,
                   }}
                 >
-                  项目管理OA系统
+                  <img
+                    src={BRAND_LOGO_SRC}
+                    alt={BRAND_LOGO_ALT}
+                    style={{
+                      height: token.controlHeight,
+                      width: 'auto',
+                      display: 'block',
+                      objectFit: 'contain',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontSize: token.fontSizeLG,
+                      fontWeight: token.fontWeightStrong,
+                      color: token.colorTextHeading,
+                      lineHeight: 1.3,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                    title={COMPANY_FULL_NAME}
+                  >
+                    {COMPANY_FULL_NAME}
+                  </span>
                 </div>
-                <UserInfo />
+                <div style={{ flexShrink: 0 }}>
+                  <UserInfo />
+                </div>
               </Header>
               <Content style={{ padding: '24px' }}>
                 <Routes>

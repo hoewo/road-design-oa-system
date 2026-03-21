@@ -4,7 +4,7 @@
 
 | 路径 | 简述 | 状态 | 行数 |
 |------|------|------|------|
-| auth/default.html | 登录页：验证码输入、加载、错误提示 | ✅ | 119 |
+| auth/default.html | 登录页：分栏品牌/表单、Segmented、验证码态、错误、处理中、小屏堆叠 | ✅ | 241 |
 | project-list/default.html | 项目列表：列表、搜索筛选、新建入口 | ✅ | 195 |
 | project-detail/basic.html | 基本信息标签页：项目信息、负责人、甲方 | ✅ | 253 |
 | project-detail/business.html | 经营信息标签页：合同、支付、开票、招投标、奖金 | ✅ | 295 |
