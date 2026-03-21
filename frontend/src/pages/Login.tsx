@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { Form, Input, Button, Card, message } from 'antd'
+import {
+  Form,
+  Input,
+  Button,
+  Col,
+  Grid,
+  Row,
+  Space,
+  Typography,
+  message,
+  theme,
+} from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { authService } from '@/services/auth'
 import { useAuth } from '@/contexts/AuthContext'
@@ -8,6 +19,7 @@ import { LoginMethodSelector, type LoginMethod } from '@/components/auth/LoginMe
 import { VerificationCodeInput } from '@/components/auth/VerificationCodeInput'
 import { ResendCodeButton } from '@/components/auth/ResendCodeButton'
 import { LoginErrorAlert, type LoginErrorType } from '@/components/auth/LoginErrorAlert'
+import { getErrorMessage } from '@/utils/error'
 
 type LoginState =
   | 'initial' // 初始状态：选择登录方式，输入邮箱/手机号
@@ -16,7 +28,18 @@ type LoginState =
   | 'logging_in' // 登录中
   | 'success' // 登录成功
 
+/** 公司全称：以 login-page-branding.md §1 为准；法务签批后若变更须同步此处与页面展示 */
+const COMPANY_FULL_NAME = '北京京宏勘察设计有限公司'
+
+/** Logo：由组织母版京宏logo.pdf 导出（见 frontend/public/branding/README.md） */
+const BRAND_LOGO_SRC = '/branding/jinghong-logo.png'
+const BRAND_LOGO_ALT = '北京京宏勘察设计有限公司标识'
+
+const { Title, Text } = Typography
+
 const Login = () => {
+  const { token } = theme.useToken()
+  const screens = Grid.useBreakpoint()
   const [form] = Form.useForm()
   const navigate = useNavigate()
   const { login: updateAuth } = useAuth()
@@ -65,9 +88,9 @@ const Login = () => {
       await authService.sendVerification(target, loginMethod === 'email' ? 'email' : 'sms')
       setLoginState('code_sent')
       message.success('验证码已发送，请查收')
-    } catch (error: any) {
+    } catch (error: unknown) {
       setLoginState('initial')
-      const errorMsg = error.message || '验证码发送失败'
+      const errorMsg = getErrorMessage(error, '验证码发送失败')
       setErrorType('verification_send_failed')
       setErrorMessage(errorMsg)
       message.error(errorMsg)
@@ -125,9 +148,9 @@ const Login = () => {
       
       // 立即导航，updateAuth 会同步更新 isAuthenticated 状态
       navigate('/projects', { replace: true })
-    } catch (error: any) {
+    } catch (error: unknown) {
       setLoginState('code_sent')
-      const errorMsg = error.message || '登录失败'
+      const errorMsg = getErrorMessage(error, '登录失败')
       
       // 根据错误信息判断错误类型
       if (errorMsg.includes('验证码') || errorMsg.includes('code')) {
@@ -163,161 +186,296 @@ const Login = () => {
     })
   }
 
+  /**
+   * 品牌侧（道路/工程语境）：偏冷的中性灰阶 + 极弱青灰倾向，接近图纸底色、混凝土/沥青的「矿物感」，
+   * 避免偏粉偏杏的居家气质；红 Logo 作为唯一高饱和点更稳。与右侧纯白栏仍靠明度与色温差分层。
+   */
+  const brandBg = 'linear-gradient(168deg, #f5f7fa 0%, #eceff4 44%, #e3e8f0 100%)'
+  const brandTitleColor = 'rgba(28, 31, 38, 0.92)'
+  const brandMutedColor = 'rgba(28, 31, 38, 0.5)'
+
   return (
-    <div
+    <main
+      aria-labelledby="login-brand-heading"
       style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
+        margin: 0,
+        padding: 0,
         minHeight: '100vh',
-        background: '#f0f2f5',
+        fontFamily: token.fontFamily,
+        WebkitFontSmoothing: 'antialiased',
+        background: token.colorBgLayout,
       }}
     >
-      <Card
-        title="道路设计公司项目管理系统"
-        style={{ width: 400 }}
-        styles={{ header: { textAlign: 'center', fontSize: '20px', fontWeight: 'bold' } }}
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          autoComplete="off"
-          size="large"
+      <Row gutter={0} align="stretch" wrap style={{ minHeight: '100vh' }}>
+        <Col
+          xs={24}
+          lg={10}
+          xl={9}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: `${token.paddingXL * 1.25}px ${token.paddingXL}px`,
+            background: brandBg,
+            boxSizing: 'border-box',
+          }}
         >
-          {/* 错误提示 */}
-          <LoginErrorAlert
-            errorType={errorType}
-            errorMessage={errorMessage}
-            onClose={handleErrorClose}
-          />
-
-          {/* 登录方式选择 */}
-          <Form.Item label="登录方式">
-            <LoginMethodSelector
-              value={loginMethod}
-              onChange={handleMethodChange}
-              disabled={loginState === 'sending' || loginState === 'logging_in' || loginState === 'success'}
-            />
-          </Form.Item>
-
-          {/* 邮箱/手机号输入 */}
-          <Form.Item
-            label={loginMethod === 'email' ? '邮箱' : '手机号'}
-            name={loginMethod === 'email' ? 'email' : 'phone'}
-            rules={[
-              {
-                required: true,
-                message: loginMethod === 'email' ? '请输入邮箱' : '请输入手机号',
-              },
-              {
-                validator: (_, value) => {
-                  if (!value) {
-                    return Promise.resolve()
-                  }
-                  if (loginMethod === 'email' && !validateEmail(value)) {
-                    return Promise.reject('请输入正确的邮箱格式')
-                  }
-                  if (loginMethod === 'phone' && !validatePhone(value)) {
-                    return Promise.reject('请输入正确的手机号格式')
-                  }
-                  return Promise.resolve()
-                },
-              },
-            ]}
+          <Space
+            direction="vertical"
+            size={token.marginLG}
+            align="center"
+            style={{ width: '100%', maxWidth: 360, textAlign: 'center' }}
           >
-            <Input
-              placeholder={loginMethod === 'email' ? '请输入邮箱' : '请输入手机号'}
-              disabled={loginState === 'sending' || loginState === 'code_sent' || loginState === 'logging_in' || loginState === 'success'}
-            />
-          </Form.Item>
-
-          {/* 获取验证码按钮（初始状态） */}
-          {loginState === 'initial' && (
-            <Form.Item>
-              <Button
-                type="primary"
-                block
-                onClick={handleSendVerification}
-                loading={false}
+            <header>
+              <Title
+                level={3}
+                id="login-brand-heading"
+                style={{
+                  margin: 0,
+                  marginBottom: token.marginXS,
+                  color: brandTitleColor,
+                  fontSize: token.fontSizeHeading3,
+                  lineHeight: token.lineHeightHeading3,
+                  fontWeight: token.fontWeightStrong,
+                  letterSpacing: '0.02em',
+                }}
               >
-                获取验证码
-              </Button>
-            </Form.Item>
-          )}
+                {COMPANY_FULL_NAME}
+              </Title>
+              <Text style={{ display: 'block', fontSize: token.fontSizeSM, color: brandMutedColor }}>
+                使用组织账号登录
+              </Text>
+              <img
+                src={BRAND_LOGO_SRC}
+                alt={BRAND_LOGO_ALT}
+                width={480}
+                height={281}
+                style={{
+                  display: 'block',
+                  margin: `${token.marginLG + token.marginXS}px auto 0`,
+                  maxWidth: 'min(100%, 208px)',
+                  height: 'auto',
+                }}
+              />
+            </header>
+          </Space>
+        </Col>
 
-          {/* 发送验证码中状态 */}
-          {loginState === 'sending' && (
-            <Form.Item>
-              <Button type="primary" block loading disabled>
-                发送中...
-              </Button>
-            </Form.Item>
-          )}
+        <Col
+          xs={24}
+          lg={14}
+          xl={15}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: `${token.paddingXL * 1.5}px clamp(${token.paddingLG}px, 6vw, 56px)`,
+            background: token.colorBgContainer,
+            boxSizing: 'border-box',
+            borderLeft: screens.lg ? `1px solid ${token.colorSplit}` : undefined,
+            borderTop: screens.lg ? undefined : `1px solid ${token.colorSplit}`,
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 392,
+              boxSizing: 'border-box',
+            }}
+          >
+            <Title
+              level={4}
+              style={{
+                marginTop: 0,
+                marginBottom: token.marginLG,
+                paddingBottom: token.paddingMD,
+                color: token.colorTextHeading,
+                fontWeight: token.fontWeightStrong,
+                letterSpacing: '0.04em',
+                borderBottom: `1px solid ${token.colorSplit}`,
+              }}
+            >
+              登录
+            </Title>
 
-          {/* 验证码已发送状态 */}
-          {loginState === 'code_sent' && (
-            <>
-              <Form.Item label="验证码">
-                <VerificationCodeInput
-                  value={verificationCode}
-                  onChange={(value) => setVerificationCode(value)}
-                  onComplete={handleVerificationCodeComplete}
-                  disabled={['logging_in', 'success'].includes(loginState)}
-                  error={errorType === 'verification_invalid'}
-                  autoFocus={true}
+            <Form
+              form={form}
+              layout="vertical"
+              autoComplete="off"
+              size="large"
+              requiredMark={false}
+              colon={false}
+              style={{ width: '100%' }}
+            >
+              {/* 错误提示 */}
+              <LoginErrorAlert
+                errorType={errorType}
+                errorMessage={errorMessage}
+                onClose={handleErrorClose}
+              />
+
+              {/* 登录方式选择 */}
+              <Form.Item label="登录方式">
+                <LoginMethodSelector
+                  value={loginMethod}
+                  onChange={handleMethodChange}
+                  disabled={loginState === 'sending' || loginState === 'logging_in' || loginState === 'success'}
                 />
-                <div style={{ marginTop: 8, fontSize: '12px', color: '#999' }}>
-                  验证码已发送到{loginMethod === 'email' ? '邮箱' : '手机号'}
-                </div>
               </Form.Item>
 
-              <Form.Item>
-                <ResendCodeButton
-                  onResend={handleResendCode}
-                  countdownSeconds={60}
-                  disabled={['logging_in', 'success'].includes(loginState)}
+              {/* 邮箱/手机号输入 */}
+              <Form.Item
+                label={loginMethod === 'email' ? '邮箱' : '手机号'}
+                name={loginMethod === 'email' ? 'email' : 'phone'}
+                rules={[
+                  {
+                    required: true,
+                    message: loginMethod === 'email' ? '请输入邮箱' : '请输入手机号',
+                  },
+                  {
+                    validator: (_, value) => {
+                      if (!value) {
+                        return Promise.resolve()
+                      }
+                      if (loginMethod === 'email' && !validateEmail(value)) {
+                        return Promise.reject('请输入正确的邮箱格式')
+                      }
+                      if (loginMethod === 'phone' && !validatePhone(value)) {
+                        return Promise.reject('请输入正确的手机号格式')
+                      }
+                      return Promise.resolve()
+                    },
+                  },
+                ]}
+              >
+                <Input
+                  placeholder={loginMethod === 'email' ? '请输入邮箱' : '请输入手机号'}
+                  disabled={loginState === 'sending' || loginState === 'code_sent' || loginState === 'logging_in' || loginState === 'success'}
                 />
               </Form.Item>
 
-              <Form.Item>
-                <Button
-                  type="primary"
-                  block
-                  onClick={handleLogin}
-                  loading={(loginState as LoginState) === 'logging_in'}
-                  disabled={verificationCode.length !== 6 || ['success'].includes(loginState)}
-                >
-                  {(loginState as LoginState) === 'logging_in' ? '登录中...' : '登录'}
-                </Button>
-              </Form.Item>
-            </>
-          )}
+              {/* 获取验证码按钮（初始状态） */}
+              {loginState === 'initial' && (
+                <Form.Item>
+                  <Button type="primary" block onClick={handleSendVerification}>
+                    获取验证码
+                  </Button>
+                </Form.Item>
+              )}
 
-          {/* 登录中状态 */}
-          {loginState === 'logging_in' && (
-            <Form.Item>
-              <Button type="primary" block loading disabled>
-                登录中...
-              </Button>
-            </Form.Item>
-          )}
+              {/* 发送验证码中状态 */}
+              {loginState === 'sending' && (
+                <Form.Item>
+                  <Button type="primary" block loading disabled>
+                    发送中...
+                  </Button>
+                </Form.Item>
+              )}
 
-          {/* 登录成功状态 */}
-          {loginState === 'success' && (
-            <Form.Item>
-              <div style={{ textAlign: 'center', color: '#52c41a', fontSize: '16px' }}>
-                ✓ 登录成功，正在跳转...
-              </div>
-            </Form.Item>
-          )}
-        </Form>
+              {/* 验证码已发送状态 */}
+              {loginState === 'code_sent' && (
+                <>
+                  <Form.Item label="验证码">
+                    <VerificationCodeInput
+                      value={verificationCode}
+                      onChange={(value) => setVerificationCode(value)}
+                      onComplete={handleVerificationCodeComplete}
+                      disabled={['logging_in', 'success'].includes(loginState)}
+                      error={errorType === 'verification_invalid'}
+                      autoFocus={true}
+                    />
+                    <Text
+                      type="secondary"
+                      style={{ display: 'block', marginTop: token.marginXS, fontSize: token.fontSizeSM }}
+                    >
+                      验证码已发送到{loginMethod === 'email' ? '邮箱' : '手机号'}
+                    </Text>
+                  </Form.Item>
 
-        <div style={{ marginTop: 16, color: '#999', fontSize: 12, textAlign: 'center' }}>
-          <p style={{ marginBottom: 8 }}>如需账号，请联系系统管理员</p>
-          <p style={{ fontSize: 11 }}>系统不提供公开注册功能</p>
-        </div>
-      </Card>
-    </div>
+                  <Form.Item>
+                    <ResendCodeButton
+                      onResend={handleResendCode}
+                      countdownSeconds={60}
+                      disabled={['logging_in', 'success'].includes(loginState)}
+                    />
+                  </Form.Item>
+
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      block
+                      onClick={handleLogin}
+                      loading={(loginState as LoginState) === 'logging_in'}
+                      disabled={verificationCode.length !== 6 || ['success'].includes(loginState)}
+                    >
+                      {(loginState as LoginState) === 'logging_in' ? '登录中...' : '登录'}
+                    </Button>
+                  </Form.Item>
+                </>
+              )}
+
+              {/* 登录中状态 */}
+              {loginState === 'logging_in' && (
+                <Form.Item>
+                  <Button type="primary" block loading disabled>
+                    登录中...
+                  </Button>
+                </Form.Item>
+              )}
+
+              {/* 登录成功状态 */}
+              {loginState === 'success' && (
+                <Form.Item>
+                  <Text
+                    style={{
+                      display: 'block',
+                      textAlign: 'center',
+                      fontSize: token.fontSizeLG,
+                      color: token.colorSuccess,
+                    }}
+                  >
+                    登录成功，正在跳转…
+                  </Text>
+                </Form.Item>
+              )}
+            </Form>
+
+            <div
+              style={{
+                marginTop: token.marginXL,
+                paddingTop: token.marginLG,
+              }}
+            >
+              <Text
+                type="secondary"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  fontSize: token.fontSizeSM,
+                  lineHeight: token.lineHeightSM,
+                }}
+              >
+                如需账号，请联系系统管理员
+              </Text>
+              <Text
+                type="secondary"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  marginTop: token.marginXXS,
+                  fontSize: token.fontSize,
+                  color: token.colorTextTertiary,
+                }}
+              >
+                系统不提供公开注册功能
+              </Text>
+            </div>
+          </div>
+        </Col>
+      </Row>
+    </main>
   )
 }
 

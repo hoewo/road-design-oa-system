@@ -66,12 +66,14 @@ const getEnvValue = (key: string): string | undefined => {
         return import.meta.env.VITE_APP_NAME
       case 'VITE_VERSION':
         return import.meta.env.VITE_VERSION
-      default:
+      default: {
         // 对于其他环境变量，尝试动态访问（但可能无法被 Vite 静态替换）
-        const env = import.meta.env as Record<string, any>
-        if (env[key]) {
+        const env = import.meta.env as Record<string, unknown>
+        if (env[key] != null && env[key] !== '') {
           return String(env[key])
         }
+        break
+      }
     }
   }
 

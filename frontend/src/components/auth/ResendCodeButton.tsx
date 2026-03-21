@@ -34,11 +34,7 @@ export const ResendCodeButton: React.FC<ResendCodeButtonProps> = ({
     setLoading(true)
     try {
       await onResend()
-      // 发送成功后开始倒计时
       setCountdown(countdownSeconds)
-    } catch (error) {
-      // 错误由父组件处理
-      throw error
     } finally {
       setLoading(false)
     }

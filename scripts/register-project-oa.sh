@@ -27,7 +27,7 @@ NC='\033[0m' # No Color
 
 # 项目根目录
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REGISTER_SCRIPT="${PROJECT_ROOT}/specs/002-project-management-oa/guides/scripts/register-service.sh"
+REGISTER_SCRIPT="${PROJECT_ROOT}/docs/guides/scripts/register-service.sh"
 
 # 用于透传给 register-service.sh 的参数数组
 PASSTHROUGH_ARGS=()

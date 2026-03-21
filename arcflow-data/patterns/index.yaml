@@ -8,4 +8,11 @@
 #
 # Pattern 会在 arcflow start/run 时根据 trigger_keywords 自动匹配注入
 
-patterns: []
+patterns:
+  - id: P-fe-001
+    file: branded-entry-layout.md
+    title: 品牌化入口页的版面层次、品牌环境色与规格条款须从分区职责及标识/行业语境一并显式推导，禁止用组件默认值或含糊验收替代该推导
+    stage: [plancard, execute]
+    trigger_keywords: [登录页, 品牌化, 分栏, 布局, 视觉, Card, 留白, 主题色, 工程]
+    task_type: code
+    hit_count: 0

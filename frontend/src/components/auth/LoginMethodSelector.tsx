@@ -1,4 +1,4 @@
-import { Radio } from 'antd'
+import { Segmented } from 'antd'
 
 export type LoginMethod = 'email' | 'phone'
 
@@ -9,8 +9,7 @@ interface LoginMethodSelectorProps {
 }
 
 /**
- * 登录方式选择组件
- * 邮箱登录/手机号登录单选按钮组
+ * 登录方式选择（Ant Design Segmented，与 Pro / 控制台类登录页常见形态一致）
  */
 export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
   value,
@@ -18,15 +17,16 @@ export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
   disabled = false,
 }) => {
   return (
-    <Radio.Group
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
+    <Segmented<LoginMethod>
+      block
       disabled={disabled}
-      style={{ width: '100%' }}
-    >
-      <Radio value="email">邮箱登录</Radio>
-      <Radio value="phone">手机号登录</Radio>
-    </Radio.Group>
+      value={value}
+      onChange={(v) => onChange(v)}
+      options={[
+        { label: '邮箱登录', value: 'email' },
+        { label: '手机号登录', value: 'phone' },
+      ]}
+    />
   )
 }
 

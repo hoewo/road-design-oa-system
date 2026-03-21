@@ -11,7 +11,8 @@
 
 | 源 | 目标 | 说明 |
 |----|------|------|
-| （待补充） | — | — |
+| login-page-branding.md | account.md | 登录页需求引用账号/登录能力边界；裁决后需双向同步 |
+| login-page-branding.md | arckit/tech/auth-solution.md | 认证集成与网关行为参考 |
 
 ## 功能 → 技术映射（可选）
 

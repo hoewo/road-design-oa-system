@@ -17,6 +17,7 @@
 #   本地部署: ./scripts/deploy-prod.sh --local
 #   远程部署: ./scripts/deploy-prod.sh (需要配置 PROD_SERVER_HOST 等)
 #   指定服务: ./scripts/deploy-prod.sh --local --services backend frontend
+#   强制 Docker 全量重建（不用层缓存）: ./scripts/deploy-prod.sh --local --no-docker-cache
 # ============================================================================
 
 set -e
@@ -41,6 +42,8 @@ cd "${PROJECT_ROOT}"
 DEPLOY_MODE="remote"  # 默认远程部署
 SELECTED_SERVICES=()  # 用户明确指定的服务列表（用于编译/构建）
 DEPLOY_SERVICES=()   # 包含依赖的服务列表（用于部署）
+# Docker 镜像构建是否使用 --no-cache（默认否：依赖 go.mod/go.sum 等变更会自动使对应层失效并重新拉模块）
+DOCKER_BUILD_NO_CACHE=false
 
 # 定义所有可用服务
 ALL_SERVICES=("postgres" "minio" "backend" "frontend")
@@ -113,6 +116,10 @@ while [[ $# -gt 0 ]]; do
             DEPLOY_MODE="remote"
             shift
             ;;
+        --no-docker-cache)
+            DOCKER_BUILD_NO_CACHE=true
+            shift
+            ;;
         --services|-s)
             shift
             # 解析服务列表（支持空格或逗号分隔）
@@ -163,6 +170,8 @@ while [[ $# -gt 0 ]]; do
             echo "                           示例: --services backend frontend"
             echo "                           示例: --services backend,frontend"
             echo "                           注意: 会自动包含服务依赖（如 backend 会自动包含 postgres 和 minio）"
+            echo "  --no-docker-cache         Docker 构建时加 --no-cache（全量重建；默认用层缓存，"
+            echo "                           go.mod/go.sum 或构建上下文变化时会自动重新执行相关层）"
             echo "  --help, -h                显示帮助信息"
             echo ""
             echo "示例:"
@@ -808,7 +817,14 @@ done
 
 if [ ${#BUILD_SERVICES[@]} -gt 0 ]; then
     echo -e "${BLUE}  构建服务: ${BUILD_SERVICES[*]}${NC}"
-    docker compose build --no-cache "${BUILD_SERVICES[@]}" || {
+    DOCKER_BUILD_EXTRA=()
+    if [ "$DOCKER_BUILD_NO_CACHE" = true ]; then
+        DOCKER_BUILD_EXTRA+=(--no-cache)
+        echo -e "${YELLOW}  Docker: 已启用 --no-cache（忽略镜像层缓存，全量重建）${NC}"
+    else
+        echo -e "${BLUE}  Docker: 使用层缓存（仅在与缓存不一致的层重新执行，如依赖或 Dockerfile 变更）${NC}"
+    fi
+    docker compose build "${DOCKER_BUILD_EXTRA[@]}" "${BUILD_SERVICES[@]}" || {
         echo -e "${RED}✗ Docker 镜像构建失败${NC}"
         exit 1
     }

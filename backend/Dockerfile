@@ -2,6 +2,9 @@
 FROM golang:1.24-alpine AS builder
 WORKDIR /app
 RUN apk --no-cache add ca-certificates
+# 默认链式代理：缓解 proxy.golang.org 在某些网络下 EOF；构建时可 --build-arg GOPROXY=... 覆盖
+ARG GOPROXY=https://goproxy.cn,https://proxy.golang.org,direct
+ENV GOPROXY=${GOPROXY}
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .

@@ -31,7 +31,7 @@ export const CompletionFileUpload = ({
   const queryClient = useQueryClient()
 
   const handleFileChange = (info: any) => {
-    let newFileList = [...info.fileList]
+    const newFileList = [...info.fileList]
     // 支持多文件上传
     setFileList(newFileList)
   }

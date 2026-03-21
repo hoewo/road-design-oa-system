@@ -6,6 +6,7 @@
 |------|------|------|
 | overview.md | 系统总览：功能模块索引、关键实体、权限总规则、成功标准 | 🟡 |
 | account.md | 账号管理：NebulaAuth 验证码登录、角色与权限 | 🟢 |
+| login-page-branding.md | 登录页品牌化：分栏布局、冷灰品牌区、全称与 Logo、无卡片式表单栏、可理解性与裁决项 | 🟡 |
 | project-basic.md | 项目基本管理：创建编辑、负责人、甲方、经营参与人 | 🟢 |
 | file-management.md | 文件管理：上传下载、按类型与项目搜索、权限控制 | 🟡 |
 | business/bidding.md | 招投标管理：多文件上传、专家费支付 | 🟢 |
